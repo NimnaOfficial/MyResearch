@@ -1,0 +1,5 @@
+## Unnecessary files and folders
+/trash
+
+## backend environment variables
+/.bak
