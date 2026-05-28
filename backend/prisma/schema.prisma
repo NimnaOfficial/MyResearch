@@ -1,0 +1,51 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(uuid())
+  username     String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+  posts        Post[]
+}
+
+model Post {
+  id          String     @id @default(uuid())
+  title       String
+  slug        String     @unique
+  content     String     // Stores your Markdown or MDX text
+  type        PostType   @default(BLOG) // Differentiates Blog vs Research
+  published   Boolean    @default(false)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  authorId    String
+  author      User       @relation(fields: [authorId], references: [id])
+  categories  Category[]
+}
+
+model Release {
+  id           String   @id @default(uuid())
+  projectName  String
+  version      String   // e.g., "v1.0.0"
+  releaseNotes String   // Detailed Markdown changelog
+  downloadUrl  String   // Link to your cloud storage bucket
+  publishedAt  DateTime @default(now())
+}
+
+model Category {
+  id    String @id @default(uuid())
+  name  String @unique
+  slug  String @unique
+  posts Post[]
+}
+
+enum PostType {
+  BLOG
+  RESEARCH
+}

@@ -1,0 +1,30 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #020617;
+  --foreground: #e2e8f0;
+}
+
+::selection {
+  background: rgba(34, 211, 238, 0.3);
+  color: #fff;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  @apply antialiased transition-colors duration-300;
+  cursor: none; /* Hides default cursor across the app */
+  overflow-x: hidden;
+}
+
+a, button, input {
+  cursor: none !important; 
+}
+
+/* Used for MagneticButton hover effect */
+@keyframes shimmer {
+  100% { transform: translateX(100%); }
+}
