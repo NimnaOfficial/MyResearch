@@ -1,19 +1,56 @@
 "use client";
 import { motion } from 'framer-motion';
 import { Mail, ChevronRight, Hexagon, Terminal, Network, Globe } from 'lucide-react';
+import Link from 'next/link';
+
+// ==========================================
+// 1. SECURITY DEFINITIONS
+// ==========================================
+export type UserRole = 'guest' | 'user' | 'admin';
 
 interface FooterProps {
   isLight?: boolean;
+  currentRole?: UserRole;
 }
 
-export default function Footer({ isLight = false }: FooterProps) {
+export default function Footer({ isLight = false, currentRole = 'guest' }: FooterProps) {
+  // Theme styling based on your original design
   const textPrimary = isLight ? "text-slate-900" : "text-white";
   const textSecondary = isLight ? "text-slate-600" : "text-slate-400";
   const borderCol = isLight ? "border-slate-300" : "border-cyan-900/40";
   const glowLine = isLight ? "from-blue-500/0 via-blue-500 to-blue-500/0" : "from-cyan-500/0 via-cyan-400 to-cyan-500/0";
   const bgCol = isLight ? "bg-white/40" : "bg-[#01030a]/80";
 
-  const links = ['Home', 'Explore', 'Research', 'Projects', 'Contact'];
+  // ==========================================
+  // 2. DYNAMIC FOOTER ACCESS MATRIX
+  // Mirrors the matrix from BottomNav.tsx
+  // ==========================================
+  const FOOTER_MATRIX = {
+    guest: [
+      { name: 'Home', path: '/' },
+      { name: 'Explore', path: '/explore' },
+      { name: 'Contact', path: '/contact' },
+      { name: 'Gateway', path: '/auth' },
+    ],
+    user: [
+      { name: 'Home', path: '/' },
+      { name: 'Research', path: '/research' },
+      { name: 'Projects', path: '/projects' },
+      { name: 'Contact', path: '/contact' },
+      { name: 'Feedback', path: '/feedback' },
+    ],
+    admin: [
+      { name: 'Home', path: '/' },
+      { name: 'Explore', path: '/explore' },
+      { name: 'Messages', path: '/contact' },
+      { name: 'Research CRUD', path: '/admin/research' },
+      { name: 'Projects CRUD', path: '/admin/projects' },
+      { name: 'Feedback Rev', path: '/admin/feedback' },
+      { name: 'Mgr Users', path: '/admin/users' },
+    ]
+  };
+
+  const activeLinks = FOOTER_MATRIX[currentRole] || FOOTER_MATRIX.guest;
 
   return (
     <footer className={`relative z-10 w-full pt-20 pb-40 backdrop-blur-2xl border-t ${borderCol} ${bgCol} transition-colors duration-700`}>
@@ -25,7 +62,7 @@ export default function Footer({ isLight = false }: FooterProps) {
 
       <div className="max-w-7xl mx-auto px-10 md:px-16 grid grid-cols-1 md:grid-cols-12 gap-12 pointer-events-auto">
         
-        {/* BRAND COLUMN */}
+        {/* BRAND COLUMN[cite: 2] */}
         <div className="md:col-span-5 flex flex-col space-y-6">
           <div className="flex items-center space-x-3">
             <Hexagon size={28} className={isLight ? "text-blue-600" : "text-cyan-400"} />
@@ -47,35 +84,35 @@ export default function Footer({ isLight = false }: FooterProps) {
           </div>
         </div>
 
-        {/* QUICK LINKS */}
+        {/* QUICK LINKS (Now strictly tied to UserRole) */}
         <div className="md:col-span-3 flex flex-col space-y-6">
           <h3 className={`text-sm font-bold uppercase tracking-widest ${textPrimary}`}>Directory</h3>
           <ul className="space-y-4">
-            {links.map((link) => (
-              <li key={link}>
-                <motion.a 
-                  href={`${link.toLowerCase()}`}
-                  whileHover={{ x: 5 }}
-                  className={`flex items-center space-x-2 text-sm font-light uppercase tracking-wider cursor-pointer group ${textSecondary}`}
-                >
-                  <ChevronRight size={14} className={`opacity-0 -ml-4 transition-all duration-300 group-hover:opacity-100 group-hover:ml-0 ${isLight ? 'text-blue-600' : 'text-cyan-400'}`} />
-                  <span className={`transition-colors duration-300 group-hover:${isLight ? 'text-blue-600' : 'text-cyan-400'}`}>
-                    {link}
-                  </span>
-                </motion.a>
+            {activeLinks.map((link) => (
+              <li key={link.path}>
+                <Link href={link.path} passHref>
+                  <motion.div 
+                    whileHover={{ x: 5 }}
+                    className={`flex items-center space-x-2 text-sm font-light uppercase tracking-wider cursor-pointer group ${textSecondary}`}
+                  >
+                    <ChevronRight size={14} className={`opacity-0 -ml-4 transition-all duration-300 group-hover:opacity-100 group-hover:ml-0 ${isLight ? 'text-blue-600' : 'text-cyan-400'}`} />
+                    <span className={`transition-colors duration-300 group-hover:${isLight ? 'text-blue-600' : 'text-cyan-400'}`}>
+                      {link.name}
+                    </span>
+                  </motion.div>
+                </Link>
               </li>
             ))}
           </ul>
         </div>
 
-        {/* SOCIAL / CONTACT */}
+        {/* SOCIAL / CONTACT[cite: 2] */}
         <div className="md:col-span-4 flex flex-col space-y-6">
           <h3 className={`text-sm font-bold uppercase tracking-widest ${textPrimary}`}>Transmission Log</h3>
           <p className={`font-light text-sm ${textSecondary}`}>
             Establish a direct secure link across global networks.
           </p>
           <div className="flex space-x-4 pt-2">
-            {/* 🔥 FIX: Replaced removed brand icons with Cyber-themed System Icons */}
             {[Terminal, Network, Globe, Mail].map((Icon, idx) => (
               <motion.a
                 key={idx}
@@ -94,7 +131,7 @@ export default function Footer({ isLight = false }: FooterProps) {
         </div>
       </div>
 
-      {/* COPYRIGHT BOTTOM BAR */}
+      {/* COPYRIGHT BOTTOM BAR[cite: 2] */}
       <div className={`max-w-7xl mx-auto px-10 md:px-16 mt-20 pt-8 border-t flex flex-col md:flex-row justify-between items-center ${isLight ? 'border-slate-300' : 'border-cyan-900/30'}`}>
         <p className={`text-xs tracking-wider font-light uppercase ${textSecondary}`}>
           © {new Date().getFullYear()} Nima.Dev. All sequences preserved.

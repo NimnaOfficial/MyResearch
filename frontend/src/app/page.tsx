@@ -1,9 +1,11 @@
 "use client";
 import { useRef, useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Float, MeshTransmissionMaterial, Box, Cylinder, Sphere, TorusKnot, Sparkles, MeshDistortMaterial, PresentationControls } from '@react-three/drei';
 import { EffectComposer, Bloom } from '@react-three/postprocessing';
 import * as THREE from 'three';
+import { ShieldAlert, Mail, Fingerprint, RefreshCw, Lock, ScanFace, KeySquare, CheckCircle, Timer, AlertTriangle, MessageSquareText } from 'lucide-react'; 
 import BottomNav from '@/components/BottomNav';
 import CustomCursor from '@/components/CustomCursor';
 import SearchBar from '@/components/SearchBar';
@@ -11,7 +13,7 @@ import NextGenButton from '@/components/NextGenButton';
 import ThemeToggle from '@/components/ThemeToggle';
 import Footer from '@/components/Footer';
 import BootSequence from '@/components/BootSequence';
-import { motion, AnimatePresence } from 'framer-motion'; // 🔥 ADDED AnimatePresence
+import { motion, AnimatePresence } from 'framer-motion';
 
 // ==========================================
 // 1. MASSIVE DIGITAL TECH OBJECTS
@@ -93,7 +95,6 @@ function CPUMicrochip({ scale }: { scale: number }) {
   );
 }
 
-// 🔥 NEW SECTION 3 OBJECT: Quantum Communication Portal
 function QuantumPortal({ scale }: { scale: number }) {
   const ref = useRef<THREE.Group>(null);
   useFrame((state) => { 
@@ -104,9 +105,9 @@ function QuantumPortal({ scale }: { scale: number }) {
   });
   return (
     <group scale={scale} ref={ref}>
-      <TorusKnot args={[1, 0.3, 128, 16]} material={new THREE.MeshStandardMaterial({ color: "#000", emissive: "#b026ff", emissiveIntensity: 1.5, wireframe: true })} />
+      <TorusKnot args={[1, 0.3, 128, 16]} material={new THREE.MeshStandardMaterial({ color: "#000", emissive: "#a855f7", emissiveIntensity: 1.5, wireframe: true })} />
       <Sphere args={[0.6, 32, 32]} material={new THREE.MeshStandardMaterial({ color: "#000", emissive: "#00f0ff", emissiveIntensity: 3, wireframe: true })} />
-      <Sparkles count={100} scale={4} size={3} color="#b026ff" />
+      <Sparkles count={100} scale={4} size={3} color="#a855f7" />
     </group>
   );
 }
@@ -140,22 +141,19 @@ function SystemEngine({ scrollData }: { scrollData: { section: number, velocity:
   const engineGroup = useRef<THREE.Group>(null);
   const liquidRef = useRef<THREE.Mesh>(null);
   const [idleState, setIdleState] = useState(0);
-  const [isBooting, setIsBooting] = useState(true);
   
   useEffect(() => {
-    const bootTimer = setTimeout(() => setIsBooting(false), 2200); 
     let interval: NodeJS.Timeout;
     if (scrollData.section === 0) {
       interval = setInterval(() => setIdleState(prev => (prev + 1) % 3), 4000);
     }
-    return () => { clearTimeout(bootTimer); clearInterval(interval); };
+    return () => clearInterval(interval);
   }, [scrollData.section]);
 
   useFrame((state, delta) => {
     if (engineGroup.current) {
       const targetY = scrollData.section === 0 ? 0.8 : 0;
       
-      // 🔥 FIX: Re-applied the 2.5 offset limits so the massive objects stay on screen!
       let targetX = 0;
       if (scrollData.section === 1) targetX = -2.5;
       if (scrollData.section === 2) targetX = 2.5;
@@ -179,55 +177,115 @@ function SystemEngine({ scrollData }: { scrollData: { section: number, velocity:
   });
 
   const isScrolling = Math.abs(scrollData.velocity) > 5;
-  const isIdle = scrollData.section === 0 && !isScrolling && !isBooting;
+  const isIdle = scrollData.section === 0 && !isScrolling;
   
   const baseScale = 8.5; 
   const transitionSpeed = 0.08; 
 
-  // Object Scales based on section
   const s0 = THREE.MathUtils.lerp(0, isIdle && idleState === 0 ? baseScale : 0, transitionSpeed);
   const s1 = THREE.MathUtils.lerp(0, isIdle && idleState === 1 ? baseScale : 0, transitionSpeed);
   const s2 = THREE.MathUtils.lerp(0, isIdle && idleState === 2 ? baseScale : 0, transitionSpeed);
   
   const researchScale = THREE.MathUtils.lerp(0, scrollData.section === 1 && !isScrolling ? baseScale : 0, transitionSpeed);
   const projectScale = THREE.MathUtils.lerp(0, scrollData.section === 2 && !isScrolling ? baseScale : 0, transitionSpeed);
-  const contactScale = THREE.MathUtils.lerp(0, scrollData.section === 3 && !isScrolling ? baseScale : 0, transitionSpeed); // 🔥 NEW SECTION
+  const contactScale = THREE.MathUtils.lerp(0, scrollData.section === 3 && !isScrolling ? baseScale : 0, transitionSpeed); 
 
-  const liquidScale = THREE.MathUtils.lerp(0, isBooting || isScrolling ? baseScale * 1.5 : 0, transitionSpeed);
+  const liquidScale = THREE.MathUtils.lerp(0, isScrolling ? baseScale * 1.5 : 0, transitionSpeed);
 
   return (
     <PresentationControls global config={{ mass: 2, tension: 300 }} snap={{ mass: 4, tension: 800 }} rotation={[0, 0, 0]} polar={[-0.4, 0.4]} azimuth={[-1, 1]}>
       <group ref={engineGroup}>
-        
         <mesh ref={liquidRef} scale={liquidScale} position={[0, isScrolling ? 0 : 0.5, 0]}>
           <sphereGeometry args={[1, 128, 128]} />
           <MeshDistortMaterial color="#000" emissive="#0ea5e9" emissiveIntensity={3} distort={0.8} speed={5} wireframe={true} />
         </mesh>
-
-        {/* Section 0 Idles */}
         <DigitalLaptop scale={s0} />
         <DigitalFlask scale={s1} />
         <DataHelix scale={s2} />
-
-        {/* Sections 1, 2, 3 */}
         <DigitalLedgerBook scale={researchScale} />
         <CPUMicrochip scale={projectScale} />
         <QuantumPortal scale={contactScale} />
-
       </group>
     </PresentationControls>
   );
 }
 
 // ==========================================
-// 4. MAIN PAGE ASSEMBLY
+// 4. MAIN PAGE ASSEMBLY & SECURITY OVERLAY
 // ==========================================
 
 export default function WelcomePage() {
+  const router = useRouter(); 
   const [scrollData, setScrollData] = useState({ section: 0, velocity: 0 });
   const [isLightMode, setIsLightMode] = useState(false);
-  const [isSystemBooting, setIsSystemBooting] = useState(true); // 🔥 ADDED THIS LINE
   const lastScrollY = useRef(0);
+
+  // 🔥 SESSION MEMORY BOOT LOGIC[cite: 3] 🔥
+  const [isSystemBooting, setIsSystemBooting] = useState(false); 
+  
+  useEffect(() => {
+    // Check if the system has already booted during this browser session
+    const hasBooted = sessionStorage.getItem('csxpedia_booted');
+    
+    if (!hasBooted) {
+      setIsSystemBooting(true); // Trigger boot sequence
+      
+      // Failsafe: Forcibly unlock the screen after 5.5 seconds if BootSequence gets stuck
+      const failsafe = setTimeout(() => {
+        setIsSystemBooting(false);
+        sessionStorage.setItem('csxpedia_booted', 'true');
+      }, 5500); 
+      
+      return () => clearTimeout(failsafe);
+    }
+  }, []);
+
+  const handleBootComplete = () => {
+    setIsSystemBooting(false);
+    sessionStorage.setItem('csxpedia_booted', 'true');
+  };
+
+  // SECURITY STATES
+  const [isAuthenticated, setIsAuthenticated] = useState(false); // Change to 'true' to test Lockdown
+  const [isVerified, setIsVerified] = useState(false); 
+  const [isResending, setIsResending] = useState(false);
+  
+  // 4-Phase Verification Machine (Includes Timeout)
+  const [verificationPhase, setVerificationPhase] = useState<'locked' | 'verifying' | 'code_generated' | 'timeout'>('locked');
+  const [timeLeft, setTimeLeft] = useState(900); 
+
+  useEffect(() => {
+    if (isAuthenticated && !isVerified && verificationPhase === 'locked' && timeLeft > 0) {
+      const timerId = setInterval(() => setTimeLeft((prev) => prev - 1), 1000);
+      return () => clearInterval(timerId);
+    } else if (timeLeft === 0 && verificationPhase === 'locked') {
+      setVerificationPhase('timeout'); 
+    }
+  }, [isAuthenticated, isVerified, verificationPhase, timeLeft]);
+
+  const minutes = Math.floor(timeLeft / 60).toString().padStart(2, '0');
+  const seconds = (timeLeft % 60).toString().padStart(2, '0');
+
+  const handleResend = () => {
+    setIsResending(true);
+    setTimeout(() => setIsResending(false), 2000);
+  };
+
+  const handleSimulateVerification = () => {
+    setVerificationPhase('verifying');
+    setTimeout(() => {
+      setVerificationPhase('code_generated'); 
+    }, 3000);
+  };
+
+  const handleAcknowledgeCode = () => {
+    setIsVerified(true);
+    setVerificationPhase('locked'); 
+  };
+
+  const handleTimeoutRouting = () => {
+    router.push('/contact');
+  };
 
   useEffect(() => {
     const handleScroll = () => {
@@ -246,42 +304,40 @@ export default function WelcomePage() {
   const textSecondary = isLightMode ? "text-slate-600" : "text-slate-400";
   const accentText = isLightMode ? "text-blue-600" : "text-cyan-400";
   
-  // Card styles for zigzag
   const cardCyan = isLightMode ? "bg-white/60 border-white/50 shadow-[0_20px_60px_rgba(0,0,0,0.08)]" : "bg-[#030b1c]/80 border-cyan-500/50 shadow-[0_0_60px_rgba(34,211,238,0.2)]";
   const cardIndigo = isLightMode ? "bg-white/60 border-white/50 shadow-[0_20px_60px_rgba(0,0,0,0.08)]" : "bg-[#030b1c]/80 border-indigo-500/50 shadow-[0_0_60px_rgba(79,70,229,0.2)]";
   const cardPurple = isLightMode ? "bg-white/60 border-white/50 shadow-[0_20px_60px_rgba(0,0,0,0.08)]" : "bg-[#030b1c]/80 border-purple-500/50 shadow-[0_0_60px_rgba(168,85,247,0.2)]";
 
+  const currentUserRole = isAuthenticated ? (isVerified ? 'user' : 'guest') : 'guest';
+  const showLockdown = isAuthenticated && !isVerified && !isSystemBooting;
+
   return (
     <main className={`relative transition-colors duration-700 font-sans cursor-none overflow-x-hidden ${isLightMode ? 'bg-slate-50' : 'bg-[#01030a]'}`}>
+      
+      {/* 🔥 THE BOOT SEQUENCE COMPONENT[cite: 3] 🔥 */}
       <AnimatePresence>
-        {isSystemBooting && <BootSequence onComplete={() => setIsSystemBooting(false)} />}
+        {isSystemBooting && <BootSequence onComplete={handleBootComplete} />}
       </AnimatePresence>
+      
       <CustomCursor />
       <SearchBar />
       <ThemeToggle isLight={isLightMode} toggleTheme={() => setIsLightMode(!isLightMode)} />
 
-        
-      
-      <div className="fixed inset-0 z-0 pointer-events-none">
+      <div className={`fixed inset-0 z-0 pointer-events-none transition-all duration-1000 ${showLockdown ? 'blur-[4px] opacity-60' : ''}`}>
         <Canvas camera={{ position: [0, 0, 7], fov: 45 }}>
           <color attach="background" args={['#01030a']} />
           <SceneLighting isLight={isLightMode} />
-          
           <Sparkles count={600} scale={20} size={1.5} speed={0.4} opacity={isLightMode ? 0.2 : 0.6} color={isLightMode ? "#3b82f6" : "#00f0ff"} />
-          
           <Float speed={2} rotationIntensity={0.1} floatIntensity={0.3}>
             <SystemEngine scrollData={scrollData} />
           </Float>
-          
           <EffectComposer>
             <Bloom luminanceThreshold={isLightMode ? 0.8 : 0.1} mipmapBlur intensity={isLightMode ? 1.0 : 3} radius={0.9} />
           </EffectComposer>
         </Canvas>
       </div>
 
-      <div className="relative z-10 pointer-events-none">
-        
-        {/* Section 0: HERO */}
+      <div className={`relative z-10 transition-all duration-1000 ${showLockdown ? 'blur-[8px] scale-[0.98] opacity-40 pointer-events-none' : 'pointer-events-none'}`}>
         <section className="h-screen flex flex-col items-center justify-end pb-24 px-6">
           <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1.5, delay: 0.5 }} className="max-w-4xl text-center">
             <h1 className={`text-4xl md:text-5xl font-black tracking-tight mb-3 transition-colors duration-500 ${textPrimary} drop-shadow-[0_0_40px_rgba(34,211,238,0.3)]`}>
@@ -297,7 +353,6 @@ export default function WelcomePage() {
           </motion.div>
         </section>
 
-        {/* Section 1: RESEARCH (Right) */}
         <section className="h-screen flex flex-col items-end justify-center px-10 md:px-32">
           <motion.div initial={{ opacity: 0, x: 100, rotateY: 10 }} whileInView={{ opacity: 1, x: 0, rotateY: 0 }} viewport={{ once: false, amount: 0.4 }} transition={{ type: "spring", stiffness: 100, damping: 20 }} className={`max-w-xl text-right pointer-events-auto backdrop-blur-2xl p-12 rounded-3xl border transition-all duration-500 ${cardCyan}`}>
             <h2 className={`text-4xl font-bold mb-6 transition-colors duration-500 ${textPrimary}`}>Research & Data</h2>
@@ -310,7 +365,6 @@ export default function WelcomePage() {
           </motion.div>
         </section>
 
-        {/* Section 2: PROJECTS (Left) */}
         <section className="h-screen flex flex-col items-start justify-center px-10 md:px-32">
           <motion.div initial={{ opacity: 0, x: -100, rotateY: -10 }} whileInView={{ opacity: 1, x: 0, rotateY: 0 }} viewport={{ once: false, amount: 0.4 }} transition={{ type: "spring", stiffness: 100, damping: 20 }} className={`max-w-xl text-left pointer-events-auto backdrop-blur-2xl p-12 rounded-3xl border transition-all duration-500 ${cardIndigo}`}>
             <h2 className={`text-4xl font-bold mb-6 transition-colors duration-500 ${textPrimary}`}>Project Pipelines</h2>
@@ -321,7 +375,6 @@ export default function WelcomePage() {
           </motion.div>
         </section>
 
-        {/* 🔥 NEW Section 3: TRANSMISSION/CONTACT (Right) */}
         <section className="h-[100vh] flex flex-col items-end justify-center px-10 md:px-32 pb-32">
           <motion.div initial={{ opacity: 0, x: 100, rotateY: 10 }} whileInView={{ opacity: 1, x: 0, rotateY: 0 }} viewport={{ once: false, amount: 0.4 }} transition={{ type: "spring", stiffness: 100, damping: 20 }} className={`max-w-xl text-right pointer-events-auto backdrop-blur-2xl p-12 rounded-3xl border transition-all duration-500 ${cardPurple}`}>
             <h2 className={`text-4xl font-bold mb-6 transition-colors duration-500 ${textPrimary}`}>Transmission</h2>
@@ -333,11 +386,104 @@ export default function WelcomePage() {
             </div>
           </motion.div>
         </section>
-        
-
       </div>
-      <BottomNav />
-      <Footer isLight={isLightMode} />
+
+      {/* THE SECURE LOCKDOWN BARRIER */}
+      <AnimatePresence>
+        {showLockdown && (
+          <motion.div 
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.5 }}
+            className="fixed inset-0 z-[60] flex items-center justify-center p-6 bg-[#010309]/80 backdrop-blur-md pointer-events-auto"
+          >
+            <motion.div 
+              initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} transition={{ type: "spring", damping: 25, delay: 0.2 }}
+              className="relative w-full max-w-lg p-10 rounded-3xl bg-[#020613]/90 border border-[#a855f7]/30 shadow-[0_0_80px_rgba(168,85,247,0.15)] overflow-hidden flex flex-col items-center text-center"
+            >
+              
+              {verificationPhase === 'locked' && (
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center w-full">
+                  <div className="flex items-center space-x-2 mb-4 bg-slate-900/80 px-4 py-2 rounded-full border border-[#a855f7]/50">
+                    <Timer size={16} className={`${timeLeft < 300 ? 'text-red-500 animate-pulse' : 'text-[#a855f7]'}`} />
+                    <span className={`font-mono text-sm font-black tracking-widest ${timeLeft < 300 ? 'text-red-500' : 'text-[#a855f7]'}`}>
+                      {minutes}:{seconds}
+                    </span>
+                  </div>
+                  <div className="relative p-6 rounded-full bg-[#a855f7]/10 border border-[#a855f7]/30 mb-6">
+                    <ShieldAlert size={40} className="text-[#a855f7]" />
+                    <motion.div animate={{ rotate: 360 }} transition={{ duration: 10, repeat: Infinity, ease: "linear" }} className="absolute inset-0 rounded-full border border-dashed border-[#a855f7]/40" />
+                  </div>
+                  <h2 className="text-2xl font-black text-white tracking-widest uppercase mb-2">Sector Locked</h2>
+                  <p className="text-slate-400 text-sm leading-relaxed mb-6 max-w-sm">
+                    Awaiting secure remote token via email. This gateway actively listens for external signal handshakes.
+                  </p>
+                  <div className="flex items-center space-x-2 mb-8">
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#a855f7] opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-[#9333ea]"></span>
+                    </span>
+                    <span className="text-[10px] text-[#a855f7] uppercase tracking-widest font-mono">Real-Time Polling Active</span>
+                  </div>
+                  <div className="w-full flex flex-col space-y-4">
+                    <button onClick={handleSimulateVerification} className="w-full flex items-center justify-center py-4 bg-[#a855f7] hover:bg-[#9333ea] text-white font-black uppercase tracking-[0.2em] text-xs rounded-xl transition-all shadow-[0_0_20px_rgba(168,85,247,0.3)] hover:shadow-[0_0_30px_rgba(168,85,247,0.5)]">
+                      <Fingerprint size={16} className="mr-2" /> [Dev] Simulate Remote Signal
+                    </button>
+                    <button onClick={handleResend} disabled={isResending} className="w-full flex items-center justify-center py-4 bg-transparent border border-slate-700 hover:border-cyan-500/50 text-slate-400 hover:text-cyan-400 font-bold uppercase tracking-[0.1em] text-xs rounded-xl transition-colors disabled:opacity-50">
+                      {isResending ? <RefreshCw size={14} className="animate-spin mr-2" /> : <Lock size={14} className="mr-2" />}
+                      {isResending ? 'Transmitting...' : 'Resend Uplink Code'}
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+
+              {verificationPhase === 'verifying' && (
+                <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} className="flex flex-col items-center w-full py-8">
+                  <ScanFace size={64} className="text-[#a855f7] animate-pulse mb-6 drop-shadow-[0_0_15px_rgba(168,85,247,0.5)]" />
+                  <h2 className="text-2xl font-black text-white tracking-widest uppercase mb-2">Decrypting Token</h2>
+                  <p className="text-slate-400 text-sm mb-10">Establishing permanent identity matrix...</p>
+                  <div className="w-full h-1.5 bg-slate-900 overflow-hidden rounded-full">
+                    <motion.div animate={{x: ['-100%', '100%']}} transition={{repeat: Infinity, duration: 1.5, ease: "linear"}} className="w-1/2 h-full bg-[#a855f7] shadow-[0_0_15px_rgba(168,85,247,1)]" />
+                  </div>
+                </motion.div>
+              )}
+
+              {verificationPhase === 'code_generated' && (
+                <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} className="flex flex-col items-center w-full">
+                  <KeySquare size={64} className="text-[#a855f7] mb-6 drop-shadow-[0_0_15px_rgba(168,85,247,0.8)]" />
+                  <h2 className="text-2xl font-black text-white tracking-widest uppercase mb-2">Verification Complete</h2>
+                  <p className="text-slate-400 text-sm mb-6 max-w-sm">Your identity is secured. Below is your permanent Secret Member Code. Save it immediately.</p>
+                  <div className="px-8 py-4 bg-[#a855f7]/10 border border-[#a855f7]/30 rounded-xl mb-8 shadow-[0_0_30px_rgba(168,85,247,0.2)] w-full">
+                    <span className="text-3xl sm:text-4xl font-mono tracking-[0.3em] text-[#a855f7] font-black drop-shadow-[0_0_10px_rgba(168,85,247,0.5)]">
+                      NIM7892XF
+                    </span>
+                  </div>
+                  <button onClick={handleAcknowledgeCode} className="w-full flex items-center justify-center py-4 bg-[#a855f7] hover:bg-[#9333ea] text-white font-black uppercase tracking-[0.2em] text-xs rounded-xl transition-all shadow-[0_0_20px_rgba(168,85,247,0.3)] hover:shadow-[0_0_30px_rgba(168,85,247,0.5)]">
+                    <CheckCircle size={16} className="mr-2" /> Acknowledge & Enter Matrix
+                  </button>
+                </motion.div>
+              )}
+
+              {verificationPhase === 'timeout' && (
+                <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="flex flex-col items-center w-full">
+                  <div className="relative p-6 rounded-full bg-red-500/10 border border-red-500/30 mb-6">
+                    <AlertTriangle size={40} className="text-red-500" />
+                  </div>
+                  <h2 className="text-2xl font-black text-red-500 tracking-widest uppercase mb-2">Window Expired</h2>
+                  <p className="text-slate-400 text-sm leading-relaxed mb-8 max-w-sm">
+                    Your 15-minute verification window has closed to protect system integrity. If you did not receive the transmission or experienced an anomaly, please contact administration.
+                  </p>
+                  <button onClick={handleTimeoutRouting} className="w-full flex items-center justify-center py-4 bg-red-600 hover:bg-red-500 text-white font-black uppercase tracking-[0.2em] text-xs rounded-xl transition-all shadow-[0_0_20px_rgba(239,68,68,0.3)] hover:shadow-[0_0_30px_rgba(239,68,68,0.5)]">
+                    <MessageSquareText size={16} className="mr-2" /> Proceed to Secure Contact
+                  </button>
+                </motion.div>
+              )}
+
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <BottomNav currentRole={currentUserRole as any} />
+      <Footer isLight={isLightMode} currentRole={currentUserRole as any} />
     </main>
   );
 }

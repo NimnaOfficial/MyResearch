@@ -1,5 +1,5 @@
 "use client";
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useForm, ValidationError } from '@formspree/react';
 import { Terminal as TermIcon, Send, User, Mail, GitBranch, Network, Globe, ShieldCheck, Radio, ArrowUpRight } from 'lucide-react';
@@ -17,7 +17,7 @@ import Footer from '@/components/Footer';
 // 1. EXACT USER DATA
 // ==========================================
 const IDENTITY_DATA = [
-  { label: "Operator Identity", value: "KGL SANDANIMNE", icon: User, link: null },
+  { label: "Operator Identity", value: "NIMA", icon: User, link: null }, // Updated to Nima[cite: 1]
   { label: "Encrypted Mail", value: "sandanimne0@gmail.com", icon: Mail, link: "mailto:sandanimne0@gmail.com" },
   { label: "GitHub Repository", value: "NimnaOfficial", icon: GitBranch, link: "https://github.com/NimnaOfficial/" },
   { label: "LinkedIn Network", value: "sandanimne-k-g-l", icon: Network, link: "https://www.linkedin.com/in/sandanimne-k-g-l-a276aa34a/" },
@@ -39,8 +39,8 @@ function QuantumSignalRelay({ isLight }: { isLight: boolean }) {
     }
     // Radio Wave Pulsing Effect
     if (pulseRef.current) {
-      const scale = 1 + (state.clock.elapsedTime % 2) * 2; // Expands from 1 to 3
-      const opacity = Math.max(0, 1 - (state.clock.elapsedTime % 2)); // Fades out as it expands
+      const scale = 1 + (state.clock.elapsedTime % 2) * 2; 
+      const opacity = Math.max(0, 1 - (state.clock.elapsedTime % 2)); 
       pulseRef.current.scale.set(scale, scale, scale);
       (pulseRef.current.material as THREE.MeshBasicMaterial).opacity = opacity * (isLight ? 0.2 : 0.4);
     }
@@ -88,16 +88,45 @@ const itemVariants = { hidden: { opacity: 0, x: -20 }, show: { opacity: 1, x: 0,
 // ==========================================
 export default function ContactPage() {
   const [isLightMode, setIsLightMode] = useState(false);
-  const [state, handleSubmit] = useForm("xwvzayvy");
+  
+  // Formspree Integration (Make sure to replace with your actual ID later if needed)
+  const [state, handleSubmit] = useForm("xwvzayvy"); 
+
+  // 🔥 MOCK SECURITY STATES FOR ROLE MATRIX 🔥
+  const [isAuthenticated, setIsAuthenticated] = useState(false); // Set to true to test Auto-fill
+  const [isVerified, setIsVerified] = useState(false); 
+  
+  const currentUserRole = isAuthenticated ? (isVerified ? 'user' : 'guest') : 'guest';
+
+  // Smart Auto-Fill Logic for Authenticated Users
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    message: ''
+  });
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      setFormData(prev => ({
+        ...prev,
+        name: 'Active Operative 7892XF', // Mock Database Data
+        email: 'operator@csxpedia.net'    // Mock Database Data
+      }));
+    }
+  }, [isAuthenticated]);
 
   const bgCol = isLightMode ? 'bg-slate-50' : 'bg-[#01030a]';
   const textPrimary = isLightMode ? "text-slate-900" : "text-white";
   const textSecondary = isLightMode ? "text-slate-500" : "text-slate-400";
   const accentText = isLightMode ? "text-blue-600" : "text-cyan-400";
+  
+  // 🔥 TECH PURPLE ACCENTS 🔥
+  const techPurple = isLightMode ? "text-[#9333ea]" : "text-[#a855f7]";
   const glassPanel = isLightMode ? "bg-white/60 border-slate-300 shadow-xl" : "bg-[#030b1c]/80 border-cyan-500/20 shadow-[0_0_50px_rgba(34,211,238,0.05)]";
+  
   const inputStyle = isLightMode 
-    ? "bg-white/80 border-slate-300 text-slate-900 focus:border-blue-500 focus:ring-blue-500/20 placeholder-slate-400" 
-    : "bg-[#020712]/80 border-cyan-500/30 text-cyan-50 focus:border-cyan-400 focus:ring-cyan-400/20 placeholder-cyan-900/60";
+    ? "bg-white/80 border-slate-300 text-slate-900 focus:border-[#9333ea] focus:ring-[#9333ea]/20 placeholder-slate-400" 
+    : "bg-[#020712]/80 border-cyan-500/30 text-cyan-50 focus:border-[#a855f7] focus:ring-[#a855f7]/20 placeholder-cyan-900/60";
 
   return (
     <main className={`relative min-h-screen transition-colors duration-700 font-sans cursor-none overflow-x-hidden ${bgCol}`}>
@@ -119,18 +148,19 @@ export default function ContactPage() {
 
       <div className="relative z-10 max-w-7xl mx-auto px-6 md:px-12 pt-32 pb-40">
         
-        {/* SUCCESS STATE OVERLAY */}
+        {/* SUCCESS STATE OVERLAY (Now Tech Purple) */}
         <AnimatePresence>
           {state.succeeded && (
             <motion.div initial={{ opacity: 0, scale: 0.95, filter: "blur(10px)" }} animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }} className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/40 backdrop-blur-md">
               <div className={`p-12 rounded-3xl border text-center flex flex-col items-center max-w-lg ${glassPanel}`}>
-                <motion.div initial={{ scale: 0 }} animate={{ scale: 1, rotate: 360 }} transition={{ type: "spring", damping: 15, delay: 0.2 }} className={`p-6 rounded-full mb-6 ${isLightMode ? 'bg-blue-100 text-blue-600' : 'bg-cyan-900/40 text-cyan-400'}`}>
+                <motion.div initial={{ scale: 0 }} animate={{ scale: 1, rotate: 360 }} transition={{ type: "spring", damping: 15, delay: 0.2 }} className={`p-6 rounded-full mb-6 ${isLightMode ? 'bg-purple-100 text-[#9333ea]' : 'bg-[#a855f7]/10 text-[#a855f7] drop-shadow-[0_0_15px_rgba(168,85,247,0.8)]'}`}>
                   <ShieldCheck size={48} />
                 </motion.div>
                 <h2 className={`text-3xl font-black mb-4 tracking-widest uppercase ${textPrimary}`}>Transmission Secured</h2>
-                <p className={`mb-8 ${textSecondary}`}>The message payload has been successfully encrypted and routed to KGL SANDANIMNE.</p>
-                <button onClick={() => window.location.reload()} className={`flex items-center px-6 py-3 rounded-xl font-bold uppercase tracking-widest text-xs transition-all ${isLightMode ? 'bg-slate-200 text-slate-700 hover:bg-slate-300' : 'bg-cyan-950/50 text-cyan-400 border border-cyan-800 hover:bg-cyan-900/50'}`}>
-                  Reset Terminal
+                <p className={`mb-8 ${textSecondary}`}>The message payload has been successfully encrypted and routed to Nima.</p>
+                
+                <button onClick={() => window.location.reload()} className={`flex items-center px-8 py-4 rounded-xl font-black uppercase tracking-widest text-xs transition-all ${isLightMode ? 'bg-[#9333ea] text-white hover:bg-[#a855f7] shadow-[0_0_20px_rgba(147,51,234,0.3)]' : 'bg-[#a855f7] text-white hover:bg-[#9333ea] shadow-[0_0_20px_rgba(168,85,247,0.3)] hover:shadow-[0_0_30px_rgba(168,85,247,0.5)]'}`}>
+                  Reset Terminal Link
                 </button>
               </div>
             </motion.div>
@@ -170,7 +200,6 @@ export default function ContactPage() {
                   whileHover={{ scale: 1.02, x: 10 }}
                   className={`relative overflow-hidden group flex items-center p-5 rounded-2xl border backdrop-blur-xl transition-all duration-300 ${isLightMode ? 'bg-white/50 border-slate-300 hover:border-blue-500 hover:bg-white/80' : 'bg-[#030b1c]/60 border-cyan-900/50 hover:border-cyan-400 hover:bg-cyan-950/40'} ${item.link ? 'cursor-pointer' : 'cursor-default'}`}
                 >
-                  {/* Laser Hover Effect */}
                   <div className={`absolute left-0 top-0 bottom-0 w-1 scale-y-0 group-hover:scale-y-100 transition-transform duration-300 ${isLightMode ? 'bg-blue-600' : 'bg-cyan-400 shadow-[0_0_15px_#22d3ee]'}`} />
                   
                   <div className={`p-3 rounded-xl mr-5 transition-colors ${isLightMode ? 'bg-slate-100 text-slate-500 group-hover:bg-blue-100 group-hover:text-blue-600' : 'bg-slate-900/50 text-slate-400 group-hover:bg-cyan-950 group-hover:text-cyan-400'}`}>
@@ -206,37 +235,59 @@ export default function ContactPage() {
             <div className="space-y-6 pt-10">
               {/* NAME INPUT */}
               <motion.div variants={itemVariants} className="relative group">
-                <label htmlFor="name" className={`absolute -top-2.5 left-4 px-1 text-[10px] font-black uppercase tracking-widest z-10 ${isLightMode ? 'bg-white text-slate-600' : 'bg-[#050f24] text-cyan-400'}`}>Operator Identity</label>
+                <label htmlFor="name" className={`absolute -top-2.5 left-4 px-1 text-[10px] font-black uppercase tracking-widest z-10 ${isLightMode ? 'bg-white text-slate-600' : 'bg-[#050f24] text-cyan-400 group-focus-within:text-[#a855f7]'}`}>Operator Identity</label>
                 <div className="relative flex items-center">
-                  <User size={18} className={`absolute left-4 transition-colors ${textSecondary} group-focus-within:${accentText}`} />
-                  <input id="name" type="text" name="name" required placeholder="John Doe" className={`w-full pl-12 pr-4 py-4 rounded-xl border focus:outline-none focus:ring-2 transition-all ${inputStyle}`} />
+                  <User size={18} className={`absolute left-4 transition-colors ${textSecondary} group-focus-within:${techPurple}`} />
+                  <input 
+                    id="name" type="text" name="name" required placeholder="Your Name" 
+                    value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})}
+                    className={`w-full pl-12 pr-4 py-4 rounded-xl border focus:outline-none focus:ring-2 transition-all ${inputStyle}`} 
+                  />
                 </div>
               </motion.div>
 
               {/* EMAIL INPUT */}
               <motion.div variants={itemVariants} className="relative group">
-                <label htmlFor="email" className={`absolute -top-2.5 left-4 px-1 text-[10px] font-black uppercase tracking-widest z-10 ${isLightMode ? 'bg-white text-slate-600' : 'bg-[#050f24] text-cyan-400'}`}>Return Address</label>
+                <label htmlFor="email" className={`absolute -top-2.5 left-4 px-1 text-[10px] font-black uppercase tracking-widest z-10 ${isLightMode ? 'bg-white text-slate-600' : 'bg-[#050f24] text-cyan-400 group-focus-within:text-[#a855f7]'}`}>Return Address</label>
                 <div className="relative flex items-center">
-                  <Mail size={18} className={`absolute left-4 transition-colors ${textSecondary} group-focus-within:${accentText}`} />
-                  <input id="email" type="email" name="email" required placeholder="john@network.com" className={`w-full pl-12 pr-4 py-4 rounded-xl border focus:outline-none focus:ring-2 transition-all ${inputStyle}`} />
+                  <Mail size={18} className={`absolute left-4 transition-colors ${textSecondary} group-focus-within:${techPurple}`} />
+                  <input 
+                    id="email" type="email" name="email" required placeholder="user@network.com" 
+                    value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})}
+                    className={`w-full pl-12 pr-4 py-4 rounded-xl border focus:outline-none focus:ring-2 transition-all ${inputStyle}`} 
+                  />
                 </div>
                 <ValidationError prefix="Email" field="email" errors={state.errors} className="text-red-400 text-xs mt-1 absolute -bottom-5" />
               </motion.div>
 
               {/* DIRECT MESSAGE */}
               <motion.div variants={itemVariants} className="relative group">
-                <label htmlFor="message" className={`absolute -top-2.5 left-4 px-1 text-[10px] font-black uppercase tracking-widest z-10 ${isLightMode ? 'bg-white text-slate-600' : 'bg-[#050f24] text-cyan-400'}`}>Payload Data</label>
+                <label htmlFor="message" className={`absolute -top-2.5 left-4 px-1 text-[10px] font-black uppercase tracking-widest z-10 ${isLightMode ? 'bg-white text-slate-600' : 'bg-[#050f24] text-cyan-400 group-focus-within:text-[#a855f7]'}`}>Payload Data</label>
                 <div className="relative">
-                  <TermIcon size={18} className={`absolute left-4 top-5 transition-colors ${textSecondary} group-focus-within:${accentText}`} />
-                  <textarea id="message" name="message" required rows={6} placeholder="Inject data sequences here..." className={`w-full pl-12 pr-4 py-4 rounded-xl border focus:outline-none focus:ring-2 transition-all resize-none ${inputStyle}`} />
+                  <TermIcon size={18} className={`absolute left-4 top-5 transition-colors ${textSecondary} group-focus-within:${techPurple}`} />
+                  <textarea 
+                    id="message" name="message" required rows={6} placeholder="Inject data sequences here..." 
+                    value={formData.message} onChange={(e) => setFormData({...formData, message: e.target.value})}
+                    className={`w-full pl-12 pr-4 py-4 rounded-xl border focus:outline-none focus:ring-2 transition-all resize-none ${inputStyle}`} 
+                  />
                 </div>
                 <ValidationError prefix="Message" field="message" errors={state.errors} className="text-red-400 text-xs mt-1 absolute -bottom-5" />
               </motion.div>
             </div>
 
-            {/* SUBMIT BUTTON */}
+            {/* TECH PURPLE SUBMIT BUTTON */}
             <motion.div variants={itemVariants} className="mt-8 flex justify-end">
-              <button type="submit" disabled={state.submitting} className={`relative group overflow-hidden flex items-center w-full justify-center md:w-auto px-8 py-4 rounded-xl font-black uppercase tracking-widest text-sm transition-all shadow-lg ${state.submitting ? 'bg-slate-700 text-slate-400 cursor-not-allowed' : (isLightMode ? 'bg-blue-600 text-white hover:shadow-blue-500/40 hover:-translate-y-1' : 'bg-cyan-400 text-black shadow-[0_0_20px_#22d3ee] hover:shadow-[0_0_30px_#22d3ee] hover:-translate-y-1')}`}>
+              <button 
+                type="submit" disabled={state.submitting} 
+                className={`relative group overflow-hidden flex items-center w-full justify-center md:w-auto px-8 py-4 rounded-xl font-black uppercase tracking-widest text-sm transition-all shadow-lg ${
+                  state.submitting 
+                    ? 'bg-slate-700 text-slate-400 cursor-not-allowed' 
+                    : (isLightMode 
+                        ? 'bg-[#9333ea] text-white hover:shadow-[0_0_20px_rgba(147,51,234,0.4)] hover:-translate-y-1' 
+                        : 'bg-[#a855f7] hover:bg-[#9333ea] text-white shadow-[0_0_20px_rgba(168,85,247,0.3)] hover:shadow-[0_0_30px_rgba(168,85,247,0.5)] hover:-translate-y-1'
+                      )
+                }`}
+              >
                 <span className={`absolute inset-0 w-full h-full -translate-x-full group-hover:animate-[shimmer_1.5s_infinite] ${isLightMode ? 'bg-gradient-to-r from-transparent via-white/40 to-transparent' : 'bg-gradient-to-r from-transparent via-white/50 to-transparent'}`} />
                 <span className="relative z-10 flex items-center">
                   {state.submitting ? 'Encrypting Payload...' : 'Execute Transmission'}
@@ -250,10 +301,10 @@ export default function ContactPage() {
       </div>
       
       <div className="mt-10">
-        <Footer isLight={isLightMode} />
+        <Footer isLight={isLightMode} currentRole={currentUserRole as any} />
       </div>
 
-      <BottomNav />
+      <BottomNav currentRole={currentUserRole as any} />
     </main>
   );
 }
