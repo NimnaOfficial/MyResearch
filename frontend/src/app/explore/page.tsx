@@ -201,7 +201,7 @@ export default function ExplorePage() {
             </motion.button>
             
             <h1 className={`text-5xl md:text-6xl font-black tracking-tight mb-4 transition-colors ${textPrimary}`}>
-              Data <span className={`${accentText} font-light italic`}>Nexus.</span>
+              CSX <span className={`${accentText} font-light italic`}>Explorar</span>
             </h1>
             <p className={`text-base font-light max-w-2xl transition-colors ${textSecondary}`}>
               Query central indices. Orbit the 3D space to uncover hidden sectors. Toggle localized matrices, and trace pipeline modules.
@@ -286,7 +286,7 @@ export default function ExplorePage() {
                           <div className={`flex items-center space-x-1 font-mono text-[11px] ${textSecondary}`}><Clock size={12} /><span>{item.date}</span></div>
                         </div>
                       </div>
-                      <motion.button whileHover={{ x: 5 }} whileTap={{ scale: 0.9 }} className={`absolute bottom-5 right-5 p-2.5 rounded-xl opacity-0 scale-75 group-hover:opacity-100 group-hover:scale-100 transition-all duration-300 ${isLightMode ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30' : 'bg-cyan-400 text-black shadow-[0_0_20px_#22d3ee]'}`}><ArrowRight size={16} /></motion.button>
+                      
                     </div>
                   )}
                 </motion.div>

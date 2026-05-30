@@ -1,4 +1,5 @@
 "use client";
+
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
@@ -14,11 +15,13 @@ import * as THREE from 'three';
 
 import CustomCursor from '@/components/CustomCursor';
 import BottomNav from '@/components/BottomNav';
+import ThemeToggle from '@/components/ThemeToggle';
+import Footer from '@/components/Footer';
 
 // ==========================================
 // 1. CINEMATIC 3D VAULT LOGO
 // ==========================================
-function CinematicCore({ authState, isBooting }: { authState: string, isBooting: boolean }) {
+function CinematicCore({ authState, isBooting, isLightMode }: { authState: string, isBooting: boolean, isLightMode: boolean }) {
   const coreRef = useRef<THREE.Group>(null);
 
   // Cinematic Camera Dolly Effect
@@ -37,7 +40,7 @@ function CinematicCore({ authState, isBooting }: { authState: string, isBooting:
   const getCoreColor = () => {
     if (authState === 'error') return "#ef4444"; // Breach Red
     if (authState === 'success') return "#a855f7"; // Dark Cyber Purple (Matches Nav)
-    return "#00f0ff"; // Cinematic Cyan
+    return isLightMode ? "#0284c7" : "#00f0ff"; // Cinematic Cyan (adjusted for light mode)
   };
 
   return (
@@ -72,6 +75,7 @@ export default function AuthGateway() {
   const router = useRouter();
   
   // States
+  const [isLightMode, setIsLightMode] = useState(false);
   const [isBooting, setIsBooting] = useState(true);
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [authState, setAuthState] = useState<'idle' | 'scanning' | 'error' | 'success'>('idle');
@@ -117,24 +121,28 @@ export default function AuthGateway() {
     }, 2000);
   };
 
-  // Common Input Style (Now with Tech Purple focus states)
-  const inputStyle = "w-full bg-transparent border-b border-slate-800 text-white px-2 py-3 focus:outline-none focus:border-[#a855f7] focus:bg-[#a855f7]/10 transition-all font-mono tracking-widest placeholder-slate-600";
+  // Dynamic Styles
+  const textPrimary = isLightMode ? "text-slate-900" : "text-white";
+  const bgPrimary = isLightMode ? "bg-slate-50" : "bg-[#010309]";
+  const inputStyle = `w-full bg-transparent border-b px-2 py-3 focus:outline-none focus:border-[#a855f7] transition-all font-mono tracking-widest ${isLightMode ? 'border-slate-300 text-slate-900 placeholder-slate-400 focus:bg-[#a855f7]/5' : 'border-slate-800 text-white placeholder-slate-600 focus:bg-[#a855f7]/10'}`;
 
   return (
-    <main className="relative min-h-screen bg-[#010309] font-sans cursor-none overflow-hidden flex">
+    <main className={`relative min-h-screen flex flex-col font-sans cursor-none overflow-hidden transition-colors duration-1000 ${bgPrimary}`}>
       <CustomCursor />
 
-      {/* 🔥 3D BACKGROUND LAYER (Now Moveable & Flexible) 🔥 */}
-      {/* We use pointer-events-auto so the user can drag the 3D Vault! */}
+      {/* GLOBAL THEME TOGGLE */}
+      <ThemeToggle isLight={isLightMode} toggleTheme={() => setIsLightMode(!isLightMode)} />
+
+      {/* 🔥 3D BACKGROUND LAYER (Moveable & Flexible) 🔥 */}
       <div className="absolute inset-0 z-0 pointer-events-auto cursor-grab active:cursor-grabbing">
         <Canvas camera={{ position: [0, 0, 8], fov: 45 }}>
           <OrbitControls enableZoom={true} enablePan={true} dampingFactor={0.05} />
-          <ambientLight intensity={0.1} />
-          <directionalLight position={[5, 5, -5]} intensity={2} color="#00f0ff" />
-          <Sparkles count={200} scale={15} size={1} speed={0.2} color={authState === 'success' ? "#a855f7" : "#00f0ff"} opacity={0.3} />
-          <CinematicCore authState={authState} isBooting={isBooting} />
+          <ambientLight intensity={isLightMode ? 0.5 : 0.1} />
+          <directionalLight position={[5, 5, -5]} intensity={isLightMode ? 3 : 2} color={isLightMode ? "#0284c7" : "#00f0ff"} />
+          <Sparkles count={200} scale={15} size={1} speed={0.2} color={authState === 'success' ? "#a855f7" : (isLightMode ? "#0284c7" : "#00f0ff")} opacity={isLightMode ? 0.15 : 0.3} />
+          <CinematicCore authState={authState} isBooting={isBooting} isLightMode={isLightMode} />
           <EffectComposer>
-            <Bloom luminanceThreshold={0.1} mipmapBlur intensity={isBooting ? 3.0 : 1.5} radius={0.8} />
+            <Bloom luminanceThreshold={isLightMode ? 0.5 : 0.1} mipmapBlur intensity={isBooting ? 3.0 : 1.5} radius={0.8} />
             <Glitch 
               active={authState === 'error'} 
               delay={new THREE.Vector2(0, 0)} duration={new THREE.Vector2(0.1, 0.3)} 
@@ -147,41 +155,39 @@ export default function AuthGateway() {
       {/* FOREGROUND UI LAYER (SPLIT SCREEN) */}
       <AnimatePresence>
         {!isBooting && (
-          // The container is pointer-events-none so it doesn't block the 3D background behind it
-          <div className="relative z-10 w-full flex flex-col lg:flex-row h-screen pointer-events-none">
+          <div className="relative z-10 w-full flex-1 flex flex-col lg:flex-row pointer-events-none">
             
-            {/* Left Side (Empty space for the 3D Logo, contains branding) */}
+            {/* Left Side */}
             <motion.div 
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5, duration: 1 }}
               className="hidden lg:flex w-1/2 flex-col justify-between p-16"
             >
-              <div className="text-cyan-500/50 font-mono text-xs tracking-[0.3em] uppercase">
+              <div className="text-cyan-500/50 font-mono text-xs tracking-[0.3em] uppercase drop-shadow-md">
                 System Gateway // Build 9.0.4
               </div>
               <div>
-                <h1 className="text-6xl font-black text-white tracking-tighter mb-2">
+                <h1 className={`text-6xl font-black tracking-tighter mb-2 ${textPrimary}`}>
                   Digit CSxPEDIA<span className="text-cyan-400">.</span>
                 </h1>
-                <p className="text-slate-500 font-light max-w-sm">
+                <p className={`font-light max-w-sm ${isLightMode ? 'text-slate-600' : 'text-slate-400'}`}>
                   Encrypted biometric spatial matrix. Access requires authorized cryptographic handshake.
                 </p>
               </div>
             </motion.div>
 
-            {/* Right Side (The Minimalist Login/Register Form) */}
-            {/* We add pointer-events-auto ONLY to this panel so the form is clickable */}
+            {/* Right Side (Form Panel) */}
             <motion.div 
               initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2, type: 'spring', damping: 20 }}
-              className="w-full lg:w-1/2 h-full flex items-center justify-center p-8 lg:p-24 bg-gradient-to-l from-[#010309] via-[#010309]/90 to-transparent pointer-events-auto"
+              className={`w-full lg:w-1/2 flex-1 flex items-center justify-center p-8 lg:p-24 pointer-events-auto transition-colors duration-1000 ${isLightMode ? 'bg-gradient-to-l from-slate-50 via-slate-50/90 to-transparent' : 'bg-gradient-to-l from-[#010309] via-[#010309]/90 to-transparent'}`}
             >
               <div className="w-full max-w-md">
                 
                 {/* Form Header */}
                 <div className="mb-12 text-center lg:text-left">
-                  <h2 className="text-3xl font-bold text-white tracking-wide mb-2">
+                  <h2 className={`text-3xl font-bold tracking-wide mb-2 ${textPrimary}`}>
                     {mode === 'login' ? 'Access CSxPEDIA' : 'Initialize Identity'}
                   </h2>
-                  <p className="text-slate-500 text-sm">
+                  <p className={isLightMode ? 'text-slate-500 text-sm' : 'text-slate-400 text-sm'}>
                     {mode === 'login' 
                       ? 'Enter your 10-character Secret Member Code.' 
                       : 'Establish your parameters for network access.'}
@@ -199,15 +205,14 @@ export default function AuthGateway() {
                       className="space-y-8"
                     >
                       <div className="relative group">
-                        <KeySquare size={16} className={`absolute right-2 top-1/2 -translate-y-1/2 ${authState === 'error' ? 'text-red-500' : 'text-slate-600'}`} />
+                        <KeySquare size={16} className={`absolute right-2 top-1/2 -translate-y-1/2 ${authState === 'error' ? 'text-red-500' : (isLightMode ? 'text-slate-400' : 'text-slate-600')}`} />
                         <input 
                           type="text" required maxLength={10} placeholder="Secret Code (e.g. AEX4921B7C)" 
                           disabled={authState !== 'idle'} value={secretCode} onChange={(e) => setSecretCode(e.target.value.toUpperCase())}
-                          className={`${inputStyle} ${authState === 'error' ? 'border-red-500/50 text-red-400 bg-red-950/10' : ''}`} 
+                          className={`${inputStyle} ${authState === 'error' ? 'border-red-500/50 text-red-500 bg-red-500/10' : ''}`} 
                         />
                       </div>
 
-                      {/* DARK PURPLE SUCCESS BUTTON */}
                       {/* TECH PURPLE LOGIN BUTTON */}
                       <button 
                         type="submit" disabled={authState !== 'idle'}
@@ -242,10 +247,10 @@ export default function AuthGateway() {
                         <input type="password" required placeholder="Confirm Password" className={inputStyle} value={regData.confirmPass} onChange={(e) => setRegData({...regData, confirmPass: e.target.value})} />
                       </div>
 
-                      {/* Code Logic Hint (Now with Tech Purple Icon) */}
-                      <div className="p-4 bg-cyan-950/20 border border-cyan-900/30 rounded-lg flex items-start space-x-3 mt-4">
+                      {/* Code Logic Hint */}
+                      <div className={`p-4 border rounded-lg flex items-start space-x-3 mt-4 ${isLightMode ? 'bg-cyan-50 border-cyan-200' : 'bg-cyan-950/20 border-cyan-900/30'}`}>
                         <Fingerprint size={16} className="text-[#a855f7] mt-0.5 flex-shrink-0" />
-                        <p className="text-[10px] text-cyan-200/60 font-mono leading-relaxed">
+                        <p className={`text-[10px] font-mono leading-relaxed ${isLightMode ? 'text-cyan-800' : 'text-cyan-200/60'}`}>
                           Your Secret Member Code will be cryptographically generated upon initialization using partials of your Name, Phone, and Backup Hash.
                         </p>
                       </div>
@@ -269,7 +274,7 @@ export default function AuthGateway() {
                 <div className="mt-8 text-center">
                   <button 
                     onClick={() => setMode(mode === 'login' ? 'register' : 'login')}
-                    className="text-xs text-slate-500 hover:text-white transition-colors uppercase tracking-widest font-bold"
+                    className={`text-xs uppercase tracking-widest font-bold transition-colors ${isLightMode ? 'text-slate-500 hover:text-slate-900' : 'text-slate-500 hover:text-white'}`}
                   >
                     {mode === 'login' ? 'Request Network Access (Register)' : 'Return to Gateway (Login)'}
                   </button>
@@ -287,11 +292,11 @@ export default function AuthGateway() {
         {mode === 'register' && authState === 'success' && (
           <motion.div 
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="absolute inset-0 z-[60] bg-[#010309]/90 backdrop-blur-md flex flex-col items-center justify-center pointer-events-auto"
+            className={`absolute inset-0 z-[60] backdrop-blur-md flex flex-col items-center justify-center pointer-events-auto ${isLightMode ? 'bg-slate-50/90' : 'bg-[#010309]/90'}`}
           >
             <ShieldCheck size={64} className="text-[#a855f7] mb-6 drop-shadow-[0_0_15px_rgba(168,85,247,0.8)]" />
-            <h2 className="text-2xl font-bold text-white tracking-widest uppercase mb-2">Identity Registered</h2>
-            <p className="text-slate-400 font-mono mb-8 text-sm">Awaiting cryptographic email verification.</p>
+            <h2 className={`text-2xl font-bold tracking-widest uppercase mb-2 ${textPrimary}`}>Identity Registered</h2>
+            <p className={`font-mono mb-8 text-sm ${isLightMode ? 'text-slate-500' : 'text-slate-400'}`}>Awaiting cryptographic email verification.</p>
             
             <p className="text-[#a855f7] text-xs font-mono animate-pulse flex items-center">
               Routing to Secure Sector <ArrowRight size={14} className="ml-2" />
@@ -300,8 +305,15 @@ export default function AuthGateway() {
         )}
       </AnimatePresence>
 
+      {/* NEW: Footer properly placed above the BottomNav */}
+      <div className="relative z-20 w-full pointer-events-auto border-t border-slate-500/20 bg-black/5 backdrop-blur-sm">
+        <Footer isLight={isLightMode} currentRole="guest" />
+      </div>
+
       {/* Restored Navigation Matrix */}
-      <BottomNav currentRole="guest" />
+      <div className="relative z-30 pointer-events-auto">
+        <BottomNav currentRole="guest" />
+      </div>
     </main>
   );
 }

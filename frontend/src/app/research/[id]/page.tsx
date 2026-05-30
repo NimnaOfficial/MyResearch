@@ -187,8 +187,12 @@ function CitationNodeGraph({ isLight }: { isLight: boolean }) {
   }, []);
 
   return (
-    <div className={`w-full h-full min-h-[350px] rounded-[2rem] border flex items-center justify-center relative overflow-hidden group transition-colors duration-500 hover:border-[#00ff66]/50 ${isLight ? 'bg-white/50 border-slate-300 shadow-sm' : 'bg-[#050b14]/80 backdrop-blur-xl border-[#00ff66]/10 shadow-[inset_0_0_20px_rgba(0,0,0,0.5)]'}`}>
-      <div className="absolute top-6 left-6 flex items-center space-x-2 z-10">
+    <motion.div 
+      drag dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }} dragElastic={0.15}
+      whileHover={{ scale: 1.02, y: -5, rotateX: 2, rotateY: -2, zIndex: 50, boxShadow: "0 20px 40px rgba(0,255,102,0.15)" }}
+      className={`w-full h-full min-h-[350px] rounded-[2rem] border flex items-center justify-center relative overflow-hidden group transition-colors duration-500 cursor-grab active:cursor-grabbing hover:border-[#00ff66]/50 ${isLight ? 'bg-white/50 border-slate-300 shadow-sm' : 'bg-[#050b14]/80 backdrop-blur-xl border-[#00ff66]/10 shadow-[inset_0_0_20px_rgba(0,0,0,0.5)]'}`}
+    >
+      <div className="absolute top-6 left-6 flex items-center space-x-2 z-10 bg-black/40 px-3 py-1.5 rounded-lg backdrop-blur-md border border-white/5">
         <Network size={14} className="text-[#00ff66]" />
         <span className="text-[10px] font-black uppercase tracking-widest text-[#00ff66]">Citation Network</span>
       </div>
@@ -212,7 +216,7 @@ function CitationNodeGraph({ isLight }: { isLight: boolean }) {
           <motion.circle key={node.id} cx={`${node.cx}%`} cy={`${node.cy}%`} r={node.connections.length > 2 ? "3" : "1.5"} fill={node.connections.length > 2 ? "#00ff66" : "#fff"} animate={{ r: [1.5, 3, 1.5], opacity: [0.5, 1, 0.5] }} transition={{ duration: 2 + Math.random() * 2, repeat: Infinity }} className="cursor-crosshair hover:fill-white" />
         ))}
       </svg>
-    </div>
+    </motion.div>
   );
 }
 
@@ -221,7 +225,11 @@ function CitationNodeGraph({ isLight }: { isLight: boolean }) {
 // ==========================================
 function DataSourcesRepository({ data, isLight }: { data: any, isLight: boolean }) {
   return (
-    <div className={`w-full rounded-[2rem] border flex flex-col p-6 md:p-8 transition-colors duration-500 hover:border-[#00ff66]/50 ${isLight ? 'bg-white/50 border-slate-300 shadow-sm' : 'bg-[#050b14]/80 backdrop-blur-xl border-[#00ff66]/10 shadow-[inset_0_0_20px_rgba(0,0,0,0.5)]'}`}>
+    <motion.div 
+      drag dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }} dragElastic={0.1}
+      whileHover={{ scale: 1.02, y: -5, rotateX: 2, rotateY: 2, zIndex: 50, boxShadow: "0 20px 40px rgba(0,255,102,0.15)" }}
+      className={`w-full rounded-[2rem] border flex flex-col p-6 md:p-8 transition-colors duration-500 cursor-grab active:cursor-grabbing hover:border-[#00ff66]/50 ${isLight ? 'bg-white/50 border-slate-300 shadow-sm' : 'bg-[#050b14]/80 backdrop-blur-xl border-[#00ff66]/10 shadow-[inset_0_0_20px_rgba(0,0,0,0.5)]'}`}
+    >
       <div className="flex items-center space-x-3 mb-6 md:mb-8">
         <Database size={16} className="text-[#00ff66]" />
         <span className="text-xs font-black uppercase tracking-widest text-[#00ff66]">Data Sources & Assets</span>
@@ -255,7 +263,7 @@ function DataSourcesRepository({ data, isLight }: { data: any, isLight: boolean 
            Datasets are sanitized and peer-reviewed for integrity.
          </p>
       </div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -350,36 +358,36 @@ export default function ResearchDetailPage() {
   const textPrimary = isLightMode ? "text-slate-900" : "text-white";
   const textSecondary = isLightMode ? "text-slate-600" : "text-slate-400";
   const borderCol = isLightMode ? "border-slate-300" : "border-[#00ff66]/10";
-  const glassBg = isLightMode ? "bg-white/90 border-slate-200 shadow-md" : "bg-[#010308]/90 shadow-2xl";
 
   const containerVariants = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.1 } } };
-  const itemVariants = { hidden: { opacity: 0, y: 30 }, show: { opacity: 1, y: 0, transition: { type: "spring" as const, stiffness: 100, damping: 20 } } };
+  const itemVariants = { hidden: { opacity: 0, y: 30, scale: 0.95 }, show: { opacity: 1, y: 0, scale: 1, transition: { type: "spring" as const, stiffness: 100, damping: 20 } } };
 
   return (
     <main className={`relative min-h-screen font-sans cursor-none flex flex-col transition-colors duration-1000 w-full overflow-x-hidden ${isLightMode ? 'text-slate-900 bg-slate-50' : 'text-white bg-[#010205]'}`}>
       <CustomCursor />
-      
-      {/* GLOBAL THEME ICON - Isolated Layer to prevent layout clipping */}
-      <div className="fixed top-6 left-6 z-[100]">
-        <ThemeToggle isLight={isLightMode} toggleTheme={() => setIsLightMode(!isLightMode)} />
-      </div>
-
       <ActiveDataBackground isLight={isLightMode} />
 
       {/* ==========================================
-          HEADER (Responsive, prevents overlap)
+          HEADER (100% Transparent, Fixed Order)
           ========================================== */}
-      <div className={`fixed top-0 left-0 right-0 h-24 w-full flex items-center justify-between px-4 sm:px-6 lg:px-12 border-b z-50 transition-colors duration-500 backdrop-blur-xl ${glassBg} ${borderCol}`}>
+      <header className={`fixed top-0 left-0 right-0 h-24 w-full flex items-center justify-between px-4 sm:px-6 lg:px-12 z-50 pointer-events-none bg-transparent border-none`}>
         
-        {/* Left Side: Back & Title (pl-16 to pl-24 clears the absolute Theme icon) */}
-        <div className="flex items-center space-x-3 sm:space-x-4 md:space-x-6 pointer-events-auto h-full pl-16 sm:pl-20 md:pl-24">
-          <button 
+        {/* Left Side: Theme, Back, & Title */}
+        <div className="flex items-center space-x-3 sm:space-x-4 md:space-x-6 pointer-events-auto h-full pl-2">
+          
+          <div className="relative flex items-center justify-center shrink-0">
+             <ThemeToggle isLight={isLightMode} toggleTheme={() => setIsLightMode(!isLightMode)} />
+          </div>
+
+          <motion.button 
+            whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
             aria-label="Go back to research directory"
             onClick={() => router.push('/research')} 
-            className={`flex items-center justify-center w-10 h-10 md:w-12 md:h-12 rounded-2xl border transition-all hover:bg-[#00ff66] hover:text-black hover:border-[#00ff66] shadow-sm shrink-0 ${isLightMode ? 'border-slate-300 text-slate-700 bg-white' : 'border-[#00ff66]/20 text-slate-300 bg-[#050b14]'}`}
+            className={`flex items-center justify-center w-10 h-10 md:w-12 md:h-12 rounded-2xl border transition-all hover:bg-[#00ff66] hover:text-black hover:border-[#00ff66] shadow-sm shrink-0 ${isLightMode ? 'border-slate-300 text-slate-700 bg-white/80 backdrop-blur-md' : 'border-white/20 text-slate-300 bg-white/5 backdrop-blur-md'}`}
           >
             <ArrowLeft size={20} />
-          </button>
+          </motion.button>
+
           <div className="flex items-center space-x-3 md:space-x-4">
             <ArchiveRestore size={20} className="text-[#00ff66] hidden sm:block shrink-0" />
             <div className="flex flex-col justify-center overflow-hidden">
@@ -393,11 +401,11 @@ export default function ResearchDetailPage() {
         <div className="flex items-center space-x-4 pointer-events-auto h-full shrink-0 relative">
            {isAuthenticated && (
               <div className="relative" onMouseEnter={() => setIsProfileHovered(true)} onMouseLeave={() => setIsProfileHovered(false)}>
-                <div className={`flex items-center space-x-3 md:space-x-4 px-3 sm:px-4 py-2 md:px-6 md:py-3 rounded-full border cursor-pointer transition-colors duration-500 ${isLightMode ? 'bg-slate-100 border-slate-300' : 'bg-[#050b14] border-[#00ff66]/20 hover:border-[#00ff66]/50'}`}>
-                  <span className={`font-mono text-[9px] md:text-xs tracking-widest hidden xl:block text-[#00ff66]`}>
+                <div className={`flex items-center space-x-3 md:space-x-4 px-3 sm:px-4 py-2 md:px-6 md:py-3 rounded-full border cursor-pointer transition-colors duration-500 backdrop-blur-md ${isLightMode ? 'bg-white/80 border-slate-300 shadow-sm' : 'bg-black/40 border-white/10 hover:border-[#00ff66]/50'}`}>
+                  <span className={`font-mono text-[9px] md:text-xs tracking-widest hidden lg:block text-[#00ff66]`}>
                     {timeState.date} <span className={textSecondary}>|</span> {timeState.time}
                   </span>
-                  <div className={`w-px h-4 hidden xl:block ${isLightMode ? 'bg-slate-300' : 'bg-slate-800'}`} />
+                  <div className={`w-px h-4 hidden lg:block ${isLightMode ? 'bg-slate-300' : 'bg-slate-800'}`} />
                   <div className="flex items-center space-x-2 md:space-x-3 group">
                     <div className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-gradient-to-tr from-[#00ff66] to-[#00f0ff] p-[1.5px] transition-all duration-500 shrink-0">
                       <div className={`w-full h-full rounded-full flex items-center justify-center ${isLightMode ? 'bg-white' : 'bg-[#010205]'}`}>
@@ -410,13 +418,15 @@ export default function ResearchDetailPage() {
 
                 <AnimatePresence>
                   {isProfileHovered && (
-                    <motion.div initial={{ opacity: 0, y: 15, scale: 0.9 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 15, scale: 0.9 }} transition={{ type: "spring", stiffness: 120, damping: 20 }} className={`absolute right-0 mt-3 w-56 rounded-3xl p-3 flex flex-col transform-gpu shadow-2xl border ${isLightMode ? 'bg-white border-slate-200' : 'bg-[#050b14]/95 backdrop-blur-xl border-white/10'}`}>
+                    <motion.div initial={{ opacity: 0, y: 15, scale: 0.9 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 15, scale: 0.9 }} transition={{ type: "spring", stiffness: 120, damping: 20 }} className={`absolute right-0 mt-3 w-56 rounded-3xl p-3 flex flex-col transform-gpu shadow-2xl border ${isLightMode ? 'bg-white/90 border-slate-200 backdrop-blur-xl' : 'bg-[#050b14]/95 backdrop-blur-3xl border-white/10'}`}>
                       <Link href="/settings" className={`flex items-center px-4 py-3 text-xs font-bold uppercase tracking-widest rounded-2xl transition-all ${isLightMode ? 'text-slate-700 hover:bg-slate-100' : 'text-slate-300 hover:bg-white/5'}`}>
                         <Settings size={14} className="mr-3 text-[#00ff66]" /> Settings
                       </Link>
+                      
                       <button type="button" className={`flex items-center px-4 py-3 text-xs font-bold uppercase tracking-widest text-[#00ff66] rounded-2xl transition-all group ${isLightMode ? 'hover:bg-green-50' : 'hover:bg-[#00ff66]/10'}`}>
-                        <Star size={14} className="mr-3 text-[#00ff66] group-hover:drop-shadow-[0_0_8px_rgba(0,255,102,0.8)]" /> Saved Links
+                        <Bookmark size={14} className="mr-3 text-[#00ff66] group-hover:drop-shadow-[0_0_8px_rgba(0,255,102,0.8)]" /> Saved Research
                       </button>
+
                       <div className={`h-px w-full my-1 ${isLightMode ? 'bg-slate-200' : 'bg-slate-800/50'}`} />
                       <button type="button" onClick={() => { localStorage.removeItem('userRole'); setCurrentUserRole('guest'); setIsAuthenticated(false); }} className={`flex items-center px-4 py-3 text-xs font-bold uppercase tracking-widest text-red-500 rounded-2xl transition-all group ${isLightMode ? 'hover:bg-red-50' : 'hover:bg-red-500/10'}`}>
                         <LogOut size={14} className="mr-3 text-red-500 group-hover:drop-shadow-[0_0_8px_rgba(239,68,68,0.8)]" /> Terminate Link
@@ -427,13 +437,13 @@ export default function ResearchDetailPage() {
               </div>
            )}
         </div>
-      </div>
+      </header>
 
       {/* ==========================================
           FLOATING NAVIGATION PILL
           ========================================== */}
       <div className="sticky top-28 z-40 w-full flex justify-center px-4 md:px-6 pointer-events-auto mt-32 mb-10">
-        <div className={`flex flex-wrap items-center justify-center gap-2 p-1.5 md:p-2 rounded-[2rem] md:rounded-full border shadow-2xl backdrop-blur-xl ${isLightMode ? 'bg-white/80 border-slate-300' : 'bg-[#050b14]/80 border-[#00ff66]/30'}`}>
+        <div className={`flex flex-wrap items-center justify-center gap-2 p-1.5 md:p-2 rounded-[2rem] md:rounded-full border shadow-2xl backdrop-blur-xl ${isLightMode ? 'bg-white/80 border-slate-300' : 'bg-black/40 border-[#00ff66]/30'}`}>
           {['Abstract', 'Methodology', 'Visual Schematics', 'Conclusion'].map(tab => (
             <button 
               key={tab} onClick={() => setActiveTab(tab)}
@@ -450,17 +460,22 @@ export default function ResearchDetailPage() {
       </div>
 
       {/* ==========================================
-          THE FLUID RESEARCH GRID (Fluid widths & heights)
+          THE FLUID RESEARCH GRID (Native Scroll Enabled)
           ========================================== */}
-      <div className="flex-1 w-full max-w-[1500px] mx-auto pb-10 px-4 md:px-6 lg:px-12 relative z-10 flex flex-col xl:flex-row gap-6 md:gap-8">
+      <div className="flex-1 w-full max-w-[1500px] mx-auto pb-10 px-4 md:px-6 lg:px-12 relative z-10 flex flex-col xl:flex-row items-start gap-6 md:gap-8 pointer-events-auto">
         
-        {/* CENTER CONSOLE (Fluid flex-1) */}
-        <motion.div variants={containerVariants} initial="hidden" animate="show" className={`flex-1 flex flex-col gap-6 md:gap-8 min-w-0`}>
+        {/* CENTER CONSOLE */}
+        <motion.div variants={containerVariants} initial="hidden" whileInView="show" viewport={{ once: true, margin: "-50px" }} className={`flex-1 flex flex-col gap-6 md:gap-8 min-w-0`}>
           
-          {/* Hero Banner (Fluid height via padding) */}
-          <motion.div variants={itemVariants} className={`w-full min-h-[350px] h-auto rounded-[2rem] md:rounded-[3rem] border relative overflow-hidden flex flex-col justify-between p-6 sm:p-8 md:p-14 shadow-2xl group transition-all duration-500 hover:border-[#00ff66]/50 ${borderCol} ${isLightMode ? 'bg-white' : 'bg-[#050b14]/80 backdrop-blur-xl'}`}>
+          {/* Hero Banner */}
+          <motion.div 
+            variants={itemVariants} 
+            drag dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }} dragElastic={0.05}
+            whileHover={{ scale: 1.01, y: -5, rotateX: 1, rotateY: -1, zIndex: 50, boxShadow: "0 30px 60px rgba(0,0,0,0.5)" }}
+            className={`w-full min-h-[350px] h-auto rounded-[2rem] md:rounded-[3rem] border relative overflow-hidden flex flex-col justify-between p-6 sm:p-8 md:p-14 shadow-2xl group transition-all duration-500 cursor-grab active:cursor-grabbing hover:border-[#00ff66]/50 ${borderCol} ${isLightMode ? 'bg-white/80 backdrop-blur-xl' : 'bg-[#050b14]/60 backdrop-blur-3xl'}`}
+          >
              <div className={`absolute inset-0 bg-gradient-to-br ${data.heroImg} opacity-20 group-hover:opacity-40 transition-opacity duration-700`} />
-             <div className={`absolute inset-0 bg-[linear-gradient(to_bottom,transparent_0%,${isLightMode ? 'rgba(255,255,255,0.9)' : 'rgba(5,11,20,1)'}_100%)]`} />
+             <div className={`absolute inset-0 bg-[linear-gradient(to_bottom,transparent_0%,${isLightMode ? 'rgba(255,255,255,0.9)' : 'rgba(5,11,20,0.8)'}_100%)]`} />
              
              <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center w-full gap-4">
                 <div className="inline-flex items-center space-x-2 px-4 md:px-5 py-2 md:py-2.5 bg-[#00ff66]/10 backdrop-blur-md rounded-xl border border-[#00ff66]/30">
@@ -473,7 +488,7 @@ export default function ResearchDetailPage() {
                      aria-label={isSaved ? "Remove Bookmark" : "Save Research"}
                      onClick={() => setIsSaved(!isSaved)}
                      whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-                     className={`flex items-center justify-center w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl border transition-all ${isSaved ? 'bg-[#00ff66]/20 border-[#00ff66] text-[#00ff66]' : `${isLightMode ? 'bg-slate-100 border-slate-300 text-slate-600' : 'bg-[#010205] border-white/20 text-slate-300 hover:border-[#00ff66]'}`}`}
+                     className={`flex items-center justify-center w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl border transition-all ${isSaved ? 'bg-[#00ff66]/20 border-[#00ff66] text-[#00ff66]' : `${isLightMode ? 'bg-slate-100 border-slate-300 text-slate-600' : 'bg-black/50 border-white/20 text-slate-300 hover:border-[#00ff66]'}`}`}
                    >
                      <Bookmark size={18} fill={isSaved ? "#00ff66" : "none"} className={isSaved ? 'text-[#00ff66]' : ''} />
                    </motion.button>
@@ -499,9 +514,14 @@ export default function ResearchDetailPage() {
              </div>
           </motion.div>
 
-          {/* Asymmetrical Abstract & Metrics Grid (Fluid cols and rows) */}
+          {/* Asymmetrical Abstract & Metrics Grid */}
           <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 md:gap-8">
-            <motion.div variants={itemVariants} whileHover={{ borderColor: '#00ff66' }} className={`xl:col-span-7 p-6 sm:p-8 md:p-10 rounded-[2rem] md:rounded-[3rem] border transition-colors duration-300 relative overflow-hidden ${isLightMode ? 'bg-white border-slate-300 shadow-lg' : 'bg-[#050b14]/80 border-white/10 shadow-[0_10px_30px_rgba(0,0,0,0.5)]'}`}>
+            <motion.div 
+              variants={itemVariants} 
+              drag dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }} dragElastic={0.1}
+              whileHover={{ scale: 1.02, y: -5, rotateX: 2, rotateY: 2, zIndex: 50, boxShadow: "0 20px 40px rgba(0,255,102,0.15)", borderColor: '#00ff66' }} 
+              className={`xl:col-span-7 p-6 sm:p-8 md:p-10 rounded-[2rem] md:rounded-[3rem] border transition-colors duration-300 relative overflow-hidden cursor-grab active:cursor-grabbing ${isLightMode ? 'bg-white/80 backdrop-blur-xl border-slate-300 shadow-lg' : 'bg-black/20 backdrop-blur-3xl border-white/10 shadow-[0_10px_30px_rgba(0,0,0,0.5)]'}`}
+            >
                <div className="absolute top-0 right-0 w-32 h-32 bg-[#00ff66]/5 rounded-bl-[100px]" />
                <div className="flex items-center space-x-3 mb-6 md:mb-8 relative z-10">
                  <FileText size={20} className="text-[#00ff66]" />
@@ -512,7 +532,12 @@ export default function ResearchDetailPage() {
 
             <div className="xl:col-span-5 flex flex-col gap-4">
               {data.metrics.map((metric: any, i: number) => (
-                <motion.div variants={itemVariants} key={i} whileHover={{ scale: 1.02, x: -5, borderColor: '#00ff66' }} className={`px-6 md:px-8 py-5 md:py-6 rounded-2xl md:rounded-[2rem] border flex items-center justify-between transition-all flex-1 ${isLightMode ? 'bg-white border-slate-300' : 'bg-[#050b14]/50 border-white/5'}`}>
+                <motion.div 
+                  variants={itemVariants} key={i} 
+                  drag dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }} dragElastic={0.1}
+                  whileHover={{ scale: 1.02, x: -5, zIndex: 50, borderColor: '#00ff66', boxShadow: "0 10px 20px rgba(0,255,102,0.1)" }} 
+                  className={`px-6 md:px-8 py-5 md:py-6 rounded-2xl md:rounded-[2rem] border flex items-center justify-between transition-all flex-1 cursor-grab active:cursor-grabbing ${isLightMode ? 'bg-white/80 backdrop-blur-xl border-slate-300' : 'bg-black/20 backdrop-blur-3xl border-white/5'}`}
+                >
                   <span className={`text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] ${textSecondary}`}>{metric.label}</span>
                   <div className="flex items-center space-x-4 md:space-x-6">
                     <span className={`font-mono text-lg md:text-xl ${textPrimary}`}>{metric.value}</span>
@@ -533,7 +558,12 @@ export default function ResearchDetailPage() {
           </motion.div>
 
           {/* Methodology */}
-          <motion.div variants={itemVariants} whileHover={{ borderColor: '#00ff66' }} className={`w-full p-6 sm:p-8 md:p-14 rounded-[2rem] md:rounded-[3rem] border transition-colors duration-300 relative overflow-hidden ${isLightMode ? 'bg-white border-slate-300 shadow-lg' : 'bg-[#050b14]/80 border-white/10 shadow-[0_10px_30px_rgba(0,0,0,0.5)]'}`}>
+          <motion.div 
+            variants={itemVariants} 
+            drag dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }} dragElastic={0.05}
+            whileHover={{ scale: 1.01, y: -5, rotateX: 1, rotateY: 1, zIndex: 50, boxShadow: "0 20px 50px rgba(0,0,0,0.6)", borderColor: '#00ff66' }} 
+            className={`w-full p-6 sm:p-8 md:p-14 rounded-[2rem] md:rounded-[3rem] border transition-colors duration-300 relative overflow-hidden cursor-grab active:cursor-grabbing ${isLightMode ? 'bg-white/80 backdrop-blur-xl border-slate-300 shadow-lg' : 'bg-black/20 backdrop-blur-3xl border-white/10 shadow-[0_10px_30px_rgba(0,0,0,0.5)]'}`}
+          >
              <div className="flex items-center space-x-3 mb-6 md:mb-8 relative z-10">
                <Microscope size={22} className="text-[#00ff66]" />
                <h3 className={`text-xs md:text-sm font-black uppercase tracking-[0.2em] ${textSecondary}`}>Methodology & Framework</h3>
@@ -542,7 +572,12 @@ export default function ResearchDetailPage() {
           </motion.div>
 
           {/* Conclusion */}
-          <motion.div variants={itemVariants} whileHover={{ borderColor: '#00ff66' }} className={`w-full p-6 sm:p-8 md:p-14 rounded-[2rem] md:rounded-[3rem] border transition-colors duration-300 relative overflow-hidden ${isLightMode ? 'bg-white border-slate-300 shadow-lg' : 'bg-[#050b14]/80 border-[#00ff66]/20 shadow-[0_0_40px_rgba(0,255,102,0.1)]'}`}>
+          <motion.div 
+            variants={itemVariants} 
+            drag dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }} dragElastic={0.05}
+            whileHover={{ scale: 1.01, y: -5, rotateX: 1, rotateY: -1, zIndex: 50, boxShadow: "0 20px 50px rgba(0,255,102,0.15)", borderColor: '#00ff66' }} 
+            className={`w-full p-6 sm:p-8 md:p-14 rounded-[2rem] md:rounded-[3rem] border transition-colors duration-300 relative overflow-hidden cursor-grab active:cursor-grabbing ${isLightMode ? 'bg-white/80 backdrop-blur-xl border-slate-300 shadow-lg' : 'bg-black/20 backdrop-blur-3xl border-[#00ff66]/20 shadow-[0_0_40px_rgba(0,255,102,0.1)]'}`}
+          >
              <div className="absolute -top-20 -left-20 w-48 md:w-64 h-48 md:h-64 bg-[#00ff66]/10 rounded-full blur-[80px]" />
              <div className="flex items-center space-x-3 mb-6 md:mb-8 relative z-10">
                <CheckCircle size={22} className="text-[#00ff66]" />
@@ -553,10 +588,10 @@ export default function ResearchDetailPage() {
 
         </motion.div>
 
-        {/* RIGHT RAIL: SCROLLABLE & STICKY Container to prevent cutoff on zoom */}
+        {/* RIGHT RAIL: Data Sources & Node Graph */}
         <motion.div 
           variants={containerVariants} initial="hidden" animate="show" 
-          className={`xl:w-[400px] w-full shrink-0 flex flex-col gap-6 md:gap-8 xl:sticky xl:top-48 xl:max-h-[calc(100vh-14rem)] xl:overflow-y-auto custom-scrollbar px-1`}
+          className={`xl:w-[400px] w-full shrink-0 flex flex-col gap-6 md:gap-8 xl:sticky xl:top-32 px-1`}
         >
            <motion.div variants={itemVariants} className="w-full h-auto min-h-[300px]">
              <DataSourcesRepository data={data} isLight={isLightMode} />
@@ -568,12 +603,14 @@ export default function ResearchDetailPage() {
       </div>
 
       {/* ==========================================
-          LINUX TERMINAL METADATA MODULE (Fluid Height)
+          LINUX TERMINAL METADATA MODULE 
           ========================================== */}
-      <div className="w-full max-w-[1500px] mx-auto px-4 md:px-6 lg:px-12 mb-20 relative z-10">
+      <div className="w-full max-w-[1500px] mx-auto px-4 md:px-6 lg:px-12 mb-20 relative z-10 pointer-events-auto">
         <motion.div 
-          initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ type: "spring", stiffness: 100 }}
-          className={`w-full rounded-[2rem] border overflow-hidden shadow-2xl h-auto ${isLightMode ? 'bg-slate-900 border-slate-700' : 'bg-[#050b14]/90 backdrop-blur-xl border-[#00ff66]/20 shadow-[0_10px_50px_rgba(0,0,0,0.8)]'}`}
+          initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: "-50px" }} transition={{ type: "spring", stiffness: 100 }}
+          drag dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }} dragElastic={0.05}
+          whileHover={{ scale: 1.01, y: -5, rotateX: 1, rotateY: -1, zIndex: 50, boxShadow: "0 20px 50px rgba(0,0,0,0.8)" }} 
+          className={`w-full rounded-[2rem] border overflow-hidden shadow-2xl h-auto cursor-grab active:cursor-grabbing ${isLightMode ? 'bg-slate-900 border-slate-700' : 'bg-[#02050a]/90 backdrop-blur-xl border-[#00ff66]/20 shadow-[0_10px_50px_rgba(0,0,0,0.8)]'}`}
         >
           {/* Authentic Linux Header */}
           <div className="h-10 md:h-12 border-b border-[#00ff66]/20 bg-black/40 flex items-center px-4 justify-between relative">
@@ -588,7 +625,7 @@ export default function ResearchDetailPage() {
           </div>
           
           {/* Linux Terminal Body */}
-          <div className="p-6 md:p-8 lg:p-12 font-mono text-[10px] sm:text-xs md:text-sm leading-loose bg-[#02050a] h-auto overflow-x-auto custom-scrollbar">
+          <div className="p-6 md:p-8 lg:p-12 font-mono text-[10px] sm:text-xs md:text-sm leading-loose bg-[#02050a] h-auto overflow-x-auto custom-scrollbar cursor-text">
             <div className="text-[#00ff66] mb-4 md:mb-6 whitespace-pre-wrap">
               <span className="text-[#00ff66] font-bold">nima@research-matrix</span><span className="text-white">:</span><span className="text-[#00f0ff]">~</span>$ cat metadata.json
             </div>
@@ -632,7 +669,7 @@ export default function ResearchDetailPage() {
         </motion.div>
       </div>
 
-      <div className="relative z-20 pointer-events-auto mt-auto">
+      <div className="relative z-20 pointer-events-auto mt-auto border-t border-white/10 bg-black/40 backdrop-blur-2xl">
         <Footer isLight={isLightMode} currentRole={currentUserRole as any} />
       </div>
       <BottomNav currentRole={currentUserRole as any} />

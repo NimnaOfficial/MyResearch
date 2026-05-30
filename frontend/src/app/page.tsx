@@ -13,7 +13,7 @@ import Link from 'next/link';
 
 import BottomNav from '@/components/BottomNav';
 import CustomCursor from '@/components/CustomCursor';
-import SearchBar from '@/components/SearchBar';
+
 import NextGenButton from '@/components/NextGenButton';
 import ThemeToggle from '@/components/ThemeToggle';
 import Footer from '@/components/Footer';
@@ -375,7 +375,7 @@ export default function WelcomePage() {
       </AnimatePresence>
       
       <CustomCursor />
-      <SearchBar />
+      
       <ThemeToggle isLight={isLightMode} toggleTheme={() => setIsLightMode(!isLightMode)} />
 
       {/* ==========================================

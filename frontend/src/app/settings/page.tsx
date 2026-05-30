@@ -1,13 +1,13 @@
 "use client";
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Float, MeshDistortMaterial, OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 import { 
-  User, Shield, Laptop, Smartphone, Palette, 
+  User, Shield, Laptop, Smartphone, 
   LogOut, AlertTriangle, CheckCircle2, Lock, Camera, Send, ChevronRight,
-  Mail, Phone, KeyRound, Type
+  Mail, Phone, KeyRound, Type, Bookmark, ArchiveRestore, FileText, ScanFace
 } from 'lucide-react';
 
 import CustomCursor from '@/components/CustomCursor';
@@ -23,8 +23,6 @@ function ActiveTopography({ isLight }: { isLight: boolean }) {
 
   useFrame((state) => {
     if (meshRef.current) {
-      // Add a very slow idle rotation to keep the landscape feeling alive 
-      // even when the user isn't dragging it.
       meshRef.current.rotation.z += 0.001;
     }
   });
@@ -34,7 +32,6 @@ function ActiveTopography({ isLight }: { isLight: boolean }) {
       <ambientLight intensity={isLight ? 1 : 0.5} />
       <Float speed={1.5} rotationIntensity={0.1} floatIntensity={0.5}>
         <mesh ref={meshRef}>
-          {/* High vertex count plane for smooth, complex mathematical distortions */}
           <planeGeometry args={[70, 70, 150, 150]} />
           <MeshDistortMaterial 
             color={isLight ? "#0066ff" : "#001133"} 
@@ -55,7 +52,7 @@ function ActiveTopography({ isLight }: { isLight: boolean }) {
 }
 
 // ==========================================
-// ADVANCED ANIMATION VARIANTS (Bug-Free TS)
+// ADVANCED ANIMATION VARIANTS
 // ==========================================
 const staggerContainer = {
   hidden: { opacity: 0 },
@@ -78,15 +75,13 @@ const springItem = {
   exit: { opacity: 0, y: -20, scale: 0.95, filter: 'blur(10px)', transition: { duration: 0.2 } }
 };
 
-const smoothTransition = { duration: 0.8, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] };
-
 // ==========================================
 // SETTINGS DATA ARCHITECTURE
 // ==========================================
 const SETTINGS_TABS = [
   { id: 'account', label: 'Account Data', icon: User, desc: 'Profile & Registration' },
   { id: 'hardware', label: 'Linked Nodes', icon: Laptop, desc: 'Hardware & Devices' },
-  { id: 'interface', label: 'Visual Interface', icon: Palette, desc: 'Theme & Rendering' },
+  { id: 'saved', label: 'Saved Vault', icon: Bookmark, desc: 'Posts & Releases' },
   { id: 'security', label: 'Security', icon: Shield, desc: 'Admin & Encryption' },
 ];
 
@@ -94,7 +89,10 @@ export default function AdvancedSettingsMatrix() {
   const [isLightMode, setIsLightMode] = useState(false);
   const [activeTab, setActiveTab] = useState('account');
   
-  // Standardized Registration Form State
+  // High-Security States
+  const [isCodeRevealed, setIsCodeRevealed] = useState(false);
+  const [isWindowFocused, setIsWindowFocused] = useState(true);
+
   const [formData, setFormData] = useState({
     fullName: "Nimna",
     username: "Nima",
@@ -115,6 +113,51 @@ export default function AdvancedSettingsMatrix() {
     setTimeout(() => setRequestStatus('sent'), 2500);
   };
 
+  // ==========================================
+  // ANTI-SCREENSHOT EVENT LISTENERS
+  // ==========================================
+  useEffect(() => {
+    const handleBlur = () => {
+      // The exact moment Snipping Tool or another window opens, kill the visibility
+      setIsWindowFocused(false);
+      setIsCodeRevealed(false);
+    };
+
+    const handleFocus = () => {
+      setIsWindowFocused(true);
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Intercept PrintScreen, Windows Key, Command Key, and Shift combos
+      if (
+        e.key === 'PrintScreen' || 
+        e.metaKey || 
+        e.key === 'Meta' || 
+        (e.shiftKey && (e.metaKey || e.ctrlKey))
+      ) {
+        setIsCodeRevealed(false);
+      }
+    };
+
+    const handleCopy = (e: ClipboardEvent) => {
+      e.preventDefault();
+      // Inject dummy data into clipboard if they try to inspect and copy
+      e.clipboardData?.setData('text/plain', '[ACCESS DENIED - ENCRYPTED PAYLOAD]');
+    };
+
+    window.addEventListener('blur', handleBlur);
+    window.addEventListener('focus', handleFocus);
+    window.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('copy', handleCopy);
+
+    return () => {
+      window.removeEventListener('blur', handleBlur);
+      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('copy', handleCopy);
+    };
+  }, []);
+
   const bgCore = isLightMode ? "bg-[#f4f7fb]" : "bg-[#01030b]";
   const panelGlass = isLightMode ? "bg-white/80 border-slate-200 shadow-2xl" : "bg-[#020512]/70 border-[#0055ff]/30 shadow-[0_0_60px_rgba(0,100,255,0.15)]";
   const innerCard = isLightMode ? "bg-slate-50 border-slate-200 focus-within:border-blue-500" : "bg-[#01020a]/90 border-[#0044ff]/40 focus-within:border-[#00f0ff] focus-within:shadow-[0_0_30px_rgba(0,240,255,0.2)]";
@@ -125,7 +168,6 @@ export default function AdvancedSettingsMatrix() {
     <main className={`relative min-h-screen font-sans cursor-none overflow-x-hidden selection:bg-[#00f0ff]/30 flex flex-col transition-colors duration-1000 ${bgCore}`}>
       <CustomCursor />
       
-      {/* CINEMATIC TEXT ANIMATION */}
       <style dangerouslySetInnerHTML={{__html: `
         @keyframes textAnimation {
           0% { background-position: 0 0; }
@@ -140,29 +182,34 @@ export default function AdvancedSettingsMatrix() {
           background-size: cover;
           animation: textAnimation 25s linear infinite;
         }
+        /* Strict CSS Blocks for selection and printing */
+        .secure-code-block {
+          user-select: none !important;
+          -webkit-user-select: none !important;
+          -moz-user-select: none !important;
+          pointer-events: none;
+        }
+        @media print {
+          .secure-code-container { display: none !important; }
+        }
       `}} />
 
-      {/* THEME TOGGLE (Protective Layer) */}
+      {/* THEME TOGGLE */}
       <div className="relative z-[100] pointer-events-auto">
         <ThemeToggle isLight={isLightMode} toggleTheme={() => setIsLightMode(!isLightMode)} />
       </div>
 
       {/* 3D INTERACTIVE BACKGROUND */}
-      {/* BUG FIX: Removed pointer-events-none so the user can interact with the 3D Canvas */}
       <div className="fixed inset-0 z-0 overflow-hidden cursor-move">
         <Canvas camera={{ position: [0, 2, 8], fov: 60 }}>
-          {/* Enables Dragging, Rotating, and Panning of the Background! */}
           <OrbitControls enableZoom={false} enablePan={true} autoRotate={true} autoRotateSpeed={0.5} maxPolarAngle={Math.PI / 1.5} minPolarAngle={Math.PI / 4} />
           <ActiveTopography isLight={isLightMode} />
         </Canvas>
         <div className={`absolute inset-0 pointer-events-none ${isLightMode ? 'bg-[radial-gradient(circle_at_top,_transparent_30%,_#f4f7fb_100%)]' : 'bg-[radial-gradient(circle_at_top,_transparent_30%,_#01030b_100%)]'} backdrop-blur-[1px]`} />
       </div>
 
-      {/* MAIN CONTENT AREA - CLICK THROUGH MATRIX */}
-      {/* BUG FIX: Added pointer-events-none to the wrapper, so clicks pass through to the Canvas... */}
       <div className="relative z-10 w-full pt-32 pb-40 px-6 lg:px-12 flex-grow flex flex-col items-center pointer-events-none">
         
-        {/* ...but we re-enable pointer-events-auto for actual UI elements! */}
         <motion.div initial={{ opacity: 0, y: -30, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ type: "spring", stiffness: 80 }} className="w-full max-w-7xl mb-12 flex flex-col md:flex-row md:items-end justify-between pointer-events-auto">
           <div>
             <h1 className={`text-5xl md:text-7xl font-black uppercase tracking-tighter mb-2 ${isLightMode ? 'text-slate-900' : 'video-text-animation drop-shadow-[0_0_20px_rgba(0,240,255,0.3)]'}`}>
@@ -232,22 +279,55 @@ export default function AdvancedSettingsMatrix() {
               {activeTab === 'account' && (
                 <motion.div key="account" variants={staggerContainer} initial="hidden" animate="visible" exit="exit" className="flex flex-col h-full">
                   
-                  <motion.div variants={springItem} className="flex flex-col md:flex-row items-center space-y-6 md:space-y-0 md:space-x-8 mb-12">
-                    <motion.div whileHover={{ scale: 1.05, rotate: 5 }} whileTap={{ scale: 0.95 }} className="relative group cursor-pointer shrink-0">
-                      <div className="w-32 h-32 rounded-full bg-gradient-to-tr from-[#0044ff] to-[#00f0ff] p-[3px] shadow-[0_0_40px_rgba(0,102,255,0.4)]">
-                        <div className={`w-full h-full rounded-full flex items-center justify-center overflow-hidden relative ${isLightMode ? 'bg-white' : 'bg-[#01030a]'}`}>
-                          <User size={50} className={textSecondary} />
-                          <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                            <Camera size={24} className="text-[#00f0ff] mb-2" />
-                            <span className="text-[10px] font-bold text-white tracking-widest">Update</span>
+                  <motion.div variants={springItem} className="flex flex-col md:flex-row items-center md:items-start justify-between w-full mb-12 gap-8">
+                    
+                    {/* User Profile Info */}
+                    <div className="flex flex-col md:flex-row items-center md:items-start space-y-6 md:space-y-0 md:space-x-8">
+                      <motion.div whileHover={{ scale: 1.05, rotate: 5 }} whileTap={{ scale: 0.95 }} className="relative group cursor-pointer shrink-0">
+                        <div className="w-32 h-32 rounded-full bg-gradient-to-tr from-[#0044ff] to-[#00f0ff] p-[3px] shadow-[0_0_40px_rgba(0,102,255,0.4)]">
+                          <div className={`w-full h-full rounded-full flex items-center justify-center overflow-hidden relative ${isLightMode ? 'bg-white' : 'bg-[#01030a]'}`}>
+                            <User size={50} className={textSecondary} />
+                            <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                              <Camera size={24} className="text-[#00f0ff] mb-2" />
+                              <span className="text-[10px] font-bold text-white tracking-widest">Update</span>
+                            </div>
                           </div>
                         </div>
+                      </motion.div>
+                      <div className="text-center md:text-left mt-4 md:mt-2">
+                        <h2 className={`text-4xl font-black uppercase tracking-tighter ${textPrimary}`}>{formData.fullName}</h2>
+                        <p className={`text-sm font-mono mt-2 ${textSecondary}`}>@{formData.username}</p>
                       </div>
-                    </motion.div>
-                    <div className="text-center md:text-left">
-                      <h2 className={`text-4xl font-black uppercase tracking-tighter ${textPrimary}`}>{formData.fullName}</h2>
-                      <p className={`text-sm font-mono mt-2 ${textSecondary}`}>@{formData.username}</p>
                     </div>
+
+                    {/* ULTRA-SECURE SECRET CODE BLOCK */}
+                    <div className={`secure-code-container p-5 md:p-6 rounded-3xl border flex flex-col items-center justify-center shrink-0 shadow-inner relative overflow-hidden transition-colors ${isLightMode ? 'bg-red-50 border-red-200' : 'bg-[#010206] border-red-500/30'}`}>
+                      <div className="absolute inset-0 bg-[repeating-linear-gradient(45deg,transparent,transparent_10px,rgba(255,0,0,0.03)_10px,rgba(255,0,0,0.03)_20px)] pointer-events-none" />
+                      
+                      <span className={`text-[9px] md:text-[10px] font-black uppercase tracking-widest mb-3 flex items-center z-10 ${isLightMode ? 'text-red-600' : 'text-red-500'}`}>
+                        <Shield size={12} className="mr-2"/> Secure Access Code
+                      </span>
+                      
+                      <div 
+                        className="relative z-10 cursor-crosshair px-4 py-2 bg-black/20 rounded-xl border border-red-500/20"
+                        onPointerDown={() => setIsCodeRevealed(true)}
+                        onPointerUp={() => setIsCodeRevealed(false)}
+                        onPointerLeave={() => setIsCodeRevealed(false)}
+                        onContextMenu={(e) => e.preventDefault()}
+                      >
+                        <div className={`secure-code-block font-mono text-2xl md:text-3xl font-black tracking-[0.2em] transition-all duration-100 ${isCodeRevealed && isWindowFocused ? 'filter-none opacity-100' : 'filter blur-[10px] opacity-40'} ${isLightMode ? 'text-slate-800' : 'text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.8)]'}`}>
+                          AEX4921B7C
+                        </div>
+                        {/* Overlay that intercepts clicks to prevent text selection completely */}
+                        <div className="absolute inset-0 z-20" />
+                      </div>
+                      
+                      <span className={`text-[8px] mt-3 uppercase tracking-widest font-bold z-10 flex items-center ${isCodeRevealed ? 'text-red-500' : (isLightMode ? 'text-slate-500' : 'text-slate-400')}`}>
+                        {isCodeRevealed ? <AlertTriangle size={10} className="mr-1 animate-pulse" /> : <ScanFace size={10} className="mr-1" />}
+                        {isCodeRevealed ? 'ACTIVE SCAN' : 'Click & Hold to Reveal'}
+                      </span>
+                    </div>
+
                   </motion.div>
 
                   <motion.h3 variants={springItem} className={`text-xl font-black tracking-wide mb-8 ${textPrimary}`}>Personal Information</motion.h3>
@@ -352,25 +432,37 @@ export default function AdvancedSettingsMatrix() {
                 </motion.div>
               )}
 
-              {/* 3. INTERFACE */}
-              {activeTab === 'interface' && (
-                <motion.div key="interface" variants={staggerContainer} initial="hidden" animate="visible" exit="exit">
-                  <motion.h2 variants={springItem} className={`text-3xl font-black uppercase tracking-wide mb-6 ${textPrimary}`}>Visual Interface</motion.h2>
-                  <motion.p variants={springItem} className={`text-base leading-relaxed mb-12 max-w-2xl ${textSecondary}`}>
-                    Global theme parameters dictate the spatial rendering environment, flexible 3D wave patterns, and lighting arrays across all application sectors.
+              {/* 3. SAVED VAULT */}
+              {activeTab === 'saved' && (
+                <motion.div key="saved" variants={staggerContainer} initial="hidden" animate="visible" exit="exit" className="flex flex-col h-full">
+                  <motion.h2 variants={springItem} className={`text-3xl font-black uppercase tracking-wide mb-6 ${textPrimary}`}>Saved Vault</motion.h2>
+                  <motion.p variants={springItem} className={`text-base leading-relaxed mb-10 max-w-2xl ${textSecondary}`}>
+                    Your locally encrypted archive of bookmarked research papers, deployment logs, and system architectures.
                   </motion.p>
-
-                  <motion.div variants={springItem} whileHover={{ scale: 1.02, y: -5 }} className={`p-10 rounded-[2.5rem] border flex items-center space-x-8 ${innerCard}`}>
-                    <div className={`p-8 rounded-3xl ${isLightMode ? 'bg-blue-100 shadow-inner' : 'bg-[#00f0ff]/10 shadow-[inset_0_0_30px_rgba(0,240,255,0.2)]'}`}>
-                      <Palette size={56} className={isLightMode ? 'text-blue-600' : 'text-[#00f0ff]'} />
-                    </div>
-                    <div>
-                      <h4 className={`font-black text-3xl mb-4 tracking-wide ${textPrimary}`}>Current Environment</h4>
-                      <p className={`text-sm font-bold uppercase tracking-widest px-5 py-2.5 rounded-xl inline-block border shadow-md ${isLightMode ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-[#0044ff]/20 text-[#00f0ff] border-[#00f0ff]/40'}`}>
-                        Status: {isLightMode ? 'Daylight UI Protocol' : 'Dark Mode Protocol'}
-                      </p>
-                    </div>
-                  </motion.div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 flex-grow">
+                     {[
+                       { title: "Spatial DOM Recycling Models", type: "Research", date: "May 30, 2026", icon: FileText, color: "text-[#00ff66]", bg: "bg-[#00ff66]/10", border: "border-[#00ff66]/30" },
+                       { title: "Spatial API & Generative Models", type: "Release", date: "May 27, 2026", icon: ArchiveRestore, color: "text-orange-500", bg: "bg-orange-500/10", border: "border-orange-500/30" },
+                       { title: "Lanka Washing System Sync", type: "Release", date: "May 15, 2026", icon: ArchiveRestore, color: "text-orange-500", bg: "bg-orange-500/10", border: "border-orange-500/30" }
+                     ].map((item, i) => (
+                       <motion.div key={i} variants={springItem} whileHover={{ scale: 1.02, y: -5 }} className={`p-6 md:p-8 rounded-3xl border flex flex-col justify-between transition-all cursor-pointer shadow-lg ${innerCard}`}>
+                          <div className="flex items-start justify-between mb-8">
+                            <div className={`p-4 rounded-2xl ${isLightMode ? 'bg-slate-200' : item.bg}`}>
+                              <item.icon size={24} className={isLightMode ? 'text-slate-700' : item.color} />
+                            </div>
+                            <Bookmark size={20} className={isLightMode ? 'text-slate-400' : item.color} fill={isLightMode ? "currentColor" : "none"} />
+                          </div>
+                          <div>
+                            <h4 className={`font-black text-xl tracking-wide mb-4 leading-tight ${textPrimary}`}>{item.title}</h4>
+                            <div className="flex flex-wrap items-center gap-3">
+                              <span className={`text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-lg border ${isLightMode ? 'border-slate-300 text-slate-600 bg-slate-100' : item.border + " " + item.color + " " + item.bg}`}>{item.type}</span>
+                              <span className={`text-[10px] font-mono tracking-widest ${textSecondary}`}>{item.date}</span>
+                            </div>
+                          </div>
+                       </motion.div>
+                     ))}
+                  </div>
                 </motion.div>
               )}
 
@@ -418,7 +510,7 @@ export default function AdvancedSettingsMatrix() {
         </div>
       </div>
       
-      {/* FOOTER (Protective Layer) */}
+      {/* FOOTER */}
       <div className="relative z-10 w-full mt-auto pointer-events-auto">
         <Footer isLight={isLightMode} currentRole="user" />
       </div>
