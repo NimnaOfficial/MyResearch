@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { 
   Search, User, Settings, Star, LogOut, GitCommit, 
   Terminal, ShieldAlert, Zap, Cpu, Layers, ArchiveRestore, Focus,
-  Plus, Minus, ChevronDown, Rocket, Code2, Database, Box, PlayCircle
+  Plus, Minus, ChevronDown, Rocket, Code2, Database, Box, PlayCircle, FolderOpen
 } from 'lucide-react';
 
 import CustomCursor from '@/components/CustomCursor';
@@ -20,7 +20,9 @@ import Footer from '@/components/Footer';
 const RECENT_PROJECTS = [
   { id: "v2.4.0", date: "MAY 2026", title: "Quantum UI Framework", type: "Frontend Core", color: "from-orange-500 to-amber-400", icon: Layers, changes: ["Engineered 3D Spatial Cascading Stacks.", "Re-architected the Authentication HUD.", "Optimized Framer Motion physics springs."] },
   { id: "v2.3.5", date: "MAY 2026", title: "Lanka Washing System", type: "Fullstack App", color: "from-orange-600 to-red-500", icon: Terminal, changes: ["30-class Object-Oriented Architecture.", "Java Swing desktop component integration.", "PHP-based central administration panel."] },
-  { id: "v2.2.0", date: "APR 2026", title: "AutoHub Platform", type: "Web Platform", color: "from-amber-400 to-orange-500", icon: Database, changes: ["Optimized MySQL database query latency.", "Integrated Stripe payment gateway APIs.", "Secured server routing protocols."] }
+  { id: "v2.2.0", date: "APR 2026", title: "AutoHub Platform", type: "Web Platform", color: "from-amber-400 to-orange-500", icon: Database, changes: ["Optimized MySQL database query latency.", "Integrated Stripe payment gateway APIs.", "Secured server routing protocols."] },
+  { id: "v2.1.0", date: "MAR 2026", title: "Telemetry Analytics", type: "Data Matrix", color: "from-red-500 to-orange-600", icon: Zap, changes: ["Live web-socket data streaming.", "AJAX payload encryption routing.", "Interactive 3D Hologram deployment."] },
+  { id: "v2.0.0", date: "FEB 2026", title: "Security Matrix", type: "Core Patch", color: "from-orange-500 to-pink-500", icon: ShieldAlert, changes: ["Strictly typed session roles.", "Patched vulnerabilities in Contact Matrix.", "Role-aware navigation headers."] }
 ];
 
 const INCOMINGS = [
@@ -46,7 +48,7 @@ const FAQS = [
 ];
 
 // ==========================================
-// ADVANCED CARBON-COMB BACKGROUND
+// CSS ONLY CARBON-COMB BACKGROUND
 // ==========================================
 function CarbonCombBackground({ isLight }: { isLight: boolean }) {
   const bgColor = isLight ? 'bg-slate-50' : 'bg-[#010205]';
@@ -55,34 +57,14 @@ function CarbonCombBackground({ isLight }: { isLight: boolean }) {
 
   return (
     <div className={`fixed inset-0 z-0 pointer-events-none ${bgColor} overflow-hidden`}>
-      {/* Carbon Fiber Diagonal Weave */}
-      <motion.div 
-        animate={{ x: [0, -100, 0], y: [0, -100, 0] }} 
-        transition={{ duration: 20, ease: "linear", repeat: Infinity }}
-        className="absolute inset-0 w-[200%] h-[200%] opacity-60"
-        style={{
-          backgroundImage: `repeating-linear-gradient(45deg, ${fiberColor} 25%, transparent 25%, transparent 75%, ${fiberColor} 75%, ${fiberColor}), repeating-linear-gradient(45deg, ${fiberColor} 25%, transparent 25%, transparent 75%, ${fiberColor} 75%, ${fiberColor})`,
-          backgroundPosition: '0 0, 10px 10px',
-          backgroundSize: '20px 20px'
-        }}
-      />
-      {/* Honeycomb Matrix Overlay */}
-      <motion.div 
-        animate={{ y: [0, -103.92, 0] }} 
-        transition={{ duration: 30, ease: "linear", repeat: Infinity }}
-        className="absolute inset-0 w-full h-[200%] opacity-80 mix-blend-screen"
-        style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='103.92304845413264' viewBox='0 0 60 103.92304845413264' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 103.92304845413264L60 86.60254037844386L60 51.96152422706632L30 34.64101615137754L0 51.96152422706632L0 86.60254037844386Z' fill='transparent' stroke='${encodeURIComponent(combColor)}' stroke-width='1.5'/%3E%3C/svg%3E")`,
-          backgroundSize: '60px 103.92px'
-        }}
-      />
-      {/* Ambient Lighting Orbs */}
+      <motion.div animate={{ x: [0, -100, 0], y: [0, -100, 0] }} transition={{ duration: 20, ease: "linear", repeat: Infinity }} className="absolute inset-0 w-[200%] h-[200%] opacity-60" style={{ backgroundImage: `repeating-linear-gradient(45deg, ${fiberColor} 25%, transparent 25%, transparent 75%, ${fiberColor} 75%, ${fiberColor}), repeating-linear-gradient(45deg, ${fiberColor} 25%, transparent 25%, transparent 75%, ${fiberColor} 75%, ${fiberColor})`, backgroundPosition: '0 0, 10px 10px', backgroundSize: '20px 20px' }} />
+      <motion.div animate={{ y: [0, -103.92, 0] }} transition={{ duration: 30, ease: "linear", repeat: Infinity }} className="absolute inset-0 w-full h-[200%] opacity-80 mix-blend-screen" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='103.92304845413264' viewBox='0 0 60 103.92304845413264' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 103.92304845413264L60 86.60254037844386L60 51.96152422706632L30 34.64101615137754L0 51.96152422706632L0 86.60254037844386Z' fill='transparent' stroke='${encodeURIComponent(combColor)}' stroke-width='1.5'/%3E%3C/svg%3E")`, backgroundSize: '60px 103.92px' }} />
       <motion.div animate={{ opacity: [0.1, 0.3, 0.1], scale: [1, 1.2, 1] }} transition={{ duration: 12, repeat: Infinity }} className={`absolute top-1/4 left-1/4 w-[40vw] h-[40vw] rounded-full blur-[150px] ${isLight ? 'bg-orange-500/20' : 'bg-orange-600/20'}`} />
     </div>
   );
 }
 
-const ultraSmoothSpring = { type: "spring" as const, stiffness: 80, damping: 20, mass: 1 };
+const ultraSmoothSpring = { type: "spring" as const, stiffness: 100, damping: 20, mass: 1 };
 const slowExpandSpring = { type: "spring" as const, stiffness: 50, damping: 25, mass: 1.5 };
 
 // ==========================================
@@ -93,23 +75,30 @@ export default function ProjectMatrix() {
   const [timeState, setTimeState] = useState({ time: "", date: "" });
   const [isProfileHovered, setIsProfileHovered] = useState(false);
   
-  // Section 1: Top-Down Stack State
-  const [searchQuery, setSearchQuery] = useState('');
-  const [isSearching, setIsSearching] = useState(false);
+  // Section 1: "Standing File Drawer" State
   const [activeStackIndex, setActiveStackIndex] = useState(0);
+  const [isHoveringStack, setIsHoveringStack] = useState(false);
 
   // Section 3: Combobox & Filter
   const [filterType, setFilterType] = useState('All Systems');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
-  // Section 4: 3D Hologram Carousel State
+  // Section 4: 3D Hologram Carousel Cursor Tracking
+  const holoMouseX = useMotionValue(0);
+  const holoRotY = useMotionValue(0);
   const [isCarouselHovered, setIsCarouselHovered] = useState(false);
 
-  // Section 5: Automated FAQ State
+  useAnimationFrame(() => {
+    if (!isCarouselHovered) {
+      holoRotY.set(holoRotY.get() + 0.03 + (holoMouseX.get() * 0.15)); 
+    }
+  });
+
+  // Section 5: Automated FAQ
   const [openFaq, setOpenFaq] = useState<number | null>(0);
   const [isFaqHovered, setIsFaqHovered] = useState(false);
 
-  // Section 6: Interactive Dial Drag State
+  // Section 6: Interactive Dial 
   const [isDialOpen, setIsDialOpen] = useState(false);
   const dialDragX = useMotionValue(0);
   const dialRotation = useTransform(dialDragX, [-300, 300], [-180, 180]);
@@ -120,18 +109,16 @@ export default function ProjectMatrix() {
 
   // Auto-Cycle Timers
   useEffect(() => {
-    const stackTimer = setInterval(() => {
-      setActiveStackIndex((prev) => (prev + 1) % RECENT_PROJECTS.length);
-    }, 4000); // Cycles the top-down deck every 4 seconds
-
     const faqTimer = setInterval(() => {
-      if (!isFaqHovered) {
-        setOpenFaq((prev) => (prev !== null ? (prev + 1) % FAQS.length : 0));
-      }
-    }, 5000); // Cycles the FAQ every 5 seconds
+      if (!isFaqHovered) setOpenFaq((prev) => (prev !== null ? (prev + 1) % FAQS.length : 0));
+    }, 5000); 
 
-    return () => { clearInterval(stackTimer); clearInterval(faqTimer); };
-  }, [isFaqHovered]);
+    const stackTimer = setInterval(() => {
+      if (!isHoveringStack) setActiveStackIndex((prev) => (prev + 1) % RECENT_PROJECTS.length);
+    }, 4000); // Slowed slightly for better reading pace
+
+    return () => { clearInterval(faqTimer); clearInterval(stackTimer); };
+  }, [isFaqHovered, isHoveringStack]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -141,13 +128,8 @@ export default function ProjectMatrix() {
         setIsAuthenticated(storedRole === 'user' || storedRole === 'admin');
       } else {
         const isInternalRoute = document.referrer.includes(window.location.host);
-        if (isInternalRoute) {
-          setCurrentUserRole('user');
-          setIsAuthenticated(true);
-        } else {
-          setCurrentUserRole('guest');
-          setIsAuthenticated(false);
-        }
+        if (isInternalRoute) { setCurrentUserRole('user'); setIsAuthenticated(true); } 
+        else { setCurrentUserRole('guest'); setIsAuthenticated(false); }
       }
     }
     const updateClock = () => {
@@ -164,7 +146,6 @@ export default function ProjectMatrix() {
     setIsDialOpen(false);
   };
 
-  // Theme Variables
   const textPrimary = isLightMode ? "text-slate-900" : "text-white";
   const textSecondary = isLightMode ? "text-slate-600" : "text-slate-400";
   const glassBg = isLightMode ? "bg-white/90 border-slate-200 shadow-2xl" : "bg-[#010308]/90 border-white/5 shadow-[0_0_50px_rgba(0,0,0,0.5)]";
@@ -174,6 +155,7 @@ export default function ProjectMatrix() {
   return (
     <main className={`relative min-h-screen font-sans cursor-none overflow-x-hidden flex flex-col transition-colors duration-1000 ${isLightMode ? 'text-slate-900 bg-slate-50' : 'text-white bg-[#010205]'}`}>
       <CustomCursor />
+      
       <CarbonCombBackground isLight={isLightMode} />
 
       <div className="fixed top-24 left-6 lg:left-12 z-[100] pointer-events-auto">
@@ -184,7 +166,6 @@ export default function ProjectMatrix() {
           HEADER 
           ========================================== */}
       <div className="fixed top-0 left-0 right-0 z-50 pt-6 px-6 lg:px-12 flex justify-between items-start pointer-events-none">
-        
         <div className="flex items-center space-x-3 pointer-events-auto mt-20">
           <div className="w-10 h-10 shrink-0 bg-gradient-to-br from-orange-500 to-amber-400 rounded-lg flex items-center justify-center text-black shadow-[0_0_20px_rgba(249,115,22,0.3)]">
             <ArchiveRestore size={20} />
@@ -215,18 +196,15 @@ export default function ProjectMatrix() {
 
               <AnimatePresence>
                 {isProfileHovered && (
-                  <motion.div 
-                    initial={{ opacity: 0, y: 15, scale: 0.9, rotateX: -20 }} animate={{ opacity: 1, y: 0, scale: 1, rotateX: 0 }} exit={{ opacity: 0, y: 15, scale: 0.9, rotateX: -20 }} transition={ultraSmoothSpring}
-                    className={`absolute right-0 mt-3 w-56 rounded-2xl backdrop-blur-2xl p-2 flex flex-col transform-gpu shadow-2xl ${glassBg}`}
-                  >
+                  <motion.div initial={{ opacity: 0, y: 15, scale: 0.9, rotateX: -20 }} animate={{ opacity: 1, y: 0, scale: 1, rotateX: 0 }} exit={{ opacity: 0, y: 15, scale: 0.9, rotateX: -20 }} transition={ultraSmoothSpring} className={`absolute right-0 mt-3 w-56 rounded-2xl backdrop-blur-2xl p-2 flex flex-col transform-gpu shadow-2xl ${glassBg}`}>
                     <Link href="/settings" className={`flex items-center px-4 py-3 text-xs font-bold uppercase tracking-widest rounded-xl transition-all ${isLightMode ? 'text-slate-700 hover:bg-slate-100' : 'text-slate-300 hover:bg-white/5'}`}>
                       <Settings size={14} className="mr-3 text-orange-500" /> Settings
                     </Link>
-                    <button type="button" aria-label="Saved Links" className={`flex items-center px-4 py-3 text-xs font-bold uppercase tracking-widest text-orange-500 rounded-xl transition-all group ${isLightMode ? 'hover:bg-orange-50' : 'hover:bg-orange-500/10'}`}>
+                    <button type="button" className={`flex items-center px-4 py-3 text-xs font-bold uppercase tracking-widest text-cyan-500 rounded-xl transition-all group ${isLightMode ? 'hover:bg-cyan-50' : 'hover:bg-cyan-500/10'}`}>
                       <Star size={14} className="mr-3 text-orange-400 group-hover:drop-shadow-[0_0_8px_rgba(249,115,22,0.8)]" /> Saved Links
                     </button>
                     <div className={`h-px w-full my-1 ${isLightMode ? 'bg-slate-200' : 'bg-slate-800/50'}`} />
-                    <button type="button" aria-label="Terminate Link" className={`flex items-center px-4 py-3 text-xs font-bold uppercase tracking-widest text-red-500 rounded-xl transition-all group ${isLightMode ? 'hover:bg-red-50' : 'hover:bg-red-500/10'}`}>
+                    <button type="button" className={`flex items-center px-4 py-3 text-xs font-bold uppercase tracking-widest text-red-500 rounded-xl transition-all group ${isLightMode ? 'hover:bg-red-50' : 'hover:bg-red-500/10'}`}>
                       <LogOut size={14} className="mr-3 text-red-500 group-hover:drop-shadow-[0_0_8px_rgba(239,68,68,0.8)]" /> Terminate Link
                     </button>
                   </motion.div>
@@ -240,54 +218,69 @@ export default function ProjectMatrix() {
       <div className="relative z-10 w-full pt-48 pb-20 flex flex-col flex-grow">
         
         {/* ==========================================
-            SKILL 1: RECENT PROJECTS (TOP-DOWN ISOMETRIC AUTO-SCROLL)
+            SKILL 1: THE STANDING FILE DRAWER (FIXED CONTROL)
             ========================================== */}
-        <div id="recent" className="max-w-7xl mx-auto w-full px-6 lg:px-12 mb-32">
+        <div id="recent" className="max-w-7xl mx-auto w-full px-6 lg:px-12 mb-40">
           <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-8">
             <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={ultraSmoothSpring}>
               <h2 className="text-5xl md:text-7xl font-black uppercase tracking-tighter mb-2 leading-none">
                 Recent <br/>
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-amber-400">Projects</span>
               </h2>
-              <p className={`text-sm md:text-base font-mono tracking-widest uppercase mt-4 ${textSecondary}`}>Top-Down Architecture View. Drag to cycle.</p>
+              <p className={`text-sm md:text-base font-mono tracking-widest uppercase mt-4 ${textSecondary}`}>Architecture Deck. Click or Drag files to cycle.</p>
             </motion.div>
 
             <motion.div 
               initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2, ...ultraSmoothSpring }}
               className={`relative flex items-center w-full md:w-96 rounded-xl border transition-all shadow-xl backdrop-blur-xl z-20 ${inputBg}`} 
-              style={{ borderColor: isSearching ? accentHex : undefined, boxShadow: isSearching ? `0 0 20px rgba(249,115,22,0.2)` : undefined }}
             >
-              <div className={`absolute -top-1 -left-1 w-2 h-2 border-t-2 border-l-2 transition-colors ${isSearching ? 'border-orange-500' : 'border-transparent'}`} />
-              <div className={`absolute -top-1 -right-1 w-2 h-2 border-t-2 border-r-2 transition-colors ${isSearching ? 'border-orange-500' : 'border-transparent'}`} />
-              <div className={`absolute -bottom-1 -left-1 w-2 h-2 border-b-2 border-l-2 transition-colors ${isSearching ? 'border-orange-500' : 'border-transparent'}`} />
-              <div className={`absolute -bottom-1 -right-1 w-2 h-2 border-b-2 border-r-2 transition-colors ${isSearching ? 'border-orange-500' : 'border-transparent'}`} />
-              
-              <Search size={20} className={`ml-5 ${isSearching ? 'text-orange-500' : textSecondary}`} />
+              <Search size={20} className={`ml-5 text-orange-500`} />
               <input 
                 type="text" placeholder="Search architecture..." 
-                value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
-                onFocus={() => setIsSearching(true)} onBlur={() => setIsSearching(false)}
-                className="w-full bg-transparent border-none py-4 px-4 text-sm font-mono focus:outline-none placeholder-slate-500 relative z-20"
+                className="w-full bg-transparent border-none py-4 px-4 text-sm font-mono focus:outline-none placeholder-slate-500"
               />
             </motion.div>
           </div>
 
-          <div className="relative w-full flex flex-col items-center [perspective:1500px] h-[550px] z-10">
-            {RECENT_PROJECTS.map((release, index) => {
+          {/* STANDING DRAWER PHYSICS CONTAINER */}
+          <div 
+            className="relative w-full flex flex-col justify-end items-center [perspective:1500px] h-[550px] z-10 pb-10"
+            onMouseEnter={() => setIsHoveringStack(true)}
+            onMouseLeave={() => setIsHoveringStack(false)}
+          >
+            {RECENT_PROJECTS.map((project, i) => {
               const total = RECENT_PROJECTS.length;
-              // Mathematics for Top-Down View: Active card is at top, others drop downwards and backwards.
-              const offset = (index - activeStackIndex + total) % total; 
+              const offset = (i - activeStackIndex + total) % total;
               
               const isFront = offset === 0;
-              const yPos = offset * 100; // Moves it DOWN the screen
-              const zPos = -offset * 120; // Pushes it DEEP into the screen
-              const rotationX = 40; // Tilted to look like we view from above
-              
+              const isLeaving = offset === total - 1; 
+              const isVisible = offset >= 0 && offset < 4; 
+
+              let yPos = 0;
+              let zPos = 0;
+              let rotX = 0;
+              let opacity = 1;
+              let scale = 1;
+
+              if (isFront) {
+                 yPos = 0; zPos = 0; rotX = 0; opacity = 1; scale = 1;
+              } else if (isLeaving) {
+                 yPos = 300; zPos = 100; rotX = -20; opacity = 0; scale = 1.1; 
+              } else {
+                 yPos = -offset * 75;   // Increased spread for easy clicking
+                 zPos = -offset * 120;  // Pushes it into the drawer
+                 rotX = offset * 4;     // Adds the slight backward lean
+                 opacity = 1 - (offset * 0.15); // Better visibility for back cards
+                 scale = 1 - (offset * 0.04);
+              }
+
               return (
                 <motion.div
-                  key={release.id}
-                  drag="y"
+                  key={project.id}
+                  onClick={() => setActiveStackIndex(i)} // TACTILE CLICK TO SELECT
+                  drag="y" // SWIPE GESTURE SUPPORT
                   dragConstraints={{ top: 0, bottom: 0 }}
+                  dragElastic={0.2}
                   onDragEnd={(e, { offset, velocity }) => {
                     if (offset.y < -50 || velocity.y < -500) {
                       setActiveStackIndex((prev) => (prev + 1) % total);
@@ -295,46 +288,65 @@ export default function ProjectMatrix() {
                       setActiveStackIndex((prev) => (prev - 1 + total) % total);
                     }
                   }}
-                  animate={{ 
-                    rotateX: isFront ? 10 : rotationX, // Front card flattens slightly
-                    y: isFront ? 0 : yPos, 
+                  animate={{
+                    y: yPos,
                     z: zPos,
-                    opacity: isFront ? 1 : 1 - (offset * 0.3),
-                    scale: isFront ? 1.05 : 1
+                    rotateX: rotX,
+                    scale: scale,
+                    opacity: isVisible || isLeaving ? opacity : 0,
+                    zIndex: total - offset
                   }}
-                  transition={{ type: "spring", stiffness: 100, damping: 20 }}
-                  className={`absolute top-0 w-full max-w-4xl rounded-3xl p-8 md:p-10 border backdrop-blur-3xl transform-gpu cursor-grab active:cursor-grabbing ${
-                    isLightMode ? 'bg-white/90 border-slate-300' : 'bg-[#050b14]/90 border-orange-500/40 shadow-[inset_0_0_30px_rgba(249,115,22,0.1)]'
-                  }`}
-                  style={{ zIndex: total - offset, boxShadow: isFront ? `0 60px 120px -20px rgba(0,0,0,0.9)` : `0 20px 40px rgba(0,0,0,0.5)` }}
+                  whileHover={{
+                    scale: isFront ? 1 : scale + 0.02, 
+                    cursor: isFront ? "grab" : "pointer"
+                  }}
+                  transition={{ type: "spring", stiffness: 120, damping: 20 }}
+                  className="absolute bottom-0 w-full max-w-4xl h-[380px] md:h-[420px] active:cursor-grabbing"
+                  style={{ transformOrigin: "bottom center" }}
                 >
-                  <div className={`absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r ${release.color} opacity-100 rounded-t-3xl`} />
-                  <div className="flex flex-col md:flex-row gap-6 items-start md:items-center justify-between mb-8">
-                    <div className="flex items-center space-x-6">
-                      <div className={`w-14 h-14 md:w-16 md:h-16 rounded-2xl flex items-center justify-center bg-gradient-to-br ${release.color} text-white shadow-[0_0_20px_rgba(249,115,22,0.5)] shrink-0`}>
-                        <release.icon size={26} />
-                      </div>
-                      <div>
-                        <h3 className={`text-2xl md:text-3xl font-black tracking-tight uppercase ${textPrimary}`}>{release.title}</h3>
-                        <div className="flex items-center space-x-3 mt-2">
-                          <span className={`text-[10px] font-black px-2.5 py-1 rounded tracking-widest uppercase bg-orange-500/20 text-orange-500`}>{release.id}</span>
-                          <span className={`text-xs font-mono tracking-widest ${textSecondary}`}>{release.date}</span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className={`px-4 py-2 rounded-lg text-[10px] font-black tracking-[0.2em] uppercase border ${isLightMode ? 'border-slate-300 text-slate-600' : 'border-orange-500/50 text-orange-500'}`}>
-                      {release.type}
-                    </div>
+                  {/* FOLDER TAB */}
+                  <div className={`absolute -top-10 left-8 px-6 py-2.5 rounded-t-xl border-t border-l border-r flex items-center gap-3 shadow-lg z-20 transition-colors ${
+                      isFront ? 'bg-orange-600 border-orange-400' : 'bg-orange-900 border-orange-700/50'
+                  }`}>
+                     <FolderOpen size={16} className={isFront ? "text-black" : "text-orange-400"} />
+                     <span className={`font-black uppercase text-xs tracking-widest ${isFront ? "text-black" : "text-orange-400"}`}>{project.id}</span>
                   </div>
-                  <div className={`w-full h-px mb-8 ${isLightMode ? 'bg-slate-200' : 'bg-orange-500/20'}`} />
-                  <ul className="space-y-4">
-                    {release.changes.map((change, i) => (
-                      <li key={i} className="flex items-start">
-                        <GitCommit size={18} className="mr-4 mt-0.5 shrink-0 text-orange-500" />
-                        <span className={`text-sm md:text-base font-medium leading-relaxed ${textPrimary}`}>{change}</span>
-                      </li>
-                    ))}
-                  </ul>
+
+                  {/* MAIN CARD BODY */}
+                  <div className={`absolute top-0 bottom-0 left-0 right-0 rounded-3xl border overflow-hidden flex flex-col justify-between p-8 md:p-10 transition-colors duration-500 shadow-2xl ${
+                      isLightMode ? 'bg-white/95 border-slate-300' : 'bg-[#050b14]/95 border-orange-500/30 backdrop-blur-xl'
+                  } ${isFront ? 'border-orange-500 shadow-[0_0_50px_rgba(249,115,22,0.2)]' : 'hover:border-orange-400'}`}>
+                    
+                    <div className={`absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r ${project.color}`} />
+
+                    <div>
+                      <div className="flex justify-between items-start mb-6 mt-2">
+                         <h3 className={`text-3xl md:text-5xl font-black tracking-tight uppercase ${textPrimary}`}>{project.title}</h3>
+                         <div className={`w-14 h-14 rounded-2xl flex items-center justify-center bg-gradient-to-br ${project.color} text-black shrink-0`}>
+                           <project.icon size={24} />
+                         </div>
+                      </div>
+                      
+                      <div className="inline-flex px-4 py-2 bg-orange-500/10 text-orange-500 font-black text-[10px] tracking-[0.2em] uppercase rounded-lg border border-orange-500/30 mb-8">
+                         {project.type}
+                      </div>
+                      
+                      <ul className="space-y-4">
+                         {project.changes.map((change, idx) => (
+                           <li key={idx} className="flex items-start">
+                              <GitCommit size={18} className="mr-4 mt-0.5 shrink-0 text-orange-500" />
+                              <span className={`text-sm md:text-base font-medium leading-relaxed ${textPrimary}`}>{change}</span>
+                           </li>
+                         ))}
+                      </ul>
+                    </div>
+
+                    <div className="w-full border-t border-white/10 pt-5 flex justify-between items-center text-orange-500/60 font-mono text-[10px] uppercase tracking-widest">
+                       <span>DEPLOYED: {project.date}</span>
+                       <span>[ SYSTEM MATRIX ]</span>
+                    </div>
+
+                  </div>
                 </motion.div>
               );
             })}
@@ -357,20 +369,13 @@ export default function ProjectMatrix() {
             </div>
           </div>
 
-          {/* Auto-Rotating 3D Cylinder (Curved Monitor Effect) */}
           <div className="w-full flex justify-center [perspective:2000px] h-[400px] mt-10">
-            {/* Duplicated array to create a full 360 cylinder (10 items total) */}
-            <motion.div 
-              animate={{ rotateY: [0, -360] }}
-              transition={{ ease: "linear", duration: 40, repeat: Infinity }}
-              className="relative w-[320px] h-full [transform-style:preserve-3d]"
-            >
+            <motion.div animate={{ rotateY: [0, -360] }} transition={{ ease: "linear", duration: 40, repeat: Infinity }} className="relative w-[320px] h-full [transform-style:preserve-3d]">
               {[...INCOMINGS, ...INCOMINGS].map((item, i) => {
                 const angle = i * (360 / 10);
                 return (
                   <motion.div 
-                    key={i} 
-                    style={{ transform: `rotateY(${angle}deg) translateZ(600px)` }}
+                    key={i} style={{ transform: `rotateY(${angle}deg) translateZ(600px)` }}
                     whileHover={{ scale: 1.05, backgroundColor: isLightMode ? '#fff' : '#010205', borderColor: '#f97316' }}
                     className={`absolute inset-0 p-8 flex flex-col justify-between border-2 rounded-3xl transition-colors duration-500 ${isLightMode ? 'bg-slate-50 border-slate-200 shadow-xl' : 'bg-[#050b14]/80 backdrop-blur-md border-white/10 shadow-[0_0_30px_rgba(0,0,0,0.8)]'}`}
                   >
@@ -392,29 +397,17 @@ export default function ProjectMatrix() {
             SKILL 3: ALL PROJECTS FILTER & AUTO-MARQUEE
             ========================================== */}
         <div id="all" className={`w-full py-24 overflow-hidden flex flex-col bg-black border-b border-white/10 relative z-20`}>
-          
           <div className="max-w-7xl mx-auto w-full px-6 lg:px-12 mb-12 flex justify-end z-30">
             <div className="relative">
-              <button 
-                onClick={() => setIsFilterOpen(!isFilterOpen)} aria-label="Toggle Filter"
-                className={`flex items-center space-x-4 px-6 py-3 rounded-xl border font-black uppercase tracking-widest text-xs transition-colors ${isFilterOpen ? 'bg-orange-500 text-black border-orange-500' : 'bg-[#050b14] text-white border-white/20 hover:border-orange-500/50'}`}
-              >
+              <button onClick={() => setIsFilterOpen(!isFilterOpen)} aria-label="Toggle Filter" className={`flex items-center space-x-4 px-6 py-3 rounded-xl border font-black uppercase tracking-widest text-xs transition-colors ${isFilterOpen ? 'bg-orange-500 text-black border-orange-500' : 'bg-[#050b14] text-white border-white/20 hover:border-orange-500/50'}`}>
                 <span>{filterType}</span>
                 <ChevronDown size={16} className={`transition-transform duration-300 ${isFilterOpen ? 'rotate-180' : 'rotate-0'}`} />
               </button>
-              
               <AnimatePresence>
                 {isFilterOpen && (
-                  <motion.div 
-                    initial={{ opacity: 0, y: -10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                    className="absolute top-full right-0 mt-2 w-48 bg-[#050b14] border border-white/20 rounded-xl shadow-2xl overflow-hidden"
-                  >
+                  <motion.div initial={{ opacity: 0, y: -10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -10, scale: 0.95 }} className="absolute top-full right-0 mt-2 w-48 bg-[#050b14] border border-white/20 rounded-xl shadow-2xl overflow-hidden">
                     {['All Systems', 'Frontend', 'Backend', 'AI Models'].map(type => (
-                      <button 
-                        key={type} aria-label={`Filter by ${type}`}
-                        onClick={() => { setFilterType(type); setIsFilterOpen(false); }}
-                        className="w-full text-left px-5 py-3 text-xs font-bold uppercase tracking-widest text-white hover:bg-orange-500 hover:text-black transition-colors"
-                      >
+                      <button key={type} aria-label={`Filter by ${type}`} onClick={() => { setFilterType(type); setIsFilterOpen(false); }} className="w-full text-left px-5 py-3 text-xs font-bold uppercase tracking-widest text-white hover:bg-orange-500 hover:text-black transition-colors">
                         {type}
                       </button>
                     ))}
@@ -424,7 +417,6 @@ export default function ProjectMatrix() {
             </div>
           </div>
 
-          {/* Marquee 1: Auto Moves Left */}
           <div className="flex w-fit whitespace-nowrap mb-6 group cursor-none">
             <motion.div animate={{ x: ["0%", "-50%"] }} transition={{ ease: "linear", duration: 30, repeat: Infinity }} className="flex gap-4 px-2">
               {[...ALL_PROJECTS, ...ALL_PROJECTS].map((proj, idx) => (
@@ -436,7 +428,6 @@ export default function ProjectMatrix() {
             </motion.div>
           </div>
 
-          {/* Marquee 2: Auto Moves Right */}
           <div className="flex w-fit whitespace-nowrap group cursor-none ml-[-1000px]">
             <motion.div animate={{ x: ["-50%", "0%"] }} transition={{ ease: "linear", duration: 30, repeat: Infinity }} className="flex gap-4 px-2">
               {[...ALL_PROJECTS].reverse().concat([...ALL_PROJECTS].reverse()).map((proj, idx) => (
@@ -450,13 +441,20 @@ export default function ProjectMatrix() {
         </div>
 
         {/* ==========================================
-            SKILL 4: TARGETING BLOCK + AUTO HOLOGRAPHIC CAROUSEL
+            SKILL 4: SLOW CURSOR-TRACKING HOLOGRAPHIC CAROUSEL
             ========================================== */}
-        <div id="hologram" className="w-full py-40 flex flex-col items-center justify-center overflow-hidden relative z-10">
-          
+        <div 
+          id="hologram" 
+          className="w-full py-40 flex flex-col items-center justify-center overflow-hidden relative z-10"
+          onMouseMove={(e) => {
+            const rect = e.currentTarget.getBoundingClientRect();
+            const x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+            holoMouseX.set(x);
+          }}
+          onMouseLeave={() => holoMouseX.set(0)}
+        >
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(249,115,22,0.1)_0%,transparent_70%)] pointer-events-none" />
 
-          {/* Central Target Block */}
           <div className="relative bg-black w-72 h-80 flex flex-col items-center justify-center p-8 shadow-2xl group z-20">
             <div className="absolute -top-2 -left-2 w-4 h-4 border-t-4 border-l-4 border-cyan-400 transition-transform group-hover:-translate-x-2 group-hover:-translate-y-2" />
             <div className="absolute -top-2 -right-2 w-4 h-4 border-t-4 border-r-4 border-orange-500 transition-transform group-hover:translate-x-2 group-hover:-translate-y-2" />
@@ -466,20 +464,15 @@ export default function ProjectMatrix() {
             <h3 className="text-white text-3xl font-black uppercase tracking-tight leading-tight text-center">
               Have an idea?<br/><span className="text-orange-500">We'll make it real.</span>
             </h3>
-            <p className="text-white/50 text-[10px] font-mono mt-6 uppercase tracking-[0.2em] animate-pulse">Hover Node to Access</p>
+            <p className="text-white/50 text-[10px] font-mono mt-6 uppercase tracking-[0.2em] animate-pulse">Move Cursor to Spin Orbit</p>
           </div>
 
-          {/* Auto-Rotating 3D Holographic CSS Carousel */}
           <div className="relative w-full h-32 mt-20 flex justify-center [perspective:1200px]">
-            <motion.div 
-              animate={isCarouselHovered ? {} : { rotateY: [0, 360] }}
-              transition={{ ease: "linear", duration: 25, repeat: Infinity }}
-              className="absolute w-[300px] h-[200px] [transform-style:preserve-3d] flex items-center justify-center"
-            >
+            <motion.div style={{ rotateY: holoRotY }} className="absolute w-[300px] h-[200px] [transform-style:preserve-3d] flex items-center justify-center">
               {[1, 2, 3, 4, 5].map((item, i) => (
                 <Link 
                   href="/feedback" key={i} aria-label={`Provide feedback for Project ${item}`}
-                  onMouseEnter={() => setIsCarouselHovered(true)}
+                  onMouseEnter={() => setIsCarouselHovered(true)} 
                   onMouseLeave={() => setIsCarouselHovered(false)}
                   className="absolute inset-0 w-full h-full flex flex-col items-center justify-center rounded-2xl border border-orange-500/50 bg-black/80 backdrop-blur-md hover:border-orange-400 hover:bg-orange-950/80 hover:scale-110 hover:shadow-[0_0_50px_rgba(249,115,22,0.6)] transition-all duration-300"
                   style={{ transform: `rotateY(${i * (360 / 5)}deg) translateZ(350px)` }}
@@ -491,11 +484,10 @@ export default function ProjectMatrix() {
               ))}
             </motion.div>
           </div>
-
         </div>
 
         {/* ==========================================
-            SKILL 5: AUTO-EXPANDING FAQ (SLOW ANIMATION)
+            SKILL 5: AUTO-EXPANDING FAQ 
             ========================================== */}
         <div id="faq" className={`w-full py-32 border-t ${isLightMode ? 'border-slate-200 bg-slate-50' : 'border-white/10 bg-[#010205]'}`}>
           <div className="max-w-5xl mx-auto px-6 lg:px-12 flex flex-col lg:flex-row gap-16">
@@ -507,21 +499,13 @@ export default function ProjectMatrix() {
             <div className="lg:w-2/3 border-t border-current relative" onMouseEnter={() => setIsFaqHovered(true)} onMouseLeave={() => setIsFaqHovered(false)}>
               {FAQS.map((faq, i) => (
                 <div key={i} className={`relative border-b ${isLightMode ? 'border-slate-300' : 'border-white/20'}`}>
-                  
                   {openFaq === i && (
-                    <motion.div 
-                      layoutId="faqHighlight"
-                      className="absolute inset-0 bg-gradient-to-r from-orange-500/10 to-transparent -z-10"
-                      initial={false}
-                      transition={slowExpandSpring} // Slower transition
-                    />
+                    <motion.div layoutId="faqHighlight" className="absolute inset-0 bg-gradient-to-r from-orange-500/10 to-transparent -z-10" initial={false} transition={slowExpandSpring} />
                   )}
-
                   <button aria-label={`Toggle Question ${i+1}`} onClick={() => setOpenFaq(openFaq === i ? null : i)} className="w-full py-6 px-4 flex items-center justify-between text-left focus:outline-none group relative z-10">
                     <span className={`text-lg md:text-2xl font-black tracking-tight transition-colors duration-500 ${openFaq === i ? 'text-orange-500' : textPrimary}`}>{faq.q}</span>
                     {openFaq === i ? <Minus size={24} className="text-orange-500 shrink-0 ml-4" /> : <Plus size={24} className={`${textSecondary} shrink-0 ml-4`} />}
                   </button>
-                  
                   <AnimatePresence>
                     {openFaq === i && (
                       <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.8, ease: "easeInOut" }} className="overflow-hidden relative z-10">
@@ -539,19 +523,13 @@ export default function ProjectMatrix() {
             SKILL 6: ADVANCED SCROLLABLE/DRAGGABLE DIAL
             ========================================== */}
         <div id="nav-dial" className={`w-full py-64 flex flex-col items-center justify-center border-t relative overflow-hidden ${isLightMode ? 'bg-white border-slate-200' : 'bg-[#03060d] border-white/5'}`}>
-          
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(249,115,22,0.1)_0%,transparent_60%)] pointer-events-none" />
 
-          {/* Interactive Drag Radar */}
           <motion.div
-            drag="x" dragConstraints={{ left: 0, right: 0 }} dragElastic={0.2}
-            style={{ rotate: dialRotation }}
-            onDragEnd={(e, { offset }) => {
-               if (offset.x > 50 || offset.x < -50) setIsDialOpen(!isDialOpen);
-            }}
+            drag="x" dragConstraints={{ left: 0, right: 0 }} dragElastic={0.2} style={{ rotate: dialRotation }}
+            onDragEnd={(e, { offset }) => { if (offset.x > 50 || offset.x < -50) setIsDialOpen(!isDialOpen); }}
             className={`relative w-64 h-64 md:w-80 md:h-80 rounded-full flex items-center justify-center z-30 cursor-grab active:cursor-grabbing transition-colors duration-500 ${isDialOpen ? 'text-orange-500' : textPrimary}`}
           >
-            {/* Multi-layered HUD Rings */}
             <motion.div animate={{ rotate: 360 }} transition={{ duration: 40, ease: "linear", repeat: Infinity }} className={`absolute inset-0 rounded-full border-[10px] border-dashed opacity-40 ${isDialOpen ? 'border-orange-500' : 'border-current'}`} />
             <motion.div animate={{ rotate: -360 }} transition={{ duration: 25, ease: "linear", repeat: Infinity }} className={`absolute inset-6 rounded-full border-4 border-dotted opacity-50 ${isDialOpen ? 'border-orange-500' : 'border-current'}`} />
             <motion.div animate={{ scale: [1, 1.1, 1], opacity: [0.1, 0.3, 0.1] }} transition={{ duration: 2, repeat: Infinity }} className={`absolute inset-16 rounded-full blur-xl ${isDialOpen ? 'bg-orange-500' : 'bg-transparent'}`} />
@@ -567,7 +545,6 @@ export default function ProjectMatrix() {
             </div>
           </motion.div>
 
-          {/* Popping Curve Nodes */}
           <AnimatePresence>
             {isDialOpen && (
               <>
@@ -594,9 +571,6 @@ export default function ProjectMatrix() {
   );
 }
 
-// ---------------------------------------------
-// HELPER COMPONENTS FOR DIAL NAV
-// ---------------------------------------------
 function NavNode({ id, label, angle, radius, delay = 0, onClick }: { id: string, label: string, angle: number, radius: number, delay?: number, onClick: (id: string) => void }) {
   const rad = angle * (Math.PI / 180);
   const x = Math.cos(rad) * radius;
