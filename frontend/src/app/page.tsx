@@ -5,7 +5,12 @@ import { Canvas, useFrame } from '@react-three/fiber';
 import { Float, MeshTransmissionMaterial, Box, Cylinder, Sphere, TorusKnot, Sparkles, MeshDistortMaterial, PresentationControls } from '@react-three/drei';
 import { EffectComposer, Bloom } from '@react-three/postprocessing';
 import * as THREE from 'three';
-import { ShieldAlert, Mail, Fingerprint, RefreshCw, Lock, ScanFace, KeySquare, CheckCircle, Timer, AlertTriangle, MessageSquareText } from 'lucide-react'; 
+import { 
+  ShieldAlert, Mail, Fingerprint, RefreshCw, Lock, ScanFace, KeySquare, 
+  CheckCircle, Timer, AlertTriangle, MessageSquareText, User, Settings, Star, LogOut 
+} from 'lucide-react'; 
+import Link from 'next/link';
+
 import BottomNav from '@/components/BottomNav';
 import CustomCursor from '@/components/CustomCursor';
 import SearchBar from '@/components/SearchBar';
@@ -220,7 +225,7 @@ export default function WelcomePage() {
   const [isLightMode, setIsLightMode] = useState(false);
   const lastScrollY = useRef(0);
 
-  // 🔥 SESSION MEMORY BOOT LOGIC[cite: 3] 🔥
+  // 櫨 SESSION MEMORY BOOT LOGIC 櫨
   const [isSystemBooting, setIsSystemBooting] = useState(false); 
   
   useEffect(() => {
@@ -245,12 +250,50 @@ export default function WelcomePage() {
     sessionStorage.setItem('csxpedia_booted', 'true');
   };
 
-  // SECURITY STATES
-  const [isAuthenticated, setIsAuthenticated] = useState(false); // Change to 'true' to test Lockdown
+  // ==========================================
+  // DYNAMIC SECURITY STATE & PROFILE LOGIC
+  // ==========================================
+  const [currentUserRole, setCurrentUserRole] = useState<'guest' | 'user' | 'admin'>('guest');
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isVerified, setIsVerified] = useState(false); 
+
+  const [timeState, setTimeState] = useState({ time: "", date: "" });
+  const [isProfileHovered, setIsProfileHovered] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const storedRole = localStorage.getItem('userRole');
+      
+      if (storedRole) {
+        setCurrentUserRole(storedRole as 'guest' | 'user' | 'admin');
+        setIsAuthenticated(true);
+        setIsVerified(true);
+      } else {
+        const isInternalRoute = document.referrer.includes(window.location.host);
+        if (isInternalRoute) {
+          setCurrentUserRole('user');
+          setIsAuthenticated(true);
+          setIsVerified(true);
+        } else {
+          setCurrentUserRole('guest');
+          setIsAuthenticated(false);
+          setIsVerified(false);
+        }
+      }
+    }
+    
+    // Profile Clock
+    const updateClock = () => {
+      const now = new Date();
+      setTimeState({ time: now.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' }), date: now.toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) });
+    };
+    updateClock();
+    const timer = setInterval(updateClock, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // 4-Phase Verification Machine
   const [isResending, setIsResending] = useState(false);
-  
-  // 4-Phase Verification Machine (Includes Timeout)
   const [verificationPhase, setVerificationPhase] = useState<'locked' | 'verifying' | 'code_generated' | 'timeout'>('locked');
   const [timeLeft, setTimeLeft] = useState(900); 
 
@@ -281,6 +324,19 @@ export default function WelcomePage() {
   const handleAcknowledgeCode = () => {
     setIsVerified(true);
     setVerificationPhase('locked'); 
+    setCurrentUserRole('user');
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('userRole', 'user');
+    }
+  };
+
+  const handleLogout = () => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('userRole');
+    }
+    setCurrentUserRole('guest');
+    setIsAuthenticated(false);
+    setIsVerified(false);
   };
 
   const handleTimeoutRouting = () => {
@@ -303,18 +359,17 @@ export default function WelcomePage() {
   const textPrimary = isLightMode ? "text-slate-900" : "text-white";
   const textSecondary = isLightMode ? "text-slate-600" : "text-slate-400";
   const accentText = isLightMode ? "text-blue-600" : "text-cyan-400";
+  const glassBg = isLightMode ? "bg-white/90 border-slate-200 shadow-2xl" : "bg-[#010308]/90 border-white/5 shadow-[0_0_50px_rgba(0,0,0,0.5)]";
   
   const cardCyan = isLightMode ? "bg-white/60 border-white/50 shadow-[0_20px_60px_rgba(0,0,0,0.08)]" : "bg-[#030b1c]/80 border-cyan-500/50 shadow-[0_0_60px_rgba(34,211,238,0.2)]";
   const cardIndigo = isLightMode ? "bg-white/60 border-white/50 shadow-[0_20px_60px_rgba(0,0,0,0.08)]" : "bg-[#030b1c]/80 border-indigo-500/50 shadow-[0_0_60px_rgba(79,70,229,0.2)]";
   const cardPurple = isLightMode ? "bg-white/60 border-white/50 shadow-[0_20px_60px_rgba(0,0,0,0.08)]" : "bg-[#030b1c]/80 border-purple-500/50 shadow-[0_0_60px_rgba(168,85,247,0.2)]";
 
-  const currentUserRole = isAuthenticated ? (isVerified ? 'user' : 'guest') : 'guest';
   const showLockdown = isAuthenticated && !isVerified && !isSystemBooting;
 
   return (
     <main className={`relative transition-colors duration-700 font-sans cursor-none overflow-x-hidden ${isLightMode ? 'bg-slate-50' : 'bg-[#01030a]'}`}>
       
-      {/* 🔥 THE BOOT SEQUENCE COMPONENT[cite: 3] 🔥 */}
       <AnimatePresence>
         {isSystemBooting && <BootSequence onComplete={handleBootComplete} />}
       </AnimatePresence>
@@ -322,6 +377,49 @@ export default function WelcomePage() {
       <CustomCursor />
       <SearchBar />
       <ThemeToggle isLight={isLightMode} toggleTheme={() => setIsLightMode(!isLightMode)} />
+
+      {/* ==========================================
+          HEADER (PROFILE ICON INCLUDED)
+          ========================================== */}
+      <div className="fixed top-0 left-0 right-0 z-50 pt-6 px-6 lg:px-12 flex justify-end items-start pointer-events-none">
+        {isAuthenticated && isVerified && (
+          <div className="flex items-center space-x-4 pointer-events-auto">
+            <div className="relative" onMouseEnter={() => setIsProfileHovered(true)} onMouseLeave={() => setIsProfileHovered(false)}>
+              <div className={`flex items-center space-x-4 px-6 py-2.5 rounded-full backdrop-blur-xl cursor-pointer transition-colors duration-700 ${glassBg}`}>
+                <span className={`font-mono text-xs tracking-widest hidden sm:block transition-colors duration-500 text-cyan-400`}>
+                  {timeState.date} <span className={textSecondary}>|</span> {timeState.time}
+                </span>
+                <div className={`w-px h-4 hidden sm:block ${isLightMode ? 'bg-slate-300' : 'bg-slate-800'}`} />
+                <div className="flex items-center space-x-3 group">
+                  <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-cyan-400 to-blue-500 p-[1.5px] transition-all duration-500">
+                    <div className={`w-full h-full rounded-full flex items-center justify-center ${isLightMode ? 'bg-white' : 'bg-[#010205]'}`}>
+                      <User size={12} className={textPrimary} />
+                    </div>
+                  </div>
+                  <span className={`text-xs font-black uppercase tracking-widest transition-colors ${textPrimary} group-hover:text-cyan-400`}>Nima</span>
+                </div>
+              </div>
+
+              <AnimatePresence>
+                {isProfileHovered && (
+                  <motion.div initial={{ opacity: 0, y: 15, scale: 0.9, rotateX: -20 }} animate={{ opacity: 1, y: 0, scale: 1, rotateX: 0 }} exit={{ opacity: 0, y: 15, scale: 0.9, rotateX: -20 }} transition={{ type: "spring", stiffness: 100, damping: 20 }} className={`absolute right-0 mt-3 w-56 rounded-2xl backdrop-blur-2xl p-2 flex flex-col transform-gpu shadow-2xl ${glassBg}`}>
+                    <Link href="/settings" className={`flex items-center px-4 py-3 text-xs font-bold uppercase tracking-widest rounded-xl transition-all ${isLightMode ? 'text-slate-700 hover:bg-slate-100' : 'text-slate-300 hover:bg-white/5'}`}>
+                      <Settings size={14} className="mr-3 text-cyan-400" /> Settings
+                    </Link>
+                    <button type="button" aria-label="Saved Links" className={`flex items-center px-4 py-3 text-xs font-bold uppercase tracking-widest text-blue-500 rounded-xl transition-all group ${isLightMode ? 'hover:bg-blue-50' : 'hover:bg-blue-500/10'}`}>
+                      <Star size={14} className="mr-3 text-blue-400 group-hover:drop-shadow-[0_0_8px_rgba(59,130,246,0.8)]" /> Saved Links
+                    </button>
+                    <div className={`h-px w-full my-1 ${isLightMode ? 'bg-slate-200' : 'bg-slate-800/50'}`} />
+                    <button type="button" aria-label="Terminate Link" onClick={handleLogout} className={`flex items-center px-4 py-3 text-xs font-bold uppercase tracking-widest text-red-500 rounded-xl transition-all group ${isLightMode ? 'hover:bg-red-50' : 'hover:bg-red-500/10'}`}>
+                      <LogOut size={14} className="mr-3 text-red-500 group-hover:drop-shadow-[0_0_8px_rgba(239,68,68,0.8)]" /> Terminate Link
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          </div>
+        )}
+      </div>
 
       <div className={`fixed inset-0 z-0 pointer-events-none transition-all duration-1000 ${showLockdown ? 'blur-[4px] opacity-60' : ''}`}>
         <Canvas camera={{ position: [0, 0, 7], fov: 45 }}>
@@ -359,7 +457,7 @@ export default function WelcomePage() {
             <p className={`font-light leading-relaxed mb-10 text-lg transition-colors duration-500 ${textSecondary}`}>
               Explore meticulously compiled data structures and AI models. The system restricts full access pending authentication protocols.
             </p>
-            <div className="flex justify-end">
+            <div className="flex justify-end" onClick={() => setIsAuthenticated(true)}>
               <NextGenButton>Authenticate Access</NextGenButton>
             </div>
           </motion.div>
@@ -371,7 +469,9 @@ export default function WelcomePage() {
             <p className={`font-light leading-relaxed mb-10 text-lg transition-colors duration-500 ${textSecondary}`}>
               Analyze deployed architectures and active system nodes. Available strictly for view-only architectural review and system monitoring.
             </p>
-            <NextGenButton>View Architectures</NextGenButton>
+            <Link href="/projects" className="pointer-events-auto">
+              <NextGenButton>View Architectures</NextGenButton>
+            </Link>
           </motion.div>
         </section>
 
@@ -381,8 +481,10 @@ export default function WelcomePage() {
             <p className={`font-light leading-relaxed mb-10 text-lg transition-colors duration-500 ${textSecondary}`}>
               Open a secure channel to initiate system collaborations, data integrations, or secure API access. Awaiting incoming signals.
             </p>
-            <div className="flex justify-end">
-              <NextGenButton>Establish Link</NextGenButton>
+            <div className="flex justify-end pointer-events-auto">
+              <Link href="/contact">
+                <NextGenButton>Establish Link</NextGenButton>
+              </Link>
             </div>
           </motion.div>
         </section>
@@ -482,8 +584,10 @@ export default function WelcomePage() {
         )}
       </AnimatePresence>
 
+      <div className="pointer-events-auto relative z-20">
+        <Footer isLight={isLightMode} currentRole={currentUserRole as any} />
+      </div>
       <BottomNav currentRole={currentUserRole as any} />
-      <Footer isLight={isLightMode} currentRole={currentUserRole as any} />
     </main>
   );
 }
