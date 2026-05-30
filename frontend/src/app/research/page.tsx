@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
-import Link from 'next/link'; // <--- Link import goes here with the others
+import Link from 'next/link'; 
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Float, MeshReflectorMaterial, Text, OrbitControls, Sparkles, RoundedBox } from '@react-three/drei';
 import * as THREE from 'three';
@@ -30,6 +30,15 @@ const UPCOMING_TOPICS = [
   { id: 2, title: "Neural Media Synthesis", tech: "Case Study", angle: Math.PI / 2 },
   { id: 3, title: "Advanced Prompting", tech: "Guide", angle: Math.PI },
   { id: 4, title: "Cyber Defense Protocols", tech: "Security Log", angle: (3 * Math.PI) / 2 },
+];
+
+// NEW: RADIAL CAROUSEL DATA (Based on your video inspiration)
+const RADIAL_CONCEPTS = [
+  { id: "R1", letter: "V", title: "Visual Synthesis", subtitle: "GEN-AI MEDIA" },
+  { id: "R2", letter: "U", title: "UI/UX Dynamics", subtitle: "MOTION PHYSICS" },
+  { id: "R3", letter: "M", title: "Matrix Core", subtitle: "SYSTEM ARCHITECTURE" },
+  { id: "R4", letter: "S", title: "Spatial Compute", subtitle: "3D RENDERING" },
+  { id: "R5", letter: "Q", title: "Quantum Logic", subtitle: "ALGORITHMS" },
 ];
 
 const ALL_RESOURCES = [
@@ -63,7 +72,7 @@ const staggerContainer = {
   }
 };
 
-const ultraSmoothSpring = { type: "spring" as const, stiffness: 100, damping: 20, mass: 1 };
+const ultraSmoothSpring = { type: "spring" as const, stiffness: 120, damping: 20, mass: 0.8 };
 
 // ==========================================
 // BACKGROUND: ACTIVE THEME-AWARE NODES
@@ -101,7 +110,7 @@ function ActiveDataBackground({ isLight }: { isLight: boolean }) {
               y: [0, Math.random() * -150 - 50, 0],
               x: [0, Math.random() * 50 - 25, 0],
               rotateZ: [0, Math.random() * 180, 360],
-              rotateX: [0, 180, 360], // 3D tumbling effect
+              rotateX: [0, 180, 360], 
               scale: [1, Math.random() * 0.5 + 1, 1],
               opacity: [0.1, 0.5, 0.1]
             }}
@@ -177,8 +186,12 @@ export default function MasterResearchVault() {
   const [isSidebarHovered, setIsSidebarHovered] = useState(false);
   const [isProfileHovered, setIsProfileHovered] = useState(false);
   const [timeState, setTimeState] = useState({ time: "", date: "" });
+  
   const [activeRecent, setActiveRecent] = useState(101);
   const [isHoveringRecent, setIsHoveringRecent] = useState(false);
+  
+  // State for the NEW Radial Carousel
+  const [activeRadial, setActiveRadial] = useState(2);
 
   // Dynamic Theme Variables
   const textPrimary = isLightMode ? "text-slate-900" : "text-white";
@@ -216,7 +229,7 @@ export default function MasterResearchVault() {
   return (
     <main className={`relative min-h-screen font-sans cursor-none overflow-x-hidden selection:bg-[#00ff66]/30 flex transition-colors duration-1000 ${isLightMode ? 'bg-slate-50' : 'bg-[#010205]'}`}>
       <CustomCursor />
-      {/* BUG FIX: Forced Stacking Context to pierce through the z-50 Sidebar */}
+      
       <div className="relative z-[100]">
         <ThemeToggle isLight={isLightMode} toggleTheme={() => setIsLightMode(!isLightMode)} />
       </div>
@@ -302,8 +315,8 @@ export default function MasterResearchVault() {
                   className={`absolute right-0 mt-3 w-56 rounded-2xl backdrop-blur-2xl p-2 flex flex-col transform-gpu ${glassBg}`}
                 >
                   <Link href="/settings" className={`flex items-center px-4 py-3 text-xs font-bold uppercase tracking-widest rounded-xl transition-all ${isLightMode ? 'text-slate-700 hover:bg-slate-100' : 'text-slate-300 hover:bg-white/5'}`}>
-  <Settings size={14} className="mr-3 text-[#00f0ff]" /> Settings
-</Link>
+                    <Settings size={14} className="mr-3 text-[#00f0ff]" /> Settings
+                  </Link>
                   <button className={`flex items-center px-4 py-3 text-xs font-bold uppercase tracking-widest text-yellow-500 rounded-xl transition-all group ${isLightMode ? 'hover:bg-yellow-50' : 'hover:bg-yellow-500/10'}`}>
                     <Star size={14} className="mr-3 text-yellow-400 group-hover:drop-shadow-[0_0_8px_rgba(234,179,8,0.8)]" /> Saved Links
                   </button>
@@ -336,46 +349,57 @@ export default function MasterResearchVault() {
             </motion.div>
           </motion.div>
 
-          {/* ARTWORK 4: RECENT RESEARCH (ULTRA-SMOOTH ACCORDION) */}
+          {/* ==========================================
+              ARTWORK 4: RECENT RESEARCH (DYNAMIC FLEX-FILL SPINES)
+              BUG FIX: Swapped fixed width for fixed max-width so it dynamically fills perfectly!
+              ========================================== */}
           <motion.section initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} variants={spatialReveal} className="mb-32">
             <div className="flex items-center space-x-3 mb-8">
               <Clock className="text-[#00ff66]" size={24} />
               <h2 className="text-3xl font-black uppercase tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-[#00ff66] to-[#00f0ff]">Recent Insights</h2>
             </div>
             
-            <div className="flex flex-col md:flex-row h-[450px] gap-4 w-full" onMouseEnter={() => setIsHoveringRecent(true)} onMouseLeave={() => setIsHoveringRecent(false)}>
+            {/* Added w-full to dynamically push against margins, creating a flawless fit */}
+            <div className="flex flex-col md:flex-row h-[420px] gap-4 lg:gap-6 w-full justify-center [perspective:2000px]" onMouseEnter={() => setIsHoveringRecent(true)} onMouseLeave={() => setIsHoveringRecent(false)}>
               {RECENT_RESEARCH.map((item) => {
                 const isActive = activeRecent === item.id;
                 return (
                   <motion.div
                     key={item.id} layout transition={ultraSmoothSpring} onMouseEnter={() => setActiveRecent(item.id)}
-                    className={`relative overflow-hidden rounded-[2rem] cursor-pointer flex flex-col justify-end p-8 border transition-all duration-700 ${
+                    animate={{
+                      rotateY: isActive ? 0 : -12, // 3D Book Tilt
+                      z: isActive ? 0 : -40,       // Deep push back when inactive
+                      scale: isActive ? 1 : 0.95,
+                    }}
+                    whileHover={{ scale: isActive ? 1.01 : 1.03 }} // Tactile 3D pop on hover
+                    className={`relative overflow-hidden rounded-[2.5rem] cursor-pointer border transition-colors duration-500 origin-left ${
                       isActive 
-                        ? (isLightMode ? 'bg-white shadow-[0_30px_60px_rgba(0,255,102,0.15)] border-[#00ff66]/40 flex-[6]' : 'bg-black/80 border-[#00ff66]/40 shadow-[0_0_50px_rgba(0,255,102,0.1)] flex-[6]')
-                        : (isLightMode ? 'bg-slate-100 border-slate-200 flex-[1] grayscale opacity-70 hover:opacity-100' : 'bg-black/20 border-white/5 flex-[1] grayscale opacity-50 hover:opacity-100 hover:border-[#00f0ff]/30')
+                        // Strict width for active state
+                        ? (isLightMode ? 'bg-white shadow-[0_30px_60px_rgba(0,255,102,0.15)] border-[#00ff66]/40 w-full md:w-[450px] lg:w-[750px] shrink-0' : 'bg-[#02050a] border-[#00ff66]/50 shadow-[0_0_50px_rgba(0,255,102,0.2)] w-full md:w-[450px] lg:w-[750px] shrink-0')
+                        : (isLightMode ? 'bg-slate-200 border-slate-300 w-[60px] lg:w-[90px] shrink-0 opacity-70 hover:opacity-100 shadow-[inset_-10px_0_20px_rgba(0,0,0,0.1)]' : 'bg-[#050b14] border-[#00f0ff]/10 w-[60px] lg:w-[90px] shrink-0 opacity-70 hover:opacity-100 hover:border-[#00f0ff]/40 shadow-[inset_-15px_0_30px_rgba(0,0,0,0.8)]')
                     }`}
                   >
-                    <div className={`absolute inset-0 bg-gradient-to-t from-[#00ff66]/5 to-transparent opacity-0 transition-opacity duration-1000 ${isActive ? 'opacity-100' : ''}`} />
+                    <div className={`absolute inset-0 bg-gradient-to-t from-[#00ff66]/10 to-transparent opacity-0 transition-opacity duration-700 ${isActive ? 'opacity-100' : ''}`} />
 
-                    <motion.div layout transition={ultraSmoothSpring} className="relative z-10 flex flex-col h-full">
-                      <div className={`w-14 h-14 flex items-center justify-center rounded-xl transition-colors shrink-0 ${isActive ? 'bg-gradient-to-br from-[#00ff66] to-[#00f0ff] text-black mb-auto' : (isLightMode ? 'bg-slate-200 text-slate-500 mb-6' : 'bg-slate-900 text-[#00f0ff]/50 mb-6')}`}>
-                        <FileText size={24} />
-                      </div>
+                    <motion.div layout transition={ultraSmoothSpring} className={`relative z-10 flex flex-col h-full ${isActive ? 'p-8 justify-end' : 'py-8 items-center justify-start'}`}>
+                      <motion.div layout transition={ultraSmoothSpring} className={`flex items-center justify-center rounded-xl transition-colors shrink-0 ${isActive ? 'w-14 h-14 bg-gradient-to-br from-[#00ff66] to-[#00f0ff] text-black mb-auto' : (isLightMode ? 'w-10 h-10 bg-slate-300 text-slate-600 mb-8' : 'w-10 h-10 bg-[#010205] border border-[#00f0ff]/20 text-[#00f0ff]/70 mb-8')}`}>
+                        <FileText size={isActive ? 24 : 18} />
+                      </motion.div>
                       
-                      <div className={`flex flex-col justify-end flex-grow ${isActive ? 'w-full' : 'items-center overflow-hidden'}`}>
+                      <div className={`flex flex-col justify-end flex-grow ${isActive ? 'w-full' : 'items-center overflow-hidden w-full'}`}>
                         {isActive ? (
                           <motion.h2 layoutId={`title-${item.id}`} transition={ultraSmoothSpring} className={`font-black text-3xl lg:text-4xl mb-4 tracking-tighter ${textPrimary}`}>
                             {item.title}
                           </motion.h2>
                         ) : (
-                          <motion.div layoutId={`title-${item.id}`} transition={ultraSmoothSpring} className="flex-1 flex items-center justify-center overflow-hidden">
-                            <span className={`text-sm font-black tracking-widest whitespace-nowrap uppercase [writing-mode:vertical-rl] rotate-180 ${textSecondary}`}>{item.title}</span>
+                          <motion.div layoutId={`title-${item.id}`} transition={ultraSmoothSpring} className="flex-1 flex items-center justify-center overflow-hidden w-full">
+                            <span className={`text-sm font-black tracking-[0.25em] whitespace-nowrap uppercase [writing-mode:vertical-rl] rotate-180 ${textSecondary}`}>{item.title}</span>
                           </motion.div>
                         )}
                         
                         <AnimatePresence>
                           {isActive && (
-                            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }} transition={{ delay: 0.2, ...ultraSmoothSpring }}>
+                            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }} transition={{ delay: 0.1, ...ultraSmoothSpring }}>
                               <span className="text-xs font-mono text-[#00f0ff] mb-4 block tracking-widest uppercase">{item.label}</span>
                               <p className={`text-base mb-8 max-w-lg leading-relaxed font-light ${textSecondary}`}>{item.desc}</p>
                               <button className={`flex items-center text-xs font-bold uppercase tracking-widest transition-all px-6 py-3 rounded-lg group ${isLightMode ? 'bg-[#00ff66]/20 text-[#00a843] hover:bg-[#00ff66] hover:text-black' : 'bg-transparent border border-[#00ff66]/50 text-[#00ff66] hover:bg-[#00ff66] hover:text-black'}`}>
@@ -410,6 +434,60 @@ export default function MasterResearchVault() {
                 <SpatialUpcomingCarousel isLight={isLightMode} />
               </Canvas>
               <div className={`absolute inset-0 pointer-events-none ${isLightMode ? 'bg-[radial-gradient(ellipse_at_center,_transparent_40%,_#f8fafc_100%)]' : 'bg-[radial-gradient(ellipse_at_center,_transparent_40%,_#010205_100%)]'}`} />
+            </div>
+          </motion.section>
+
+          {/* ARTWORK 6: RADIAL UI CONCEPTS (HOVER TO SPIN) */}
+          <motion.section initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} variants={spatialReveal} className="mb-32 relative z-10">
+            <div className="flex items-center space-x-3 mb-8">
+              <LayoutTemplate className="text-[#00ff66]" size={24} />
+              <h2 className={`text-3xl font-black uppercase tracking-widest ${textPrimary}`}>Interface Prototypes</h2>
+            </div>
+            
+            <div className={`relative w-full h-[500px] overflow-hidden rounded-[3rem] border ${isLightMode ? 'bg-slate-100 border-slate-200 shadow-inner' : 'bg-[#010205] border-[#00f0ff]/20 shadow-[inset_0_0_80px_rgba(0,240,255,0.03)]'} flex justify-center pt-16 [perspective:2000px]`}>
+              <div className={`absolute bottom-[-200px] w-[600px] h-[600px] rounded-full blur-[100px] opacity-30 ${isLightMode ? 'bg-cyan-300' : 'bg-[#00f0ff]/20'} pointer-events-none`} />
+              
+              {RADIAL_CONCEPTS.map((item, i) => {
+                const isActive = activeRadial === i;
+                const angleStep = 22; 
+                const rotation = (i - activeRadial) * angleStep;
+                
+                return (
+                  <motion.div
+                    key={item.id}
+                    onClick={() => setActiveRadial(i)}
+                    onMouseEnter={() => setActiveRadial(i)}
+                    animate={{
+                      rotateZ: rotation,
+                      y: isActive ? -30 : 0,
+                      scale: isActive ? 1.05 : 0.9,
+                      zIndex: 50 - Math.abs(i - activeRadial) * 10
+                    }}
+                    transition={{ type: "spring", stiffness: 250, damping: 25, mass: 0.8 }}
+                    className="absolute top-12 cursor-pointer origin-[center_600px]" 
+                  >
+                     <div className={`w-[260px] h-[380px] rounded-3xl border-2 flex flex-col justify-between p-6 overflow-hidden transition-colors duration-500 ${
+                       isActive 
+                         ? (isLightMode ? 'bg-white border-[#00ff66]/50 shadow-[0_20px_50px_rgba(0,255,102,0.2)]' : 'bg-[#02050a] border-[#00ff66] shadow-[0_0_40px_rgba(0,255,102,0.3)]')
+                         : (isLightMode ? 'bg-slate-200/80 border-slate-300 opacity-60 hover:opacity-100' : 'bg-[#050b14]/80 border-[#00f0ff]/20 opacity-50 hover:opacity-100 hover:border-[#00f0ff]/50')
+                     }`}>
+                       <div className="flex justify-between items-start">
+                         <span className={`text-[10px] font-mono font-bold tracking-widest ${isActive ? 'text-[#00ff66]' : textSecondary}`}>{item.id}</span>
+                         <ArrowUpRight size={16} className={isActive ? 'text-[#00f0ff]' : textSecondary} />
+                       </div>
+                       
+                       <div className={`text-9xl font-black text-center tracking-tighter ${isActive ? textPrimary : textSecondary}`}>
+                         {item.letter}
+                       </div>
+                       
+                       <div>
+                          <h3 className={`font-black uppercase tracking-wide mb-1 ${isActive ? textPrimary : textSecondary}`}>{item.title}</h3>
+                          <p className={`text-[9px] font-mono tracking-widest uppercase ${isActive ? 'text-[#00f0ff]' : textSecondary}`}>{item.subtitle}</p>
+                       </div>
+                     </div>
+                  </motion.div>
+                )
+              })}
             </div>
           </motion.section>
 
