@@ -17,7 +17,7 @@ import Footer from '@/components/Footer';
 // 1. EXACT USER DATA
 // ==========================================
 const IDENTITY_DATA = [
-  { label: "Operator Identity", value: "NIMA", icon: User, link: null }, // Updated to Nima[cite: 1]
+  { label: "Operator Identity", value: "NIMA", icon: User, link: null }, 
   { label: "Encrypted Mail", value: "sandanimne0@gmail.com", icon: Mail, link: "mailto:sandanimne0@gmail.com" },
   { label: "GitHub Repository", value: "NimnaOfficial", icon: GitBranch, link: "https://github.com/NimnaOfficial/" },
   { label: "LinkedIn Network", value: "sandanimne-k-g-l", icon: Network, link: "https://www.linkedin.com/in/sandanimne-k-g-l-a276aa34a/" },
@@ -92,11 +92,36 @@ export default function ContactPage() {
   // Formspree Integration (Make sure to replace with your actual ID later if needed)
   const [state, handleSubmit] = useForm("xwvzayvy"); 
 
-  // 🔥 MOCK SECURITY STATES FOR ROLE MATRIX 🔥
-  const [isAuthenticated, setIsAuthenticated] = useState(false); // Set to true to test Auto-fill
-  const [isVerified, setIsVerified] = useState(false); 
-  
-  const currentUserRole = isAuthenticated ? (isVerified ? 'user' : 'guest') : 'guest';
+  // ==========================================
+  // DYNAMIC ROLE & SECURITY STATE MATRIX
+  // ==========================================
+  const [currentUserRole, setCurrentUserRole] = useState<'guest' | 'user' | 'admin'>('guest');
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      // 1. Check strict local storage for an active session
+      const storedRole = localStorage.getItem('userRole');
+      
+      if (storedRole) {
+        setCurrentUserRole(storedRole as 'guest' | 'user' | 'admin');
+        setIsAuthenticated(storedRole === 'user' || storedRole === 'admin');
+      } else {
+        // 2. Smart Fallback: If no strict session exists, check navigation origin.
+        // If navigating from inside the app (like Research/Feedback), assume User access.
+        // If landing directly via URL, enforce Guest access.
+        const isInternalRoute = document.referrer.includes(window.location.host);
+        
+        if (isInternalRoute) {
+          setCurrentUserRole('user');
+          setIsAuthenticated(true);
+        } else {
+          setCurrentUserRole('guest');
+          setIsAuthenticated(false);
+        }
+      }
+    }
+  }, []);
 
   // Smart Auto-Fill Logic for Authenticated Users
   const [formData, setFormData] = useState({
@@ -109,8 +134,8 @@ export default function ContactPage() {
     if (isAuthenticated) {
       setFormData(prev => ({
         ...prev,
-        name: 'Active Operative 7892XF', // Mock Database Data
-        email: 'operator@csxpedia.net'    // Mock Database Data
+        name: 'NIMA', 
+        email: 'sandanimne0@gmail.com' 
       }));
     }
   }, [isAuthenticated]);
@@ -120,7 +145,6 @@ export default function ContactPage() {
   const textSecondary = isLightMode ? "text-slate-500" : "text-slate-400";
   const accentText = isLightMode ? "text-blue-600" : "text-cyan-400";
   
-  // 🔥 TECH PURPLE ACCENTS 🔥
   const techPurple = isLightMode ? "text-[#9333ea]" : "text-[#a855f7]";
   const glassPanel = isLightMode ? "bg-white/60 border-slate-300 shadow-xl" : "bg-[#030b1c]/80 border-cyan-500/20 shadow-[0_0_50px_rgba(34,211,238,0.05)]";
   
@@ -148,7 +172,7 @@ export default function ContactPage() {
 
       <div className="relative z-10 max-w-7xl mx-auto px-6 md:px-12 pt-32 pb-40">
         
-        {/* SUCCESS STATE OVERLAY (Now Tech Purple) */}
+        {/* SUCCESS STATE OVERLAY */}
         <AnimatePresence>
           {state.succeeded && (
             <motion.div initial={{ opacity: 0, scale: 0.95, filter: "blur(10px)" }} animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }} className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/40 backdrop-blur-md">
