@@ -2,11 +2,15 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useForm, ValidationError } from '@formspree/react';
-import { Terminal as TermIcon, Send, User, Mail, GitBranch, Network, Globe, ShieldCheck, Radio, ArrowUpRight } from 'lucide-react';
+import { 
+  Terminal as TermIcon, Send, User, Mail, GitBranch, Network, Globe, 
+  ShieldCheck, Radio, ArrowUpRight, Settings, Star, LogOut 
+} from 'lucide-react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Float, Sparkles, MeshTransmissionMaterial, Torus, Sphere, OrbitControls, Icosahedron } from '@react-three/drei';
 import { EffectComposer, Bloom } from '@react-three/postprocessing';
 import * as THREE from 'three';
+import Link from 'next/link';
 
 import BottomNav from '@/components/BottomNav';
 import CustomCursor from '@/components/CustomCursor';
@@ -37,7 +41,6 @@ function QuantumSignalRelay({ isLight }: { isLight: boolean }) {
       relayRef.current.rotation.x = Math.sin(state.clock.elapsedTime * 0.5) * 0.2;
       relayRef.current.rotation.z = Math.cos(state.clock.elapsedTime * 0.3) * 0.1;
     }
-    // Radio Wave Pulsing Effect
     if (pulseRef.current) {
       const scale = 1 + (state.clock.elapsedTime % 2) * 2; 
       const opacity = Math.max(0, 1 - (state.clock.elapsedTime % 2)); 
@@ -51,12 +54,9 @@ function QuantumSignalRelay({ isLight }: { isLight: boolean }) {
       <OrbitControls enableZoom={false} enablePan={false} autoRotate autoRotateSpeed={0.5} />
       <Float speed={2} rotationIntensity={1} floatIntensity={1} position={[0, 0, -4]}>
         <group ref={relayRef}>
-          {/* The Data Core */}
           <Icosahedron args={[1.5, 1]}>
             <MeshTransmissionMaterial backside thickness={0.5} roughness={0.1} color={isLight ? "#3b82f6" : "#00f0ff"} distortionScale={0} temporalDistortion={0} />
           </Icosahedron>
-          
-          {/* Orbital Transmission Rings */}
           <Torus args={[2.8, 0.02, 16, 100]} rotation={[Math.PI / 2, 0, 0]}>
             <meshBasicMaterial color={isLight ? "#2563eb" : "#22d3ee"} />
           </Torus>
@@ -66,8 +66,6 @@ function QuantumSignalRelay({ isLight }: { isLight: boolean }) {
           <Torus args={[4.5, 0.03, 16, 100]} rotation={[0, -Math.PI / 4, 0]}>
             <meshBasicMaterial color={isLight ? "#2563eb" : "#22d3ee"} transparent opacity={0.5} />
           </Torus>
-
-          {/* The Expanding Radio Pulse */}
           <Sphere ref={pulseRef} args={[2, 32, 32]}>
             <meshBasicMaterial color={isLight ? "#3b82f6" : "#00f0ff"} transparent depthWrite={false} wireframe />
           </Sphere>
@@ -89,7 +87,11 @@ const itemVariants = { hidden: { opacity: 0, x: -20 }, show: { opacity: 1, x: 0,
 export default function ContactPage() {
   const [isLightMode, setIsLightMode] = useState(false);
   
-  // Formspree Integration (Make sure to replace with your actual ID later if needed)
+  // Profile Header States
+  const [timeState, setTimeState] = useState({ time: "", date: "" });
+  const [isProfileHovered, setIsProfileHovered] = useState(false);
+  
+  // Formspree Integration
   const [state, handleSubmit] = useForm("xwvzayvy"); 
 
   // ==========================================
@@ -100,16 +102,12 @@ export default function ContactPage() {
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      // 1. Check strict local storage for an active session
       const storedRole = localStorage.getItem('userRole');
       
       if (storedRole) {
         setCurrentUserRole(storedRole as 'guest' | 'user' | 'admin');
         setIsAuthenticated(storedRole === 'user' || storedRole === 'admin');
       } else {
-        // 2. Smart Fallback: If no strict session exists, check navigation origin.
-        // If navigating from inside the app (like Research/Feedback), assume User access.
-        // If landing directly via URL, enforce Guest access.
         const isInternalRoute = document.referrer.includes(window.location.host);
         
         if (isInternalRoute) {
@@ -121,6 +119,20 @@ export default function ContactPage() {
         }
       }
     }
+  }, []);
+
+  // Clock Logic for Profile Header
+  useEffect(() => {
+    const updateClock = () => {
+      const now = new Date();
+      setTimeState({
+        time: now.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+        date: now.toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })
+      });
+    };
+    updateClock();
+    const timer = setInterval(updateClock, 1000);
+    return () => clearInterval(timer);
   }, []);
 
   // Smart Auto-Fill Logic for Authenticated Users
@@ -140,12 +152,14 @@ export default function ContactPage() {
     }
   }, [isAuthenticated]);
 
+  // Theme Variables
   const bgCol = isLightMode ? 'bg-slate-50' : 'bg-[#01030a]';
   const textPrimary = isLightMode ? "text-slate-900" : "text-white";
   const textSecondary = isLightMode ? "text-slate-500" : "text-slate-400";
   const accentText = isLightMode ? "text-blue-600" : "text-cyan-400";
   
   const techPurple = isLightMode ? "text-[#9333ea]" : "text-[#a855f7]";
+  const techPurpleHex = isLightMode ? "#9333ea" : "#a855f7";
   const glassPanel = isLightMode ? "bg-white/60 border-slate-300 shadow-xl" : "bg-[#030b1c]/80 border-cyan-500/20 shadow-[0_0_50px_rgba(34,211,238,0.05)]";
   
   const inputStyle = isLightMode 
@@ -155,7 +169,70 @@ export default function ContactPage() {
   return (
     <main className={`relative min-h-screen transition-colors duration-700 font-sans cursor-none overflow-x-hidden ${bgCol}`}>
       <CustomCursor />
-      <ThemeToggle isLight={isLightMode} toggleTheme={() => setIsLightMode(!isLightMode)} />
+      
+      {/* THEME TOGGLE (Left Aligned like Feedback Page) */}
+      <div className="fixed top-24 left-6 lg:left-12 z-[100] pointer-events-auto">
+        <ThemeToggle isLight={isLightMode} toggleTheme={() => setIsLightMode(!isLightMode)} />
+      </div>
+
+      {/* ==========================================
+          HEADER (LOGO & AUTHENTICATED PROFILE)
+          ========================================== */}
+      <div className="fixed top-0 left-0 right-0 z-50 pt-6 px-6 lg:px-12 flex justify-between items-start pointer-events-none">
+        
+        {/* LOGO */}
+        <div className="flex items-center space-x-3 pointer-events-auto mt-10">
+          <div className={`w-10 h-10 shrink-0 bg-gradient-to-br ${isLightMode ? 'from-purple-500 to-blue-400' : 'from-[#a855f7] to-[#00f0ff]'} rounded-lg flex items-center justify-center text-white shadow-[0_0_20px_rgba(168,85,247,0.3)]`}>
+            <Radio size={20} />
+          </div>
+          <div className="flex flex-col">
+            <h1 className={`text-xl font-black tracking-widest uppercase ${textPrimary}`}>CSx<span className={techPurple}>CONTACT</span></h1>
+            <p className={`text-[10px] font-mono ${accentText} tracking-[0.2em] uppercase`}>Comm-Link</p>
+          </div>
+        </div>
+
+        {/* PROFILE HUD (Only visible if authenticated) */}
+        {isAuthenticated && (
+          <div className="flex items-center space-x-4 pointer-events-auto">
+            <div className="relative" onMouseEnter={() => setIsProfileHovered(true)} onMouseLeave={() => setIsProfileHovered(false)}>
+              <div className={`flex items-center space-x-4 px-6 py-2.5 rounded-full backdrop-blur-xl cursor-pointer transition-colors duration-700 ${glassPanel}`}>
+                <span className={`${techPurple} font-mono text-xs tracking-widest hidden sm:block transition-colors duration-500`}>
+                  {timeState.date} <span className={textSecondary}>|</span> {timeState.time}
+                </span>
+                <div className={`w-px h-4 hidden sm:block ${isLightMode ? 'bg-slate-300' : 'bg-slate-800'}`} />
+                <div className="flex items-center space-x-3 group">
+                  <div className={`w-7 h-7 rounded-full bg-gradient-to-tr from-[${techPurpleHex}] to-[#00f0ff] p-[1.5px] transition-all duration-500`} style={{ backgroundImage: `linear-gradient(to top right, ${techPurpleHex}, #00f0ff)` }}>
+                    <div className={`w-full h-full rounded-full flex items-center justify-center ${isLightMode ? 'bg-white' : 'bg-[#010205]'}`}>
+                      <User size={12} className={textPrimary} />
+                    </div>
+                  </div>
+                  <span className={`text-xs font-black uppercase tracking-widest transition-colors ${textPrimary}`} style={{ color: isProfileHovered ? techPurpleHex : undefined }}>Nima</span>
+                </div>
+              </div>
+
+              <AnimatePresence>
+                {isProfileHovered && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 15, scale: 0.9, rotateX: -20 }} animate={{ opacity: 1, y: 0, scale: 1, rotateX: 0 }} exit={{ opacity: 0, y: 15, scale: 0.9, rotateX: -20 }} transition={{ type: "spring", stiffness: 100, damping: 20 }}
+                    className={`absolute right-0 mt-3 w-56 rounded-2xl backdrop-blur-2xl p-2 flex flex-col transform-gpu shadow-2xl ${glassPanel}`}
+                  >
+                    <Link href="/settings" className={`flex items-center px-4 py-3 text-xs font-bold uppercase tracking-widest rounded-xl transition-all ${isLightMode ? 'text-slate-700 hover:bg-slate-100' : 'text-slate-300 hover:bg-white/5'}`}>
+                      <Settings size={14} className={`mr-3 ${techPurple}`} /> Settings
+                    </Link>
+                    <button type="button" aria-label="Saved Links" className={`flex items-center px-4 py-3 text-xs font-bold uppercase tracking-widest text-cyan-500 rounded-xl transition-all group ${isLightMode ? 'hover:bg-cyan-50' : 'hover:bg-cyan-500/10'}`}>
+                      <Star size={14} className="mr-3 text-cyan-400 group-hover:drop-shadow-[0_0_8px_rgba(0,240,255,0.8)]" /> Saved Links
+                    </button>
+                    <div className={`h-px w-full my-1 ${isLightMode ? 'bg-slate-200' : 'bg-slate-800/50'}`} />
+                    <button type="button" aria-label="Terminate Link" className={`flex items-center px-4 py-3 text-xs font-bold uppercase tracking-widest text-red-500 rounded-xl transition-all group ${isLightMode ? 'hover:bg-red-50' : 'hover:bg-red-500/10'}`}>
+                      <LogOut size={14} className="mr-3 text-red-500 group-hover:drop-shadow-[0_0_8px_rgba(239,68,68,0.8)]" /> Terminate Link
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* 3D CANVAS */}
       <div className="fixed inset-0 z-0 pointer-events-none">
@@ -183,7 +260,7 @@ export default function ContactPage() {
                 <h2 className={`text-3xl font-black mb-4 tracking-widest uppercase ${textPrimary}`}>Transmission Secured</h2>
                 <p className={`mb-8 ${textSecondary}`}>The message payload has been successfully encrypted and routed to Nima.</p>
                 
-                <button onClick={() => window.location.reload()} className={`flex items-center px-8 py-4 rounded-xl font-black uppercase tracking-widest text-xs transition-all ${isLightMode ? 'bg-[#9333ea] text-white hover:bg-[#a855f7] shadow-[0_0_20px_rgba(147,51,234,0.3)]' : 'bg-[#a855f7] text-white hover:bg-[#9333ea] shadow-[0_0_20px_rgba(168,85,247,0.3)] hover:shadow-[0_0_30px_rgba(168,85,247,0.5)]'}`}>
+                <button type="button" aria-label="Reset Terminal Link" onClick={() => window.location.reload()} className={`flex items-center px-8 py-4 rounded-xl font-black uppercase tracking-widest text-xs transition-all ${isLightMode ? 'bg-[#9333ea] text-white hover:bg-[#a855f7] shadow-[0_0_20px_rgba(147,51,234,0.3)]' : 'bg-[#a855f7] text-white hover:bg-[#9333ea] shadow-[0_0_20px_rgba(168,85,247,0.3)] hover:shadow-[0_0_30px_rgba(168,85,247,0.5)]'}`}>
                   Reset Terminal Link
                 </button>
               </div>
@@ -192,7 +269,7 @@ export default function ContactPage() {
         </AnimatePresence>
 
         {/* HEADER SECTION */}
-        <motion.div animate={{ opacity: state.succeeded ? 0 : 1, filter: state.succeeded ? "blur(10px)" : "blur(0px)" }} className="mb-16 text-center md:text-left">
+        <motion.div animate={{ opacity: state.succeeded ? 0 : 1, filter: state.succeeded ? "blur(10px)" : "blur(0px)" }} className="mb-16 text-center md:text-left mt-8">
           <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="inline-flex items-center space-x-2 mb-4 bg-cyan-500/10 px-4 py-1.5 rounded-full border border-cyan-400/30">
             <Radio size={14} className="animate-pulse text-cyan-400" />
             <span className={`text-xs uppercase font-bold tracking-[0.25em] ${accentText}`}>Secure Comm-Link: Online</span>
@@ -302,7 +379,7 @@ export default function ContactPage() {
             {/* TECH PURPLE SUBMIT BUTTON */}
             <motion.div variants={itemVariants} className="mt-8 flex justify-end">
               <button 
-                type="submit" disabled={state.submitting} 
+                type="submit" disabled={state.submitting} aria-label="Execute Transmission"
                 className={`relative group overflow-hidden flex items-center w-full justify-center md:w-auto px-8 py-4 rounded-xl font-black uppercase tracking-widest text-sm transition-all shadow-lg ${
                   state.submitting 
                     ? 'bg-slate-700 text-slate-400 cursor-not-allowed' 
@@ -324,7 +401,7 @@ export default function ContactPage() {
         </div>
       </div>
       
-      <div className="mt-10">
+      <div className="relative z-20 mt-10">
         <Footer isLight={isLightMode} currentRole={currentUserRole as any} />
       </div>
 
