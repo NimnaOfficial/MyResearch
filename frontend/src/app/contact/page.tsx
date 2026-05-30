@@ -180,8 +180,8 @@ export default function ContactPage() {
           ========================================== */}
       <div className="fixed top-0 left-0 right-0 z-50 pt-6 px-6 lg:px-12 flex justify-between items-start pointer-events-none">
         
-        {/* LOGO */}
-        <div className="flex items-center space-x-3 pointer-events-auto mt-10">
+        {/* LOGO - Nudged down perfectly using mt-20 */}
+        <div className="flex items-center space-x-3 pointer-events-auto mt-20">
           <div className={`w-10 h-10 shrink-0 bg-gradient-to-br ${isLightMode ? 'from-purple-500 to-blue-400' : 'from-[#a855f7] to-[#00f0ff]'} rounded-lg flex items-center justify-center text-white shadow-[0_0_20px_rgba(168,85,247,0.3)]`}>
             <Radio size={20} />
           </div>
