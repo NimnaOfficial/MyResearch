@@ -15,7 +15,7 @@ import ThemeToggle from '@/components/ThemeToggle';
 import Footer from '@/components/Footer';
 
 // ==========================================
-// MOCK DATABASES
+// MOCK DATABASES (Orange Theme)
 // ==========================================
 const RECENT_PROJECTS = [
   { id: "v2.4.0", date: "MAY 2026", title: "Quantum UI Framework", type: "Frontend Core", color: "from-orange-500 to-amber-400", icon: Layers, changes: ["Engineered 3D Spatial Cascading Stacks.", "Re-architected the Authentication HUD.", "Optimized Framer Motion physics springs."] },
@@ -24,10 +24,11 @@ const RECENT_PROJECTS = [
 ];
 
 const INCOMINGS = [
-  { title: "AI Neural Network Integration", desc: "Connecting local models to the frontend matrix.", icon: Cpu, delay: 0.1 },
-  { title: "Crypto Payment Gateway", desc: "Web3 wallet connection endpoints.", icon: ShieldAlert, delay: 0.2 },
-  { title: "Real-time Telemetry Dashboard", desc: "Live web-socket data streaming.", icon: Zap, delay: 0.3 },
-  { title: "Server-side Rendering Optimization", desc: "Next.js core caching upgrades.", icon: Code2, delay: 0.4 }
+  { title: "AI Neural Network", desc: "Connecting local models.", icon: Cpu },
+  { title: "Crypto Gateway", desc: "Web3 wallet endpoints.", icon: ShieldAlert },
+  { title: "Telemetry Dashboard", desc: "Live web-socket streaming.", icon: Zap },
+  { title: "SSR Optimization", desc: "Next.js core upgrades.", icon: Code2 },
+  { title: "Quantum Crypto API", desc: "Next-gen encryption.", icon: Terminal }
 ];
 
 const ALL_PROJECTS = [
@@ -45,53 +46,92 @@ const FAQS = [
 ];
 
 // ==========================================
-// ANIMATED CYBER GRID (Orange Theme)
+// ADVANCED CARBON-COMB BACKGROUND
 // ==========================================
-function AnimatedCyberGrid({ isLight }: { isLight: boolean }) {
+function CarbonCombBackground({ isLight }: { isLight: boolean }) {
   const bgColor = isLight ? 'bg-slate-50' : 'bg-[#010205]';
-  const hexColor = isLight ? 'rgba(249, 115, 22, 0.1)' : 'rgba(249, 115, 22, 0.05)'; 
+  const combColor = isLight ? 'rgba(249, 115, 22, 0.15)' : 'rgba(249, 115, 22, 0.08)'; 
+  const fiberColor = isLight ? 'rgba(0, 0, 0, 0.03)' : 'rgba(255, 255, 255, 0.02)';
+
   return (
-    <div className={`fixed inset-0 z-0 pointer-events-none transition-colors duration-1000 ${bgColor} overflow-hidden`}>
-      <motion.div animate={{ y: [0, -100, 0] }} transition={{ duration: 40, ease: "linear", repeat: Infinity }} className="absolute inset-0 w-full h-[200%] opacity-50" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='103.92304845413264' viewBox='0 0 60 103.92304845413264' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 103.92304845413264L60 86.60254037844386L60 51.96152422706632L30 34.64101615137754L0 51.96152422706632L0 86.60254037844386Z' fill='transparent' stroke='${encodeURIComponent(hexColor)}' stroke-width='1'/%3E%3C/svg%3E")`, backgroundSize: '60px 103.92px' }} />
-      <motion.div animate={{ opacity: [0.1, 0.2, 0.1], scale: [1, 1.1, 1] }} transition={{ duration: 12, repeat: Infinity }} className={`absolute top-1/4 left-1/4 w-[40vw] h-[40vw] rounded-full blur-[150px] ${isLight ? 'bg-orange-400/20' : 'bg-orange-600/10'}`} />
-      <motion.div animate={{ opacity: [0.1, 0.2, 0.1], scale: [1, 1.05, 1] }} transition={{ duration: 9, repeat: Infinity }} className={`absolute bottom-1/4 right-1/4 w-[50vw] h-[50vw] rounded-full blur-[180px] ${isLight ? 'bg-amber-400/20' : 'bg-amber-600/10'}`} />
+    <div className={`fixed inset-0 z-0 pointer-events-none ${bgColor} overflow-hidden`}>
+      {/* Carbon Fiber Diagonal Weave */}
+      <motion.div 
+        animate={{ x: [0, -100, 0], y: [0, -100, 0] }} 
+        transition={{ duration: 20, ease: "linear", repeat: Infinity }}
+        className="absolute inset-0 w-[200%] h-[200%] opacity-60"
+        style={{
+          backgroundImage: `repeating-linear-gradient(45deg, ${fiberColor} 25%, transparent 25%, transparent 75%, ${fiberColor} 75%, ${fiberColor}), repeating-linear-gradient(45deg, ${fiberColor} 25%, transparent 25%, transparent 75%, ${fiberColor} 75%, ${fiberColor})`,
+          backgroundPosition: '0 0, 10px 10px',
+          backgroundSize: '20px 20px'
+        }}
+      />
+      {/* Honeycomb Matrix Overlay */}
+      <motion.div 
+        animate={{ y: [0, -103.92, 0] }} 
+        transition={{ duration: 30, ease: "linear", repeat: Infinity }}
+        className="absolute inset-0 w-full h-[200%] opacity-80 mix-blend-screen"
+        style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='103.92304845413264' viewBox='0 0 60 103.92304845413264' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 103.92304845413264L60 86.60254037844386L60 51.96152422706632L30 34.64101615137754L0 51.96152422706632L0 86.60254037844386Z' fill='transparent' stroke='${encodeURIComponent(combColor)}' stroke-width='1.5'/%3E%3C/svg%3E")`,
+          backgroundSize: '60px 103.92px'
+        }}
+      />
+      {/* Ambient Lighting Orbs */}
+      <motion.div animate={{ opacity: [0.1, 0.3, 0.1], scale: [1, 1.2, 1] }} transition={{ duration: 12, repeat: Infinity }} className={`absolute top-1/4 left-1/4 w-[40vw] h-[40vw] rounded-full blur-[150px] ${isLight ? 'bg-orange-500/20' : 'bg-orange-600/20'}`} />
     </div>
   );
 }
 
-const ultraSmoothSpring = { type: "spring" as const, stiffness: 120, damping: 20, mass: 1 };
+const ultraSmoothSpring = { type: "spring" as const, stiffness: 80, damping: 20, mass: 1 };
+const slowExpandSpring = { type: "spring" as const, stiffness: 50, damping: 25, mass: 1.5 };
 
 // ==========================================
-// MAIN RELEASES / PROJECTS PAGE
+// MAIN MATRIX PAGE
 // ==========================================
 export default function ProjectMatrix() {
   const [isLightMode, setIsLightMode] = useState(false);
   const [timeState, setTimeState] = useState({ time: "", date: "" });
   const [isProfileHovered, setIsProfileHovered] = useState(false);
   
-  // Section 1: Stack State
+  // Section 1: Top-Down Stack State
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
-  const [hoveredCard, setHoveredCard] = useState<string | null>(null);
+  const [activeStackIndex, setActiveStackIndex] = useState(0);
 
   // Section 3: Combobox & Filter
   const [filterType, setFilterType] = useState('All Systems');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
-  // Section 4: 3D Hologram Carousel Drag
-  const carouselDragX = useMotionValue(0);
-  const carouselRotation = useTransform(carouselDragX, [-1000, 1000], [360, -360]);
+  // Section 4: 3D Hologram Carousel State
+  const [isCarouselHovered, setIsCarouselHovered] = useState(false);
 
-  // Section 5: FAQ State
+  // Section 5: Automated FAQ State
   const [openFaq, setOpenFaq] = useState<number | null>(0);
+  const [isFaqHovered, setIsFaqHovered] = useState(false);
 
-  // Section 6: Dial State
+  // Section 6: Interactive Dial Drag State
   const [isDialOpen, setIsDialOpen] = useState(false);
-  const [dialHover, setDialHover] = useState(false);
+  const dialDragX = useMotionValue(0);
+  const dialRotation = useTransform(dialDragX, [-300, 300], [-180, 180]);
 
   // Auth State
   const [currentUserRole, setCurrentUserRole] = useState<'guest' | 'user' | 'admin'>('guest');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  // Auto-Cycle Timers
+  useEffect(() => {
+    const stackTimer = setInterval(() => {
+      setActiveStackIndex((prev) => (prev + 1) % RECENT_PROJECTS.length);
+    }, 4000); // Cycles the top-down deck every 4 seconds
+
+    const faqTimer = setInterval(() => {
+      if (!isFaqHovered) {
+        setOpenFaq((prev) => (prev !== null ? (prev + 1) % FAQS.length : 0));
+      }
+    }, 5000); // Cycles the FAQ every 5 seconds
+
+    return () => { clearInterval(stackTimer); clearInterval(faqTimer); };
+  }, [isFaqHovered]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -131,22 +171,17 @@ export default function ProjectMatrix() {
   const inputBg = isLightMode ? "bg-slate-100 border-slate-300 focus:border-orange-500" : "bg-black/40 border-orange-500/30 focus:border-orange-500";
   const accentHex = isLightMode ? "#ea580c" : "#f97316";
 
-  const filteredReleases = RECENT_PROJECTS.filter(r => 
-    r.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    r.changes.some(c => c.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
-
   return (
     <main className={`relative min-h-screen font-sans cursor-none overflow-x-hidden flex flex-col transition-colors duration-1000 ${isLightMode ? 'text-slate-900 bg-slate-50' : 'text-white bg-[#010205]'}`}>
       <CustomCursor />
-      <AnimatedCyberGrid isLight={isLightMode} />
+      <CarbonCombBackground isLight={isLightMode} />
 
       <div className="fixed top-24 left-6 lg:left-12 z-[100] pointer-events-auto">
         <ThemeToggle isLight={isLightMode} toggleTheme={() => setIsLightMode(!isLightMode)} />
       </div>
 
       {/* ==========================================
-          HEADER (PROFILE ICON INCLUDED)
+          HEADER 
           ========================================== */}
       <div className="fixed top-0 left-0 right-0 z-50 pt-6 px-6 lg:px-12 flex justify-between items-start pointer-events-none">
         
@@ -205,21 +240,21 @@ export default function ProjectMatrix() {
       <div className="relative z-10 w-full pt-48 pb-20 flex flex-col flex-grow">
         
         {/* ==========================================
-            SKILL 1: RECENT PROJECTS (3D CASCADING STACK)
+            SKILL 1: RECENT PROJECTS (TOP-DOWN ISOMETRIC AUTO-SCROLL)
             ========================================== */}
         <div id="recent" className="max-w-7xl mx-auto w-full px-6 lg:px-12 mb-32">
-          <div className="flex flex-col md:flex-row justify-between items-end mb-24 gap-8">
+          <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-8">
             <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={ultraSmoothSpring}>
               <h2 className="text-5xl md:text-7xl font-black uppercase tracking-tighter mb-2 leading-none">
                 Recent <br/>
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-amber-400">Projects</span>
               </h2>
-              <p className={`text-sm md:text-base font-mono tracking-widest uppercase mt-4 ${textSecondary}`}>Deployed Architecture.</p>
+              <p className={`text-sm md:text-base font-mono tracking-widest uppercase mt-4 ${textSecondary}`}>Top-Down Architecture View. Drag to cycle.</p>
             </motion.div>
 
             <motion.div 
               initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2, ...ultraSmoothSpring }}
-              className={`relative flex items-center w-full md:w-96 rounded-xl border transition-all shadow-xl backdrop-blur-xl ${inputBg}`} 
+              className={`relative flex items-center w-full md:w-96 rounded-xl border transition-all shadow-xl backdrop-blur-xl z-20 ${inputBg}`} 
               style={{ borderColor: isSearching ? accentHex : undefined, boxShadow: isSearching ? `0 0 20px rgba(249,115,22,0.2)` : undefined }}
             >
               <div className={`absolute -top-1 -left-1 w-2 h-2 border-t-2 border-l-2 transition-colors ${isSearching ? 'border-orange-500' : 'border-transparent'}`} />
@@ -232,129 +267,133 @@ export default function ProjectMatrix() {
                 type="text" placeholder="Search architecture..." 
                 value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
                 onFocus={() => setIsSearching(true)} onBlur={() => setIsSearching(false)}
-                className="w-full bg-transparent border-none py-4 px-4 text-sm font-mono focus:outline-none placeholder-slate-500"
+                className="w-full bg-transparent border-none py-4 px-4 text-sm font-mono focus:outline-none placeholder-slate-500 relative z-20"
               />
-              {isSearching && <Focus size={16} className="absolute right-5 text-orange-500 animate-pulse" />}
             </motion.div>
           </div>
 
-          <div className="relative w-full flex flex-col items-center [perspective:2000px] mt-10 min-h-[600px]">
-            <AnimatePresence mode="popLayout">
-              {filteredReleases.length === 0 ? (
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className={`py-20 text-center font-mono text-xl ${textSecondary}`}>
-                  No architecture records match your query.
-                </motion.div>
-              ) : (
-                filteredReleases.map((release, index) => {
-                  const isHovered = hoveredCard === release.id;
-                  const totalItems = filteredReleases.length;
-                  const baseRotateX = 20; 
-                  const baseTranslateZ = -index * 60; 
-                  const baseScale = 1 - (index * 0.04);
-                  const dynamicMargin = index === 0 ? 'mt-0' : '-mt-[140px] md:-mt-[180px]';
-
-                  return (
-                    <motion.div
-                      key={release.id}
-                      onMouseEnter={() => setHoveredCard(release.id)}
-                      onMouseLeave={() => setHoveredCard(null)}
-                      layout
-                      initial={{ opacity: 0, y: 100, rotateX: 60 }}
-                      animate={{ 
-                        opacity: 1, rotateX: isHovered ? 0 : baseRotateX, z: isHovered ? 50 : baseTranslateZ,
-                        y: isHovered ? -30 : 0, scale: isHovered ? 1.02 : baseScale,
-                      }}
-                      exit={{ opacity: 0, y: -100, scale: 0.8 }}
-                      transition={ultraSmoothSpring}
-                      className={`relative w-full max-w-4xl rounded-3xl p-8 md:p-10 border backdrop-blur-3xl transform-gpu cursor-pointer transition-colors duration-500 ${dynamicMargin} ${
-                        isLightMode ? 'bg-white/90 border-slate-300' : 'bg-[#030814]/90 border-orange-900/30 hover:border-orange-500/50'
-                      }`}
-                      style={{ zIndex: isHovered ? 100 : totalItems - index, boxShadow: isHovered ? `0 50px 100px -20px rgba(0,0,0,0.8), inset 0 0 20px rgba(249,115,22,0.1)` : `0 20px 40px rgba(0,0,0,0.5)` }}
-                    >
-                      <div className={`absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r ${release.color} opacity-80 rounded-t-3xl`} />
-                      <div className="flex flex-col md:flex-row gap-6 items-start md:items-center justify-between mb-8">
-                        <div className="flex items-center space-x-6">
-                          <div className={`w-14 h-14 md:w-16 md:h-16 rounded-2xl flex items-center justify-center bg-gradient-to-br ${release.color} text-white shadow-lg shrink-0`}>
-                            <release.icon size={26} />
-                          </div>
-                          <div>
-                            <h3 className={`text-2xl md:text-3xl font-black tracking-tight uppercase ${textPrimary}`}>{release.title}</h3>
-                            <div className="flex items-center space-x-3 mt-2">
-                              <span className={`text-[10px] font-black px-2.5 py-1 rounded tracking-widest uppercase ${isLightMode ? 'bg-slate-200 text-slate-700' : 'bg-white/10 text-slate-300'}`}>{release.id}</span>
-                              <span className={`text-xs font-mono tracking-widest ${textSecondary}`}>{release.date}</span>
-                            </div>
-                          </div>
-                        </div>
-                        <div className={`px-4 py-2 rounded-lg text-[10px] font-black tracking-[0.2em] uppercase border ${isLightMode ? 'border-slate-300 text-slate-600' : 'border-white/20 text-slate-400'}`}>
-                          {release.type}
+          <div className="relative w-full flex flex-col items-center [perspective:1500px] h-[550px] z-10">
+            {RECENT_PROJECTS.map((release, index) => {
+              const total = RECENT_PROJECTS.length;
+              // Mathematics for Top-Down View: Active card is at top, others drop downwards and backwards.
+              const offset = (index - activeStackIndex + total) % total; 
+              
+              const isFront = offset === 0;
+              const yPos = offset * 100; // Moves it DOWN the screen
+              const zPos = -offset * 120; // Pushes it DEEP into the screen
+              const rotationX = 40; // Tilted to look like we view from above
+              
+              return (
+                <motion.div
+                  key={release.id}
+                  drag="y"
+                  dragConstraints={{ top: 0, bottom: 0 }}
+                  onDragEnd={(e, { offset, velocity }) => {
+                    if (offset.y < -50 || velocity.y < -500) {
+                      setActiveStackIndex((prev) => (prev + 1) % total);
+                    } else if (offset.y > 50 || velocity.y > 500) {
+                      setActiveStackIndex((prev) => (prev - 1 + total) % total);
+                    }
+                  }}
+                  animate={{ 
+                    rotateX: isFront ? 10 : rotationX, // Front card flattens slightly
+                    y: isFront ? 0 : yPos, 
+                    z: zPos,
+                    opacity: isFront ? 1 : 1 - (offset * 0.3),
+                    scale: isFront ? 1.05 : 1
+                  }}
+                  transition={{ type: "spring", stiffness: 100, damping: 20 }}
+                  className={`absolute top-0 w-full max-w-4xl rounded-3xl p-8 md:p-10 border backdrop-blur-3xl transform-gpu cursor-grab active:cursor-grabbing ${
+                    isLightMode ? 'bg-white/90 border-slate-300' : 'bg-[#050b14]/90 border-orange-500/40 shadow-[inset_0_0_30px_rgba(249,115,22,0.1)]'
+                  }`}
+                  style={{ zIndex: total - offset, boxShadow: isFront ? `0 60px 120px -20px rgba(0,0,0,0.9)` : `0 20px 40px rgba(0,0,0,0.5)` }}
+                >
+                  <div className={`absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r ${release.color} opacity-100 rounded-t-3xl`} />
+                  <div className="flex flex-col md:flex-row gap-6 items-start md:items-center justify-between mb-8">
+                    <div className="flex items-center space-x-6">
+                      <div className={`w-14 h-14 md:w-16 md:h-16 rounded-2xl flex items-center justify-center bg-gradient-to-br ${release.color} text-white shadow-[0_0_20px_rgba(249,115,22,0.5)] shrink-0`}>
+                        <release.icon size={26} />
+                      </div>
+                      <div>
+                        <h3 className={`text-2xl md:text-3xl font-black tracking-tight uppercase ${textPrimary}`}>{release.title}</h3>
+                        <div className="flex items-center space-x-3 mt-2">
+                          <span className={`text-[10px] font-black px-2.5 py-1 rounded tracking-widest uppercase bg-orange-500/20 text-orange-500`}>{release.id}</span>
+                          <span className={`text-xs font-mono tracking-widest ${textSecondary}`}>{release.date}</span>
                         </div>
                       </div>
-                      <div className={`w-full h-px mb-8 ${isLightMode ? 'bg-slate-200' : 'bg-white/10'}`} />
-                      <ul className="space-y-4">
-                        {release.changes.map((change, i) => (
-                          <motion.li key={i} initial={false} animate={{ x: isHovered ? 10 : 0, opacity: isHovered ? 1 : 0.6 }} transition={{ delay: i * 0.05 }} className="flex items-start">
-                            <GitCommit size={18} className={`mr-4 mt-0.5 shrink-0 transition-colors duration-500 ${isHovered ? 'text-orange-500' : textSecondary}`} />
-                            <span className={`text-sm md:text-base font-medium leading-relaxed ${textPrimary}`}>{change}</span>
-                          </motion.li>
-                        ))}
-                      </ul>
-                    </motion.div>
-                  );
-                })
-              )}
-            </AnimatePresence>
+                    </div>
+                    <div className={`px-4 py-2 rounded-lg text-[10px] font-black tracking-[0.2em] uppercase border ${isLightMode ? 'border-slate-300 text-slate-600' : 'border-orange-500/50 text-orange-500'}`}>
+                      {release.type}
+                    </div>
+                  </div>
+                  <div className={`w-full h-px mb-8 ${isLightMode ? 'bg-slate-200' : 'bg-orange-500/20'}`} />
+                  <ul className="space-y-4">
+                    {release.changes.map((change, i) => (
+                      <li key={i} className="flex items-start">
+                        <GitCommit size={18} className="mr-4 mt-0.5 shrink-0 text-orange-500" />
+                        <span className={`text-sm md:text-base font-medium leading-relaxed ${textPrimary}`}>{change}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </motion.div>
+              );
+            })}
           </div>
         </div>
 
         {/* ==========================================
-            SKILL 2: INCOMINGS (INTEGRATED ANIMATION BENTO)
+            SKILL 2: INCOMINGS (AUTO-SCROLL CURVED MONITOR)
             ========================================== */}
-        <div id="incomings" className={`w-full py-32 border-y ${isLightMode ? 'bg-white border-slate-200' : 'bg-[#03060d] border-white/5'}`}>
-          <div className="max-w-7xl mx-auto px-6 lg:px-12">
-            <div className="flex flex-col lg:flex-row gap-12 mb-16">
+        <div id="incomings" className={`w-full py-32 border-y overflow-hidden relative ${isLightMode ? 'bg-white border-slate-200' : 'bg-[#03060d] border-white/5'}`}>
+          <div className="max-w-7xl mx-auto px-6 lg:px-12 mb-16 relative z-10">
+            <div className="flex flex-col lg:flex-row gap-12">
               <div className="lg:w-1/3">
                 <h3 className={`text-xs font-black tracking-[0.3em] uppercase mb-4 ${isLightMode ? 'text-orange-600' : 'text-orange-500'}`}>Incoming Systems</h3>
                 <h2 className={`text-4xl font-black uppercase tracking-tighter leading-none ${textPrimary}`}>Future <br/> Architecture</h2>
               </div>
               <div className={`lg:w-2/3 text-lg font-medium leading-relaxed ${textSecondary}`}>
-                The matrix is constantly evolving. These are the highly-anticipated frameworks, algorithms, and endpoints currently being prototyped in the local sandbox.
+                Auto-scrolling immersive HUD. The cards physically curve in 3D space, mirroring a panoramic gaming monitor setup.
               </div>
             </div>
+          </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {INCOMINGS.map((item, i) => (
-                <motion.div 
-                  key={i} 
-                  whileHover={{ scale: 1.05, y: -10 }}
-                  transition={{ type: "spring", stiffness: 200, damping: 20 }}
-                  className={`relative overflow-hidden p-8 flex flex-col justify-between aspect-square border group cursor-none ${isLightMode ? 'bg-slate-50 border-slate-200 hover:border-orange-400' : 'bg-[#050b14] border-white/10 hover:border-orange-500/50 hover:bg-orange-950/20'}`}
-                >
-                  <motion.div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 bg-gradient-to-t from-orange-500/20 to-transparent" />
-                  
+          {/* Auto-Rotating 3D Cylinder (Curved Monitor Effect) */}
+          <div className="w-full flex justify-center [perspective:2000px] h-[400px] mt-10">
+            {/* Duplicated array to create a full 360 cylinder (10 items total) */}
+            <motion.div 
+              animate={{ rotateY: [0, -360] }}
+              transition={{ ease: "linear", duration: 40, repeat: Infinity }}
+              className="relative w-[320px] h-full [transform-style:preserve-3d]"
+            >
+              {[...INCOMINGS, ...INCOMINGS].map((item, i) => {
+                const angle = i * (360 / 10);
+                return (
                   <motion.div 
-                    initial={{ scale: 1 }} whileHover={{ scale: 1.2, rotate: 10 }}
-                    className={`w-12 h-12 rounded-xl flex items-center justify-center mb-6 transition-colors ${isLightMode ? 'bg-orange-100 text-orange-600 group-hover:bg-orange-500 group-hover:text-white' : 'bg-white/5 text-orange-400 group-hover:bg-orange-500 group-hover:text-black'}`}
+                    key={i} 
+                    style={{ transform: `rotateY(${angle}deg) translateZ(600px)` }}
+                    whileHover={{ scale: 1.05, backgroundColor: isLightMode ? '#fff' : '#010205', borderColor: '#f97316' }}
+                    className={`absolute inset-0 p-8 flex flex-col justify-between border-2 rounded-3xl transition-colors duration-500 ${isLightMode ? 'bg-slate-50 border-slate-200 shadow-xl' : 'bg-[#050b14]/80 backdrop-blur-md border-white/10 shadow-[0_0_30px_rgba(0,0,0,0.8)]'}`}
                   >
-                    <item.icon size={24} />
+                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-6 bg-orange-500/10 text-orange-500 border border-orange-500/30`}>
+                      <item.icon size={28} />
+                    </div>
+                    <div className="relative z-10">
+                      <h4 className={`text-2xl font-black tracking-tight mb-3 leading-snug ${textPrimary}`}>{item.title}</h4>
+                      <p className={`text-sm font-mono font-bold uppercase ${textSecondary}`}>{item.desc}</p>
+                    </div>
                   </motion.div>
-                  
-                  <div className="relative z-10">
-                    <h4 className={`text-xl font-black tracking-tight mb-2 ${textPrimary}`}>{item.title}</h4>
-                    <p className={`text-xs font-mono font-bold uppercase ${textSecondary} group-hover:text-orange-500 transition-colors`}>{item.desc}</p>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
+                );
+              })}
+            </motion.div>
           </div>
         </div>
 
         {/* ==========================================
-            SKILL 3: ALL PROJECTS FILTER & DOUBLE MARQUEE
+            SKILL 3: ALL PROJECTS FILTER & AUTO-MARQUEE
             ========================================== */}
-        <div id="all" className={`w-full py-24 overflow-hidden flex flex-col bg-black border-b border-white/10 relative`}>
+        <div id="all" className={`w-full py-24 overflow-hidden flex flex-col bg-black border-b border-white/10 relative z-20`}>
           
-          {/* Animated Combobox Filter */}
-          <div className="max-w-7xl mx-auto w-full px-6 lg:px-12 mb-12 flex justify-end z-20">
+          <div className="max-w-7xl mx-auto w-full px-6 lg:px-12 mb-12 flex justify-end z-30">
             <div className="relative">
               <button 
                 onClick={() => setIsFilterOpen(!isFilterOpen)} aria-label="Toggle Filter"
@@ -385,38 +424,35 @@ export default function ProjectMatrix() {
             </div>
           </div>
 
-          {/* Marquee 1: Moves Left (User Draggable) */}
-          <motion.div 
-            drag="x" dragConstraints={{ left: -1500, right: 0 }}
-            className="flex w-fit whitespace-nowrap cursor-grab active:cursor-grabbing mb-4 px-6"
-          >
-            {/* We duplicate the array to allow for visual looping during drag */}
-            {[...ALL_PROJECTS, ...ALL_PROJECTS].map((proj, idx) => (
-               <div key={idx} className="inline-flex items-center px-8 py-6 mx-2 border border-white/10 rounded-2xl bg-[#03060d] hover:border-orange-500/50 transition-colors pointer-events-none">
-                 <Box size={20} className="mr-4 text-orange-500" />
-                 <span className="text-xl font-black uppercase text-white">{proj}</span>
-               </div>
-            ))}
-          </motion.div>
+          {/* Marquee 1: Auto Moves Left */}
+          <div className="flex w-fit whitespace-nowrap mb-6 group cursor-none">
+            <motion.div animate={{ x: ["0%", "-50%"] }} transition={{ ease: "linear", duration: 30, repeat: Infinity }} className="flex gap-4 px-2">
+              {[...ALL_PROJECTS, ...ALL_PROJECTS].map((proj, idx) => (
+                 <motion.div key={idx} whileHover={{ scale: 1.05, backgroundColor: '#f97316', borderColor: '#f97316' }} className="inline-flex items-center px-8 py-6 mx-2 border border-white/10 rounded-2xl bg-[#03060d] transition-colors group-hover:[&:not(:hover)]:opacity-50">
+                   <Box size={20} className="mr-4 text-white" />
+                   <span className="text-xl font-black uppercase text-white">{proj}</span>
+                 </motion.div>
+              ))}
+            </motion.div>
+          </div>
 
-          {/* Marquee 2: Moves Right (User Draggable) */}
-          <motion.div 
-            drag="x" dragConstraints={{ left: -1500, right: 0 }}
-            className="flex w-fit whitespace-nowrap cursor-grab active:cursor-grabbing px-6 ml-[-500px]"
-          >
-            {[...ALL_PROJECTS].reverse().concat([...ALL_PROJECTS].reverse()).map((proj, idx) => (
-               <div key={idx} className="inline-flex items-center px-8 py-6 mx-2 border border-white/10 rounded-2xl bg-orange-600 hover:bg-orange-500 transition-colors pointer-events-none">
-                 <Rocket size={20} className="mr-4 text-black" />
-                 <span className="text-xl font-black uppercase text-black">{proj}</span>
-               </div>
-            ))}
-          </motion.div>
+          {/* Marquee 2: Auto Moves Right */}
+          <div className="flex w-fit whitespace-nowrap group cursor-none ml-[-1000px]">
+            <motion.div animate={{ x: ["-50%", "0%"] }} transition={{ ease: "linear", duration: 30, repeat: Infinity }} className="flex gap-4 px-2">
+              {[...ALL_PROJECTS].reverse().concat([...ALL_PROJECTS].reverse()).map((proj, idx) => (
+                 <motion.div key={idx} whileHover={{ scale: 1.05, backgroundColor: '#000', borderColor: '#f97316', color: '#f97316' }} className="inline-flex items-center px-8 py-6 mx-2 border border-orange-500 rounded-2xl bg-orange-600 transition-colors group-hover:[&:not(:hover)]:opacity-50">
+                   <Rocket size={20} className="mr-4 text-black" />
+                   <span className="text-xl font-black uppercase text-black">{proj}</span>
+                 </motion.div>
+              ))}
+            </motion.div>
+          </div>
         </div>
 
         {/* ==========================================
-            SKILL 4: TARGETING BLOCK + HOLOGRAPHIC CAROUSEL
+            SKILL 4: TARGETING BLOCK + AUTO HOLOGRAPHIC CAROUSEL
             ========================================== */}
-        <div id="hologram" className="w-full py-40 flex flex-col items-center justify-center overflow-hidden relative">
+        <div id="hologram" className="w-full py-40 flex flex-col items-center justify-center overflow-hidden relative z-10">
           
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(249,115,22,0.1)_0%,transparent_70%)] pointer-events-none" />
 
@@ -430,25 +466,27 @@ export default function ProjectMatrix() {
             <h3 className="text-white text-3xl font-black uppercase tracking-tight leading-tight text-center">
               Have an idea?<br/><span className="text-orange-500">We'll make it real.</span>
             </h3>
-            <p className="text-white/50 text-[10px] font-mono mt-6 uppercase tracking-[0.2em] animate-pulse">Drag Orbit Below</p>
+            <p className="text-white/50 text-[10px] font-mono mt-6 uppercase tracking-[0.2em] animate-pulse">Hover Node to Access</p>
           </div>
 
-          {/* 3D Holographic CSS Carousel (Draggable) */}
+          {/* Auto-Rotating 3D Holographic CSS Carousel */}
           <div className="relative w-full h-32 mt-20 flex justify-center [perspective:1200px]">
             <motion.div 
-              style={{ rotateY: carouselRotation }}
-              drag="x" dragConstraints={{ left: -1000, right: 1000 }}
-              className="absolute w-[300px] h-[200px] [transform-style:preserve-3d] cursor-grab active:cursor-grabbing flex items-center justify-center"
+              animate={isCarouselHovered ? {} : { rotateY: [0, 360] }}
+              transition={{ ease: "linear", duration: 25, repeat: Infinity }}
+              className="absolute w-[300px] h-[200px] [transform-style:preserve-3d] flex items-center justify-center"
             >
               {[1, 2, 3, 4, 5].map((item, i) => (
                 <Link 
                   href="/feedback" key={i} aria-label={`Provide feedback for Project ${item}`}
-                  className="absolute inset-0 w-full h-full flex flex-col items-center justify-center rounded-2xl border border-orange-500/50 bg-black/60 backdrop-blur-md hover:border-orange-400 hover:shadow-[0_0_30px_rgba(249,115,22,0.4)] transition-all"
+                  onMouseEnter={() => setIsCarouselHovered(true)}
+                  onMouseLeave={() => setIsCarouselHovered(false)}
+                  className="absolute inset-0 w-full h-full flex flex-col items-center justify-center rounded-2xl border border-orange-500/50 bg-black/80 backdrop-blur-md hover:border-orange-400 hover:bg-orange-950/80 hover:scale-110 hover:shadow-[0_0_50px_rgba(249,115,22,0.6)] transition-all duration-300"
                   style={{ transform: `rotateY(${i * (360 / 5)}deg) translateZ(350px)` }}
                 >
-                  <PlayCircle size={32} className="text-orange-500 mb-4" />
+                  <PlayCircle size={32} className="text-orange-500 mb-4 animate-pulse" />
                   <span className="text-white font-black uppercase tracking-widest text-sm">Project Node {item}</span>
-                  <span className="text-white/50 text-[10px] font-mono mt-2 uppercase">Click to Review</span>
+                  <span className="text-orange-500/80 text-[10px] font-mono mt-2 uppercase">Route to Feedback</span>
                 </Link>
               ))}
             </motion.div>
@@ -457,37 +495,36 @@ export default function ProjectMatrix() {
         </div>
 
         {/* ==========================================
-            SKILL 5: EXPANDED FAQ & COURSE ANIMATION
+            SKILL 5: AUTO-EXPANDING FAQ (SLOW ANIMATION)
             ========================================== */}
         <div id="faq" className={`w-full py-32 border-t ${isLightMode ? 'border-slate-200 bg-slate-50' : 'border-white/10 bg-[#010205]'}`}>
           <div className="max-w-5xl mx-auto px-6 lg:px-12 flex flex-col lg:flex-row gap-16">
             <div className="lg:w-1/3">
               <h2 className={`text-4xl md:text-6xl font-black uppercase tracking-tighter leading-none mb-6 ${textPrimary}`}>System <br/> Queries.</h2>
-              <p className={`font-mono text-sm uppercase tracking-widest ${textSecondary}`}>Dive back into the matrix.</p>
+              <p className={`font-mono text-sm uppercase tracking-widest ${textSecondary}`}>Automated Core Scan Sequence.</p>
             </div>
             
-            <div className="lg:w-2/3 border-t border-current relative">
+            <div className="lg:w-2/3 border-t border-current relative" onMouseEnter={() => setIsFaqHovered(true)} onMouseLeave={() => setIsFaqHovered(false)}>
               {FAQS.map((faq, i) => (
                 <div key={i} className={`relative border-b ${isLightMode ? 'border-slate-300' : 'border-white/20'}`}>
                   
-                  {/* Course Selection Highlight Animation */}
                   {openFaq === i && (
                     <motion.div 
                       layoutId="faqHighlight"
                       className="absolute inset-0 bg-gradient-to-r from-orange-500/10 to-transparent -z-10"
                       initial={false}
-                      transition={ultraSmoothSpring}
+                      transition={slowExpandSpring} // Slower transition
                     />
                   )}
 
                   <button aria-label={`Toggle Question ${i+1}`} onClick={() => setOpenFaq(openFaq === i ? null : i)} className="w-full py-6 px-4 flex items-center justify-between text-left focus:outline-none group relative z-10">
-                    <span className={`text-lg md:text-2xl font-black tracking-tight group-hover:text-orange-500 transition-colors ${textPrimary}`}>{faq.q}</span>
+                    <span className={`text-lg md:text-2xl font-black tracking-tight transition-colors duration-500 ${openFaq === i ? 'text-orange-500' : textPrimary}`}>{faq.q}</span>
                     {openFaq === i ? <Minus size={24} className="text-orange-500 shrink-0 ml-4" /> : <Plus size={24} className={`${textSecondary} shrink-0 ml-4`} />}
                   </button>
                   
                   <AnimatePresence>
                     {openFaq === i && (
-                      <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden relative z-10">
+                      <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.8, ease: "easeInOut" }} className="overflow-hidden relative z-10">
                         <p className={`pb-8 px-4 font-medium leading-relaxed ${textSecondary}`}>{faq.a}</p>
                       </motion.div>
                     )}
@@ -499,44 +536,45 @@ export default function ProjectMatrix() {
         </div>
 
         {/* ==========================================
-            SKILL 6: INTERACTIVE NAVIGATION DIAL
+            SKILL 6: ADVANCED SCROLLABLE/DRAGGABLE DIAL
             ========================================== */}
-        <div id="nav-dial" className={`w-full py-64 flex flex-col items-center justify-center border-t relative overflow-hidden ${isLightMode ? 'bg-white border-slate-200' : 'bg-black border-white/5'}`}>
+        <div id="nav-dial" className={`w-full py-64 flex flex-col items-center justify-center border-t relative overflow-hidden ${isLightMode ? 'bg-white border-slate-200' : 'bg-[#03060d] border-white/5'}`}>
           
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(249,115,22,0.05)_0%,transparent_60%)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(249,115,22,0.1)_0%,transparent_60%)] pointer-events-none" />
 
-          {/* Central Interactive Dial */}
-          <motion.button
-            aria-label="Toggle Navigation Hub"
-            onMouseEnter={() => setDialHover(true)} onMouseLeave={() => setDialHover(false)}
-            onClick={() => setIsDialOpen(!isDialOpen)}
-            animate={{ 
-              backgroundColor: isDialOpen ? (isLightMode ? '#ea580c' : '#f97316') : 'transparent',
-              borderColor: isDialOpen ? 'transparent' : (dialHover ? '#f97316' : (isLightMode ? '#cbd5e1' : '#334155')),
-              scale: dialHover ? 1.05 : 1
+          {/* Interactive Drag Radar */}
+          <motion.div
+            drag="x" dragConstraints={{ left: 0, right: 0 }} dragElastic={0.2}
+            style={{ rotate: dialRotation }}
+            onDragEnd={(e, { offset }) => {
+               if (offset.x > 50 || offset.x < -50) setIsDialOpen(!isDialOpen);
             }}
-            transition={{ duration: 0.3 }}
-            className={`relative w-48 h-48 md:w-64 md:h-64 rounded-full border-4 flex items-center justify-center z-30 shadow-2xl ${isDialOpen ? 'text-white' : textPrimary}`}
+            className={`relative w-64 h-64 md:w-80 md:h-80 rounded-full flex items-center justify-center z-30 cursor-grab active:cursor-grabbing transition-colors duration-500 ${isDialOpen ? 'text-orange-500' : textPrimary}`}
           >
-            {/* Spinning Ring */}
-            <motion.div animate={{ rotate: 360 }} transition={{ duration: 20, ease: "linear", repeat: Infinity }} className="absolute inset-0 rounded-full border-2 border-dashed border-current opacity-30" />
+            {/* Multi-layered HUD Rings */}
+            <motion.div animate={{ rotate: 360 }} transition={{ duration: 40, ease: "linear", repeat: Infinity }} className={`absolute inset-0 rounded-full border-[10px] border-dashed opacity-40 ${isDialOpen ? 'border-orange-500' : 'border-current'}`} />
+            <motion.div animate={{ rotate: -360 }} transition={{ duration: 25, ease: "linear", repeat: Infinity }} className={`absolute inset-6 rounded-full border-4 border-dotted opacity-50 ${isDialOpen ? 'border-orange-500' : 'border-current'}`} />
+            <motion.div animate={{ scale: [1, 1.1, 1], opacity: [0.1, 0.3, 0.1] }} transition={{ duration: 2, repeat: Infinity }} className={`absolute inset-16 rounded-full blur-xl ${isDialOpen ? 'bg-orange-500' : 'bg-transparent'}`} />
             
-            <div className="flex flex-col items-center">
-              <CompassIcon isOpen={isDialOpen} />
-              <span className="text-xs font-black uppercase tracking-[0.4em] mt-3">
-                {isDialOpen ? 'CLOSE' : 'NAVIGATE'}
+            <div className="flex flex-col items-center relative z-10" style={{ transform: 'rotate(0deg)' }}>
+              <div className="w-12 h-12 rounded-full border-2 border-current flex items-center justify-center bg-black">
+                 <motion.div animate={{ rotate: isDialOpen ? 90 : 0 }} className="w-full h-1 bg-current rounded-full" />
+                 <motion.div animate={{ rotate: isDialOpen ? 0 : 90 }} className="absolute w-1 h-full bg-current rounded-full" />
+              </div>
+              <span className="text-[10px] font-black uppercase tracking-[0.5em] mt-6 text-center leading-loose">
+                {isDialOpen ? 'SYSTEM\nOPEN' : 'DRAG TO\nACCESS'}
               </span>
             </div>
-          </motion.button>
+          </motion.div>
 
           {/* Popping Curve Nodes */}
           <AnimatePresence>
             {isDialOpen && (
               <>
-                <NavNode id="recent" label="Recent" angle={-135} radius={180} onClick={scrollToSection} />
-                <NavNode id="incomings" label="Upcoming" angle={-45} radius={180} onClick={scrollToSection} />
-                <NavNode id="all" label="All Projects" angle={-135} radius={300} delay={0.1} onClick={scrollToSection} />
-                <NavNode id="faq" label="Queries" angle={-45} radius={300} delay={0.1} onClick={scrollToSection} />
+                <NavNode id="recent" label="Recent" angle={-135} radius={220} onClick={scrollToSection} />
+                <NavNode id="incomings" label="Upcoming" angle={-45} radius={220} onClick={scrollToSection} />
+                <NavNode id="all" label="All Projects" angle={-135} radius={350} delay={0.1} onClick={scrollToSection} />
+                <NavNode id="faq" label="Queries" angle={-45} radius={350} delay={0.1} onClick={scrollToSection} />
               </>
             )}
           </AnimatePresence>
@@ -559,17 +597,7 @@ export default function ProjectMatrix() {
 // ---------------------------------------------
 // HELPER COMPONENTS FOR DIAL NAV
 // ---------------------------------------------
-function CompassIcon({ isOpen }: { isOpen: boolean }) {
-  return (
-    <motion.div animate={{ rotate: isOpen ? 45 : 0 }} className="relative w-8 h-8">
-      <div className="absolute top-0 left-1/2 -ml-0.5 w-1 h-full bg-current rounded-full" />
-      <div className="absolute top-1/2 left-0 -mt-0.5 w-full h-1 bg-current rounded-full" />
-    </motion.div>
-  );
-}
-
 function NavNode({ id, label, angle, radius, delay = 0, onClick }: { id: string, label: string, angle: number, radius: number, delay?: number, onClick: (id: string) => void }) {
-  // Calculate X, Y based on Angle & Radius for that curvy pop-out effect
   const rad = angle * (Math.PI / 180);
   const x = Math.cos(rad) * radius;
   const y = Math.sin(rad) * radius;
@@ -581,10 +609,10 @@ function NavNode({ id, label, angle, radius, delay = 0, onClick }: { id: string,
       animate={{ opacity: 1, x, y, scale: 1 }}
       exit={{ opacity: 0, x: 0, y: 0, scale: 0 }}
       transition={{ type: "spring", stiffness: 200, damping: 20, delay }}
-      className="absolute top-1/2 left-1/2 -ml-16 -mt-16 w-32 h-32 rounded-full bg-black border border-orange-500/50 flex flex-col items-center justify-center text-white hover:bg-orange-500 hover:text-black transition-colors z-20 shadow-[0_0_30px_rgba(249,115,22,0.3)]"
+      className="absolute top-1/2 left-1/2 -ml-16 -mt-16 w-32 h-32 rounded-full bg-black border-2 border-orange-500 flex flex-col items-center justify-center text-white hover:bg-orange-500 hover:text-black hover:scale-110 transition-all z-20 shadow-[0_0_40px_rgba(249,115,22,0.6)]"
     >
       <span className="text-[10px] font-black uppercase tracking-widest">{label}</span>
-      <span className="text-[8px] font-mono opacity-50 mt-1 uppercase">GOTO_ROUTE</span>
+      <span className="text-[8px] font-mono opacity-60 mt-1 uppercase">GOTO_ROUTE</span>
     </motion.button>
   );
 }
