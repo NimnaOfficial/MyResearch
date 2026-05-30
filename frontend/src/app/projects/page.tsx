@@ -48,18 +48,27 @@ const FAQS = [
 ];
 
 // ==========================================
-// CSS ONLY CARBON-COMB BACKGROUND
+// FIXED: PURE CSS HONEYCOMB MATRIX BACKGROUND
 // ==========================================
-function CarbonCombBackground({ isLight }: { isLight: boolean }) {
+function UnifiedMatrixBackground({ isLight }: { isLight: boolean }) {
   const bgColor = isLight ? 'bg-slate-50' : 'bg-[#010205]';
   const combColor = isLight ? 'rgba(249, 115, 22, 0.15)' : 'rgba(249, 115, 22, 0.08)'; 
-  const fiberColor = isLight ? 'rgba(0, 0, 0, 0.03)' : 'rgba(255, 255, 255, 0.02)';
 
   return (
     <div className={`fixed inset-0 z-0 pointer-events-none ${bgColor} overflow-hidden`}>
-      <motion.div animate={{ x: [0, -100, 0], y: [0, -100, 0] }} transition={{ duration: 20, ease: "linear", repeat: Infinity }} className="absolute inset-0 w-[200%] h-[200%] opacity-60" style={{ backgroundImage: `repeating-linear-gradient(45deg, ${fiberColor} 25%, transparent 25%, transparent 75%, ${fiberColor} 75%, ${fiberColor}), repeating-linear-gradient(45deg, ${fiberColor} 25%, transparent 25%, transparent 75%, ${fiberColor} 75%, ${fiberColor})`, backgroundPosition: '0 0, 10px 10px', backgroundSize: '20px 20px' }} />
-      <motion.div animate={{ y: [0, -103.92, 0] }} transition={{ duration: 30, ease: "linear", repeat: Infinity }} className="absolute inset-0 w-full h-[200%] opacity-80 mix-blend-screen" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='103.92304845413264' viewBox='0 0 60 103.92304845413264' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 103.92304845413264L60 86.60254037844386L60 51.96152422706632L30 34.64101615137754L0 51.96152422706632L0 86.60254037844386Z' fill='transparent' stroke='${encodeURIComponent(combColor)}' stroke-width='1.5'/%3E%3C/svg%3E")`, backgroundSize: '60px 103.92px' }} />
-      <motion.div animate={{ opacity: [0.1, 0.3, 0.1], scale: [1, 1.2, 1] }} transition={{ duration: 12, repeat: Infinity }} className={`absolute top-1/4 left-1/4 w-[40vw] h-[40vw] rounded-full blur-[150px] ${isLight ? 'bg-orange-500/20' : 'bg-orange-600/20'}`} />
+      {/* Infinite Scrolling Honeycomb Pattern */}
+      <motion.div 
+        animate={{ backgroundPosition: ["0px 0px", "0px 103.92px"] }} 
+        transition={{ duration: 5, ease: "linear", repeat: Infinity }}
+        className="absolute inset-0 w-full h-full opacity-80 mix-blend-screen" 
+        style={{ 
+          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='103.92304845413264' viewBox='0 0 60 103.92304845413264' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 103.92304845413264L60 86.60254037844386L60 51.96152422706632L30 34.64101615137754L0 51.96152422706632L0 86.60254037844386Z' fill='transparent' stroke='${encodeURIComponent(combColor)}' stroke-width='1.5'/%3E%3C/svg%3E")`, 
+          backgroundSize: '60px 103.92px' 
+        }} 
+      />
+      {/* Ambient Glowing Orbs */}
+      <motion.div animate={{ opacity: [0.1, 0.25, 0.1], scale: [1, 1.2, 1] }} transition={{ duration: 12, repeat: Infinity }} className={`absolute top-1/4 left-1/4 w-[40vw] h-[40vw] rounded-full blur-[150px] ${isLight ? 'bg-orange-500/20' : 'bg-orange-600/20'}`} />
+      <motion.div animate={{ opacity: [0.1, 0.2, 0.1], scale: [1, 1.1, 1] }} transition={{ duration: 15, repeat: Infinity, delay: 2 }} className={`absolute bottom-1/4 right-1/4 w-[50vw] h-[50vw] rounded-full blur-[180px] ${isLight ? 'bg-amber-500/20' : 'bg-orange-700/20'}`} />
     </div>
   );
 }
@@ -78,6 +87,10 @@ export default function ProjectMatrix() {
   // Section 1: "Standing File Drawer" State
   const [activeStackIndex, setActiveStackIndex] = useState(0);
   const [isHoveringStack, setIsHoveringStack] = useState(false);
+
+  // Section 2: Incoming Arc Carousel State 
+  const [incomingIndex, setIncomingIndex] = useState(0);
+  const [isHoveringIncomings, setIsHoveringIncomings] = useState(false);
 
   // Section 3: Combobox & Filter
   const [filterType, setFilterType] = useState('All Systems');
@@ -115,10 +128,14 @@ export default function ProjectMatrix() {
 
     const stackTimer = setInterval(() => {
       if (!isHoveringStack) setActiveStackIndex((prev) => (prev + 1) % RECENT_PROJECTS.length);
-    }, 4000); // Slowed slightly for better reading pace
+    }, 3000);
 
-    return () => { clearInterval(faqTimer); clearInterval(stackTimer); };
-  }, [isFaqHovered, isHoveringStack]);
+    const incomingTimer = setInterval(() => {
+      if (!isHoveringIncomings) setIncomingIndex((prev) => (prev + 1) % INCOMINGS.length);
+    }, 3500);
+
+    return () => { clearInterval(faqTimer); clearInterval(stackTimer); clearInterval(incomingTimer); };
+  }, [isFaqHovered, isHoveringStack, isHoveringIncomings]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -146,17 +163,28 @@ export default function ProjectMatrix() {
     setIsDialOpen(false);
   };
 
+  const handleStackMouseMove = (e: React.MouseEvent) => {
+    setIsHoveringStack(true);
+    const rect = e.currentTarget.getBoundingClientRect();
+    const relativeX = e.clientX - rect.left;
+    const percentage = Math.max(0, Math.min(1, relativeX / rect.width));
+    const newIndex = Math.floor(percentage * RECENT_PROJECTS.length);
+    if (newIndex < RECENT_PROJECTS.length && newIndex !== activeStackIndex) {
+      setActiveStackIndex(newIndex);
+    }
+  };
+
   const textPrimary = isLightMode ? "text-slate-900" : "text-white";
   const textSecondary = isLightMode ? "text-slate-600" : "text-slate-400";
   const glassBg = isLightMode ? "bg-white/90 border-slate-200 shadow-2xl" : "bg-[#010308]/90 border-white/5 shadow-[0_0_50px_rgba(0,0,0,0.5)]";
-  const inputBg = isLightMode ? "bg-slate-100 border-slate-300 focus:border-orange-500" : "bg-black/40 border-orange-500/30 focus:border-orange-500";
   const accentHex = isLightMode ? "#ea580c" : "#f97316";
 
   return (
-    <main className={`relative min-h-screen font-sans cursor-none overflow-x-hidden flex flex-col transition-colors duration-1000 ${isLightMode ? 'text-slate-900 bg-slate-50' : 'text-white bg-[#010205]'}`}>
+    <main className={`relative min-h-screen font-sans cursor-none overflow-x-hidden flex flex-col transition-colors duration-1000 ${isLightMode ? 'text-slate-900' : 'text-white'}`}>
       <CustomCursor />
       
-      <CarbonCombBackground isLight={isLightMode} />
+      {/* PERFECT UNIFIED BACKGROUND */}
+      <UnifiedMatrixBackground isLight={isLightMode} />
 
       <div className="fixed top-24 left-6 lg:left-12 z-[100] pointer-events-auto">
         <ThemeToggle isLight={isLightMode} toggleTheme={() => setIsLightMode(!isLightMode)} />
@@ -218,7 +246,7 @@ export default function ProjectMatrix() {
       <div className="relative z-10 w-full pt-48 pb-20 flex flex-col flex-grow">
         
         {/* ==========================================
-            SKILL 1: THE STANDING FILE DRAWER (FIXED CONTROL)
+            SKILL 1: THE STANDING FILE DRAWER
             ========================================== */}
         <div id="recent" className="max-w-7xl mx-auto w-full px-6 lg:px-12 mb-40">
           <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-8">
@@ -229,23 +257,11 @@ export default function ProjectMatrix() {
               </h2>
               <p className={`text-sm md:text-base font-mono tracking-widest uppercase mt-4 ${textSecondary}`}>Architecture Deck. Click or Drag files to cycle.</p>
             </motion.div>
-
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2, ...ultraSmoothSpring }}
-              className={`relative flex items-center w-full md:w-96 rounded-xl border transition-all shadow-xl backdrop-blur-xl z-20 ${inputBg}`} 
-            >
-              <Search size={20} className={`ml-5 text-orange-500`} />
-              <input 
-                type="text" placeholder="Search architecture..." 
-                className="w-full bg-transparent border-none py-4 px-4 text-sm font-mono focus:outline-none placeholder-slate-500"
-              />
-            </motion.div>
           </div>
 
-          {/* STANDING DRAWER PHYSICS CONTAINER */}
           <div 
             className="relative w-full flex flex-col justify-end items-center [perspective:1500px] h-[550px] z-10 pb-10"
-            onMouseEnter={() => setIsHoveringStack(true)}
+            onMouseMove={handleStackMouseMove}
             onMouseLeave={() => setIsHoveringStack(false)}
           >
             {RECENT_PROJECTS.map((project, i) => {
@@ -256,69 +272,44 @@ export default function ProjectMatrix() {
               const isLeaving = offset === total - 1; 
               const isVisible = offset >= 0 && offset < 4; 
 
-              let yPos = 0;
-              let zPos = 0;
-              let rotX = 0;
-              let opacity = 1;
-              let scale = 1;
+              let yPos = 0; let zPos = 0; let rotX = 0; let opacity = 1; let scale = 1;
 
               if (isFront) {
                  yPos = 0; zPos = 0; rotX = 0; opacity = 1; scale = 1;
               } else if (isLeaving) {
                  yPos = 300; zPos = 100; rotX = -20; opacity = 0; scale = 1.1; 
               } else {
-                 yPos = -offset * 75;   // Increased spread for easy clicking
-                 zPos = -offset * 120;  // Pushes it into the drawer
-                 rotX = offset * 4;     // Adds the slight backward lean
-                 opacity = 1 - (offset * 0.15); // Better visibility for back cards
+                 yPos = -offset * 75;  
+                 zPos = -offset * 120;  
+                 rotX = offset * 4;    
+                 opacity = 1 - (offset * 0.15);
                  scale = 1 - (offset * 0.04);
               }
 
               return (
                 <motion.div
                   key={project.id}
-                  onClick={() => setActiveStackIndex(i)} // TACTILE CLICK TO SELECT
-                  drag="y" // SWIPE GESTURE SUPPORT
+                  onClick={() => setActiveStackIndex(i)} 
+                  drag="y" 
                   dragConstraints={{ top: 0, bottom: 0 }}
                   dragElastic={0.2}
                   onDragEnd={(e, { offset, velocity }) => {
-                    if (offset.y < -50 || velocity.y < -500) {
-                      setActiveStackIndex((prev) => (prev + 1) % total);
-                    } else if (offset.y > 50 || velocity.y > 500) {
-                      setActiveStackIndex((prev) => (prev - 1 + total) % total);
-                    }
+                    if (offset.y < -50 || velocity.y < -500) setActiveStackIndex((prev) => (prev + 1) % total);
+                    else if (offset.y > 50 || velocity.y > 500) setActiveStackIndex((prev) => (prev - 1 + total) % total);
                   }}
-                  animate={{
-                    y: yPos,
-                    z: zPos,
-                    rotateX: rotX,
-                    scale: scale,
-                    opacity: isVisible || isLeaving ? opacity : 0,
-                    zIndex: total - offset
-                  }}
-                  whileHover={{
-                    scale: isFront ? 1 : scale + 0.02, 
-                    cursor: isFront ? "grab" : "pointer"
-                  }}
+                  animate={{ y: yPos, z: zPos, rotateX: rotX, scale: scale, opacity: isVisible || isLeaving ? opacity : 0, zIndex: total - offset }}
+                  whileHover={{ scale: isFront ? 1 : scale + 0.02, cursor: isFront ? "grab" : "pointer" }}
                   transition={{ type: "spring", stiffness: 120, damping: 20 }}
                   className="absolute bottom-0 w-full max-w-4xl h-[380px] md:h-[420px] active:cursor-grabbing"
                   style={{ transformOrigin: "bottom center" }}
                 >
-                  {/* FOLDER TAB */}
-                  <div className={`absolute -top-10 left-8 px-6 py-2.5 rounded-t-xl border-t border-l border-r flex items-center gap-3 shadow-lg z-20 transition-colors ${
-                      isFront ? 'bg-orange-600 border-orange-400' : 'bg-orange-900 border-orange-700/50'
-                  }`}>
+                  <div className={`absolute -top-10 left-8 px-6 py-2.5 rounded-t-xl border-t border-l border-r flex items-center gap-3 shadow-lg z-20 transition-colors ${isFront ? 'bg-orange-600 border-orange-400' : 'bg-orange-900 border-orange-700/50'}`}>
                      <FolderOpen size={16} className={isFront ? "text-black" : "text-orange-400"} />
                      <span className={`font-black uppercase text-xs tracking-widest ${isFront ? "text-black" : "text-orange-400"}`}>{project.id}</span>
                   </div>
 
-                  {/* MAIN CARD BODY */}
-                  <div className={`absolute top-0 bottom-0 left-0 right-0 rounded-3xl border overflow-hidden flex flex-col justify-between p-8 md:p-10 transition-colors duration-500 shadow-2xl ${
-                      isLightMode ? 'bg-white/95 border-slate-300' : 'bg-[#050b14]/95 border-orange-500/30 backdrop-blur-xl'
-                  } ${isFront ? 'border-orange-500 shadow-[0_0_50px_rgba(249,115,22,0.2)]' : 'hover:border-orange-400'}`}>
-                    
+                  <div className={`absolute top-0 bottom-0 left-0 right-0 rounded-3xl border overflow-hidden flex flex-col justify-between p-8 md:p-10 transition-colors duration-500 shadow-2xl ${isLightMode ? 'bg-white/95 border-slate-300' : 'bg-[#050b14]/95 border-orange-500/30 backdrop-blur-xl'} ${isFront ? 'border-orange-500 shadow-[0_0_50px_rgba(249,115,22,0.2)]' : 'hover:border-orange-400'}`}>
                     <div className={`absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r ${project.color}`} />
-
                     <div>
                       <div className="flex justify-between items-start mb-6 mt-2">
                          <h3 className={`text-3xl md:text-5xl font-black tracking-tight uppercase ${textPrimary}`}>{project.title}</h3>
@@ -326,11 +317,9 @@ export default function ProjectMatrix() {
                            <project.icon size={24} />
                          </div>
                       </div>
-                      
                       <div className="inline-flex px-4 py-2 bg-orange-500/10 text-orange-500 font-black text-[10px] tracking-[0.2em] uppercase rounded-lg border border-orange-500/30 mb-8">
                          {project.type}
                       </div>
-                      
                       <ul className="space-y-4">
                          {project.changes.map((change, idx) => (
                            <li key={idx} className="flex items-start">
@@ -340,12 +329,10 @@ export default function ProjectMatrix() {
                          ))}
                       </ul>
                     </div>
-
                     <div className="w-full border-t border-white/10 pt-5 flex justify-between items-center text-orange-500/60 font-mono text-[10px] uppercase tracking-widest">
                        <span>DEPLOYED: {project.date}</span>
                        <span>[ SYSTEM MATRIX ]</span>
                     </div>
-
                   </div>
                 </motion.div>
               );
@@ -354,9 +341,9 @@ export default function ProjectMatrix() {
         </div>
 
         {/* ==========================================
-            SKILL 2: INCOMINGS (AUTO-SCROLL CURVED MONITOR)
+            SKILL 2: INCOMINGS (COVERFLOW ARC CAROUSEL)
             ========================================== */}
-        <div id="incomings" className={`w-full py-32 border-y overflow-hidden relative ${isLightMode ? 'bg-white border-slate-200' : 'bg-[#03060d] border-white/5'}`}>
+        <div id="incomings" className={`w-full py-32 border-y overflow-hidden relative ${isLightMode ? 'border-slate-200 bg-white/20 backdrop-blur-sm' : 'border-white/5 bg-transparent'}`}>
           <div className="max-w-7xl mx-auto px-6 lg:px-12 mb-16 relative z-10">
             <div className="flex flex-col lg:flex-row gap-12">
               <div className="lg:w-1/3">
@@ -364,39 +351,73 @@ export default function ProjectMatrix() {
                 <h2 className={`text-4xl font-black uppercase tracking-tighter leading-none ${textPrimary}`}>Future <br/> Architecture</h2>
               </div>
               <div className={`lg:w-2/3 text-lg font-medium leading-relaxed ${textSecondary}`}>
-                Auto-scrolling immersive HUD. The cards physically curve in 3D space, mirroring a panoramic gaming monitor setup.
+                Draggable 3D Coverflow array. These panels map to a spatial arc facing the viewport. Drag left or right to cycle the active prototype.
               </div>
             </div>
           </div>
 
-          <div className="w-full flex justify-center [perspective:2000px] h-[400px] mt-10">
-            <motion.div animate={{ rotateY: [0, -360] }} transition={{ ease: "linear", duration: 40, repeat: Infinity }} className="relative w-[320px] h-full [transform-style:preserve-3d]">
-              {[...INCOMINGS, ...INCOMINGS].map((item, i) => {
-                const angle = i * (360 / 10);
-                return (
-                  <motion.div 
-                    key={i} style={{ transform: `rotateY(${angle}deg) translateZ(600px)` }}
-                    whileHover={{ scale: 1.05, backgroundColor: isLightMode ? '#fff' : '#010205', borderColor: '#f97316' }}
-                    className={`absolute inset-0 p-8 flex flex-col justify-between border-2 rounded-3xl transition-colors duration-500 ${isLightMode ? 'bg-slate-50 border-slate-200 shadow-xl' : 'bg-[#050b14]/80 backdrop-blur-md border-white/10 shadow-[0_0_30px_rgba(0,0,0,0.8)]'}`}
+          <div 
+            className="relative w-full flex justify-center items-center h-[500px] [perspective:1500px] mt-10"
+            onMouseEnter={() => setIsHoveringIncomings(true)}
+            onMouseLeave={() => setIsHoveringIncomings(false)}
+          >
+            {INCOMINGS.map((item, i) => {
+               const total = INCOMINGS.length;
+               let offset = (i - incomingIndex) % total;
+               if (offset > Math.floor(total / 2)) offset -= total;
+               if (offset < -Math.floor(total / 2)) offset += total;
+
+               const absOffset = Math.abs(offset);
+               const isCenter = offset === 0;
+
+               const xPos = offset * 280; 
+               const zPos = isCenter ? 50 : absOffset * -200; 
+               const rotY = isCenter ? 0 : offset > 0 ? -35 : 35;
+               const scale = isCenter ? 1.05 : 1 - (absOffset * 0.1);
+               const opacity = isCenter ? 1 : Math.max(0, 1 - (absOffset * 0.4));
+               const zIndex = 100 - absOffset;
+
+               return (
+                  <motion.div
+                     key={i}
+                     onClick={() => setIncomingIndex(i)}
+                     drag="x"
+                     dragConstraints={{ left: 0, right: 0 }}
+                     dragElastic={0.2}
+                     onDragEnd={(e, { offset: dragOffset, velocity }) => {
+                       if (dragOffset.x < -50 || velocity.x < -500) {
+                         setIncomingIndex((prev) => (prev + 1 + total) % total);
+                       } else if (dragOffset.x > 50 || velocity.x > 500) {
+                         setIncomingIndex((prev) => (prev - 1 + total) % total);
+                       }
+                     }}
+                     animate={{ x: xPos, z: zPos, rotateY: rotY, scale: scale, opacity: opacity }}
+                     whileHover={{ scale: isCenter ? 1.05 : scale + 0.05, cursor: isCenter ? "grab" : "pointer" }}
+                     transition={{ type: "spring", stiffness: 120, damping: 20 }}
+                     style={{ zIndex, transformOrigin: 'center center' }}
+                     className={`absolute w-[320px] h-[420px] p-8 flex flex-col justify-between border-2 rounded-3xl active:cursor-grabbing transition-colors duration-500 ${
+                        isLightMode 
+                          ? 'bg-white/90 shadow-xl border-slate-200 backdrop-blur-md' 
+                          : 'bg-[#050b14]/90 backdrop-blur-xl border-white/10 shadow-[0_0_30px_rgba(0,0,0,0.5)]'
+                     } ${isCenter ? 'border-orange-500 shadow-[0_0_40px_rgba(249,115,22,0.3)]' : 'hover:border-orange-400/50'}`}
                   >
-                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-6 bg-orange-500/10 text-orange-500 border border-orange-500/30`}>
-                      <item.icon size={28} />
-                    </div>
-                    <div className="relative z-10">
-                      <h4 className={`text-2xl font-black tracking-tight mb-3 leading-snug ${textPrimary}`}>{item.title}</h4>
-                      <p className={`text-sm font-mono font-bold uppercase ${textSecondary}`}>{item.desc}</p>
-                    </div>
+                     <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-6 transition-colors duration-500 ${isCenter ? 'bg-orange-500 text-black shadow-[0_0_20px_rgba(249,115,22,0.6)]' : 'bg-white/5 text-orange-400'}`}>
+                        <item.icon size={32} />
+                     </div>
+                     <div className="relative z-10">
+                        <h4 className={`text-3xl font-black tracking-tight mb-4 leading-snug ${textPrimary}`}>{item.title}</h4>
+                        <p className={`text-xs font-mono font-bold uppercase ${textSecondary}`}>{item.desc}</p>
+                     </div>
                   </motion.div>
-                );
-              })}
-            </motion.div>
+               )
+            })}
           </div>
         </div>
 
         {/* ==========================================
             SKILL 3: ALL PROJECTS FILTER & AUTO-MARQUEE
             ========================================== */}
-        <div id="all" className={`w-full py-24 overflow-hidden flex flex-col bg-black border-b border-white/10 relative z-20`}>
+        <div id="all" className={`w-full py-24 overflow-hidden flex flex-col border-b relative z-20 ${isLightMode ? 'border-slate-200 bg-slate-100/50 backdrop-blur-sm' : 'border-white/10 bg-black/40 backdrop-blur-sm'}`}>
           <div className="max-w-7xl mx-auto w-full px-6 lg:px-12 mb-12 flex justify-end z-30">
             <div className="relative">
               <button onClick={() => setIsFilterOpen(!isFilterOpen)} aria-label="Toggle Filter" className={`flex items-center space-x-4 px-6 py-3 rounded-xl border font-black uppercase tracking-widest text-xs transition-colors ${isFilterOpen ? 'bg-orange-500 text-black border-orange-500' : 'bg-[#050b14] text-white border-white/20 hover:border-orange-500/50'}`}>
@@ -420,7 +441,7 @@ export default function ProjectMatrix() {
           <div className="flex w-fit whitespace-nowrap mb-6 group cursor-none">
             <motion.div animate={{ x: ["0%", "-50%"] }} transition={{ ease: "linear", duration: 30, repeat: Infinity }} className="flex gap-4 px-2">
               {[...ALL_PROJECTS, ...ALL_PROJECTS].map((proj, idx) => (
-                 <motion.div key={idx} whileHover={{ scale: 1.05, backgroundColor: '#f97316', borderColor: '#f97316' }} className="inline-flex items-center px-8 py-6 mx-2 border border-white/10 rounded-2xl bg-[#03060d] transition-colors group-hover:[&:not(:hover)]:opacity-50">
+                 <motion.div key={idx} whileHover={{ scale: 1.05, backgroundColor: '#f97316', borderColor: '#f97316' }} className="inline-flex items-center px-8 py-6 mx-2 border border-white/10 rounded-2xl bg-[#03060d]/80 backdrop-blur-md transition-colors group-hover:[&:not(:hover)]:opacity-50">
                    <Box size={20} className="mr-4 text-white" />
                    <span className="text-xl font-black uppercase text-white">{proj}</span>
                  </motion.div>
@@ -453,7 +474,7 @@ export default function ProjectMatrix() {
           }}
           onMouseLeave={() => holoMouseX.set(0)}
         >
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(249,115,22,0.1)_0%,transparent_70%)] pointer-events-none" />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(249,115,22,0.15)_0%,transparent_60%)] pointer-events-none" />
 
           <div className="relative bg-black w-72 h-80 flex flex-col items-center justify-center p-8 shadow-2xl group z-20">
             <div className="absolute -top-2 -left-2 w-4 h-4 border-t-4 border-l-4 border-cyan-400 transition-transform group-hover:-translate-x-2 group-hover:-translate-y-2" />
@@ -489,7 +510,7 @@ export default function ProjectMatrix() {
         {/* ==========================================
             SKILL 5: AUTO-EXPANDING FAQ 
             ========================================== */}
-        <div id="faq" className={`w-full py-32 border-t ${isLightMode ? 'border-slate-200 bg-slate-50' : 'border-white/10 bg-[#010205]'}`}>
+        <div id="faq" className={`w-full py-32 border-t relative z-10 ${isLightMode ? 'border-slate-200 bg-white/40 backdrop-blur-sm' : 'border-white/10 bg-transparent'}`}>
           <div className="max-w-5xl mx-auto px-6 lg:px-12 flex flex-col lg:flex-row gap-16">
             <div className="lg:w-1/3">
               <h2 className={`text-4xl md:text-6xl font-black uppercase tracking-tighter leading-none mb-6 ${textPrimary}`}>System <br/> Queries.</h2>
@@ -522,7 +543,7 @@ export default function ProjectMatrix() {
         {/* ==========================================
             SKILL 6: ADVANCED SCROLLABLE/DRAGGABLE DIAL
             ========================================== */}
-        <div id="nav-dial" className={`w-full py-64 flex flex-col items-center justify-center border-t relative overflow-hidden ${isLightMode ? 'bg-white border-slate-200' : 'bg-[#03060d] border-white/5'}`}>
+        <div id="nav-dial" className={`w-full py-64 flex flex-col items-center justify-center border-t relative overflow-hidden z-10 ${isLightMode ? 'border-slate-200 bg-white/40 backdrop-blur-md' : 'border-white/5 bg-transparent'}`}>
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(249,115,22,0.1)_0%,transparent_60%)] pointer-events-none" />
 
           <motion.div
