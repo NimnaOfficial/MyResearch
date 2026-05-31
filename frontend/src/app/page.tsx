@@ -13,7 +13,6 @@ import Link from 'next/link';
 
 import BottomNav from '@/components/BottomNav';
 import CustomCursor from '@/components/CustomCursor';
-
 import NextGenButton from '@/components/NextGenButton';
 import ThemeToggle from '@/components/ThemeToggle';
 import Footer from '@/components/Footer';
@@ -225,22 +224,17 @@ export default function WelcomePage() {
   const [isLightMode, setIsLightMode] = useState(false);
   const lastScrollY = useRef(0);
 
-  // 櫨 SESSION MEMORY BOOT LOGIC 櫨
+  // 🔹 SESSION MEMORY BOOT LOGIC
   const [isSystemBooting, setIsSystemBooting] = useState(false); 
   
   useEffect(() => {
-    // Check if the system has already booted during this browser session
     const hasBooted = sessionStorage.getItem('csxpedia_booted');
-    
     if (!hasBooted) {
-      setIsSystemBooting(true); // Trigger boot sequence
-      
-      // Failsafe: Forcibly unlock the screen after 5.5 seconds if BootSequence gets stuck
+      setIsSystemBooting(true); 
       const failsafe = setTimeout(() => {
         setIsSystemBooting(false);
         sessionStorage.setItem('csxpedia_booted', 'true');
       }, 5500); 
-      
       return () => clearTimeout(failsafe);
     }
   }, []);
@@ -260,10 +254,14 @@ export default function WelcomePage() {
   const [timeState, setTimeState] = useState({ time: "", date: "" });
   const [isProfileHovered, setIsProfileHovered] = useState(false);
 
+  // 🚀 LIVE BACKEND STATES 🚀
+  const [secretCodeInput, setSecretCodeInput] = useState('');
+  const [generatedCipher, setGeneratedCipher] = useState('');
+  const [authError, setAuthError] = useState('');
+
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const storedRole = localStorage.getItem('userRole');
-      
       if (storedRole) {
         setCurrentUserRole(storedRole as 'guest' | 'user' | 'admin');
         setIsAuthenticated(true);
@@ -282,7 +280,6 @@ export default function WelcomePage() {
       }
     }
     
-    // Profile Clock
     const updateClock = () => {
       const now = new Date();
       setTimeState({ time: now.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' }), date: now.toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) });
@@ -292,8 +289,6 @@ export default function WelcomePage() {
     return () => clearInterval(timer);
   }, []);
 
-  // 4-Phase Verification Machine
-  const [isResending, setIsResending] = useState(false);
   const [verificationPhase, setVerificationPhase] = useState<'locked' | 'verifying' | 'code_generated' | 'timeout'>('locked');
   const [timeLeft, setTimeLeft] = useState(900); 
 
@@ -309,16 +304,66 @@ export default function WelcomePage() {
   const minutes = Math.floor(timeLeft / 60).toString().padStart(2, '0');
   const seconds = (timeLeft % 60).toString().padStart(2, '0');
 
-  const handleResend = () => {
-    setIsResending(true);
-    setTimeout(() => setIsResending(false), 2000);
+  // ==========================================
+  // LIVE POSTGRES API CONNECTIONS
+  // ==========================================
+  
+  const handleLoginSubmit = async () => {
+    setAuthError('');
+    setVerificationPhase('verifying');
+
+    try {
+      const response = await fetch('http://localhost:5000/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ secretCode: secretCodeInput })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        localStorage.setItem('matrix_token', data.token);
+        setIsVerified(true);
+        setVerificationPhase('locked'); 
+        setCurrentUserRole('user');
+        localStorage.setItem('userRole', 'user');
+      } else {
+        setAuthError(data.message || 'Invalid Cipher Code');
+        setVerificationPhase('locked');
+      }
+    } catch (err) {
+      setAuthError('Server Connection Failed');
+      setVerificationPhase('locked');
+    }
   };
 
-  const handleSimulateVerification = () => {
+  const handleRegisterIdentity = async () => {
+    setAuthError('');
     setVerificationPhase('verifying');
-    setTimeout(() => {
-      setVerificationPhase('code_generated'); 
-    }, 3000);
+
+    try {
+      // Generate automated identity parameters for demo register
+      const generatedUsername = "operator_" + Math.floor(Math.random() * 10000);
+      
+      const response = await fetch('http://localhost:5000/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: generatedUsername, password: "secure_password_123" })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setGeneratedCipher(data.data.secretCode); 
+        setVerificationPhase('code_generated');
+      } else {
+        setAuthError(data.message || 'Registration Failed');
+        setVerificationPhase('locked');
+      }
+    } catch (err) {
+      setAuthError('Server Connection Failed');
+      setVerificationPhase('locked');
+    }
   };
 
   const handleAcknowledgeCode = () => {
@@ -333,10 +378,12 @@ export default function WelcomePage() {
   const handleLogout = () => {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('userRole');
+      localStorage.removeItem('matrix_token');
     }
     setCurrentUserRole('guest');
     setIsAuthenticated(false);
     setIsVerified(false);
+    setSecretCodeInput('');
   };
 
   const handleTimeoutRouting = () => {
@@ -516,22 +563,35 @@ export default function WelcomePage() {
                   </div>
                   <h2 className="text-2xl font-black text-white tracking-widest uppercase mb-2">Sector Locked</h2>
                   <p className="text-slate-400 text-sm leading-relaxed mb-6 max-w-sm">
-                    Awaiting secure remote token via email. This gateway actively listens for external signal handshakes.
+                    Enter your 10-character cryptographic token to proceed.
                   </p>
-                  <div className="flex items-center space-x-2 mb-8">
-                    <span className="relative flex h-2 w-2">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#a855f7] opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-[#9333ea]"></span>
-                    </span>
-                    <span className="text-[10px] text-[#a855f7] uppercase tracking-widest font-mono">Real-Time Polling Active</span>
+                  
+                  {/* LIVE INPUT FOR BACKEND LOGIN */}
+                  <div className="w-full mb-2 relative">
+                     <input 
+                        type="text" 
+                        value={secretCodeInput} 
+                        onChange={(e) => setSecretCodeInput(e.target.value.toUpperCase())}
+                        placeholder="ENTER CIPHER CODE" 
+                        maxLength={10}
+                        className="w-full bg-[#010205]/80 border border-[#a855f7]/40 text-white px-4 py-4 rounded-xl font-mono text-center tracking-[0.2em] focus:outline-none focus:border-[#a855f7] transition-all shadow-inner placeholder:text-slate-600"
+                     />
+                     {authError && <p className="text-red-500 text-[10px] uppercase mt-2 absolute -bottom-5 w-full text-center tracking-widest font-bold animate-pulse">{authError}</p>}
                   </div>
-                  <div className="w-full flex flex-col space-y-4">
-                    <button onClick={handleSimulateVerification} className="w-full flex items-center justify-center py-4 bg-[#a855f7] hover:bg-[#9333ea] text-white font-black uppercase tracking-[0.2em] text-xs rounded-xl transition-all shadow-[0_0_20px_rgba(168,85,247,0.3)] hover:shadow-[0_0_30px_rgba(168,85,247,0.5)]">
-                      <Fingerprint size={16} className="mr-2" /> [Dev] Simulate Remote Signal
+
+                  <div className="w-full flex flex-col space-y-3 mt-8">
+                    <button 
+                      onClick={handleLoginSubmit} 
+                      disabled={secretCodeInput.length < 10} 
+                      className="w-full flex items-center justify-center py-4 bg-[#a855f7] hover:bg-[#9333ea] text-white font-black uppercase tracking-[0.2em] text-xs rounded-xl transition-all shadow-[0_0_20px_rgba(168,85,247,0.3)] hover:shadow-[0_0_30px_rgba(168,85,247,0.5)] disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <Lock size={16} className="mr-2" /> Execute Decryption (Login)
                     </button>
-                    <button onClick={handleResend} disabled={isResending} className="w-full flex items-center justify-center py-4 bg-transparent border border-slate-700 hover:border-cyan-500/50 text-slate-400 hover:text-cyan-400 font-bold uppercase tracking-[0.1em] text-xs rounded-xl transition-colors disabled:opacity-50">
-                      {isResending ? <RefreshCw size={14} className="animate-spin mr-2" /> : <Lock size={14} className="mr-2" />}
-                      {isResending ? 'Transmitting...' : 'Resend Uplink Code'}
+                    <button 
+                      onClick={handleRegisterIdentity} 
+                      className="w-full flex items-center justify-center py-4 bg-transparent border border-slate-700 hover:border-cyan-500/50 text-slate-400 hover:text-cyan-400 font-bold uppercase tracking-[0.1em] text-xs rounded-xl transition-colors"
+                    >
+                      <Fingerprint size={14} className="mr-2" /> Request New Identity (Register)
                     </button>
                   </div>
                 </motion.div>
@@ -555,7 +615,7 @@ export default function WelcomePage() {
                   <p className="text-slate-400 text-sm mb-6 max-w-sm">Your identity is secured. Below is your permanent Secret Member Code. Save it immediately.</p>
                   <div className="px-8 py-4 bg-[#a855f7]/10 border border-[#a855f7]/30 rounded-xl mb-8 shadow-[0_0_30px_rgba(168,85,247,0.2)] w-full">
                     <span className="text-3xl sm:text-4xl font-mono tracking-[0.3em] text-[#a855f7] font-black drop-shadow-[0_0_10px_rgba(168,85,247,0.5)]">
-                      NIM7892XF
+                      {generatedCipher}
                     </span>
                   </div>
                   <button onClick={handleAcknowledgeCode} className="w-full flex items-center justify-center py-4 bg-[#a855f7] hover:bg-[#9333ea] text-white font-black uppercase tracking-[0.2em] text-xs rounded-xl transition-all shadow-[0_0_20px_rgba(168,85,247,0.3)] hover:shadow-[0_0_30px_rgba(168,85,247,0.5)]">
