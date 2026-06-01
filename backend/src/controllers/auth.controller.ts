@@ -9,12 +9,13 @@ import { sendSecretCodeEmail } from '../utils/sendEmail';
 // ==========================================
 // INITIALIZE IDENTITY (REGISTER)
 // ==========================================
-
 export const registerUser = catchAsync(async (req: Request, res: Response) => {
-  // ADD THIS RADAR PING:
   console.log("[RADAR] Incoming registration request received:", req.body.email);
+  
+  // 🔥 DEV RADAR: This will print EXACTLY what your frontend sends!
+  console.log("[PAYLOAD CHECK]:", req.body);
 
-  const { password, email } = req.body;
+  const { password, email, fullName, age, phone } = req.body;
 
   if (!password || !email) {
     return res.status(400).json({ message: 'Incomplete payload. Password and Email required.' });
@@ -26,26 +27,23 @@ export const registerUser = catchAsync(async (req: Request, res: Response) => {
   const salt = await bcrypt.genSalt(12);
   const passwordHash = await bcrypt.hash(password, salt);
 
-  // 1. Create the unverified user
   const newUser = await prisma.user.create({
     data: {
-      id: generatedId,
       email,
-      username: generatedSecretCode, 
-      passwordHash,
-      isVerified: false, // Explicitly set to false initially
-    },
+      passwordHash: passwordHash,
+      username: generatedSecretCode,         
+      fullName: fullName || null,
+      age: age || null,
+      phone: phone || null
+    }
   });
 
-  // 2. Generate a secure, short-lived Verification Token (expires in 1 hour)
   const jwtSecret = process.env.JWT_SECRET || 'super_secret_matrix_key_override_in_production';
   const verifyToken = jwt.sign({ id: newUser.id }, jwtSecret, { expiresIn: '1h' });
 
-  // 3. Create the frontend URL they will click
   const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
   const verifyUrl = `${frontendUrl}/verify?token=${verifyToken}`;
 
-  // 4. Transmit the email
   try {
     await sendSecretCodeEmail(email, generatedSecretCode, verifyUrl);
   } catch (error) {
@@ -65,15 +63,12 @@ export const registerUser = catchAsync(async (req: Request, res: Response) => {
 export const verifyEmail = catchAsync(async (req: Request, res: Response) => {
   const { token } = req.body;
 
-  if (!token) {
-    return res.status(400).json({ message: 'Missing verification token.' });
-  }
+  if (!token) return res.status(400).json({ message: 'Missing verification token.' });
 
   try {
     const jwtSecret = process.env.JWT_SECRET || 'super_secret_matrix_key_override_in_production';
     const decoded = jwt.verify(token, jwtSecret) as { id: string };
 
-    // Update the database to mark them as verified
     await prisma.user.update({
       where: { id: decoded.id },
       data: { isVerified: true },
@@ -100,7 +95,6 @@ export const loginUser = catchAsync(async (req: Request, res: Response) => {
 
   if (!user) return res.status(401).json({ message: 'Access Denied: Invalid cipher code.' });
   
-  // NEW: Block login if they haven't verified their email yet!
   if (!user.isVerified) {
     return res.status(403).json({ message: 'Access Denied: Email has not been verified.' });
   }
@@ -123,30 +117,72 @@ export const loginUser = catchAsync(async (req: Request, res: Response) => {
 // FETCH PERSONAL IDENTITY (/me)
 // ==========================================
 export const getMe = catchAsync(async (req: Request, res: Response) => {
-  const userId = req.user?.id; // Safely extracted by the requireAuth middleware!
+  const userId = req.user?.id; 
 
-  if (!userId) {
-    return res.status(401).json({ message: 'Unauthorized: No active session.' });
-  }
+  if (!userId) return res.status(401).json({ message: 'Unauthorized: No active session.' });
 
-  // Fetch the user, but NEVER return the passwordHash!
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: {
       id: true,
-      username: true, // This is their Secret Code
+      username: true,
       email: true,
+      // 🔥 THE FIX: WE MUST EXTRACT THESE FOR THE SETTINGS PAGE!
+      fullName: true,
+      age: true,
+      phone: true,
       isVerified: true,
       createdAt: true,
     }
   });
 
-  if (!user) {
-    return res.status(404).json({ message: 'Identity not found in the matrix.' });
+  if (!user) return res.status(404).json({ message: 'Identity not found in the matrix.' });
+
+  res.status(200).json({ status: 'success', data: user });
+});
+
+// ==========================================
+// UPDATE PERSONAL IDENTITY (/update)
+// ==========================================
+export const updateMe = catchAsync(async (req: Request, res: Response) => {
+  const userId = req.user?.id;
+
+  if (!userId) return res.status(401).json({ message: 'Unauthorized: No active session.' });
+
+  const { email, password, fullName, age, phone } = req.body;
+  const dataToUpdate: any = { fullName, age, phone };
+
+  if (password && password.trim() !== "") {
+    const bcrypt = require('bcrypt');
+    dataToUpdate.passwordHash = await bcrypt.hash(password, 12);
   }
 
-  res.status(200).json({
-    status: 'success',
-    data: user,
+  const updatedUser = await prisma.user.update({
+    where: { id: userId },
+    data: dataToUpdate,
+    select: { id: true, fullName: true, age: true, phone: true, username: true, email: true } 
   });
+
+  res.status(200).json({ status: 'success', data: updatedUser });
+});
+
+// ==========================================
+// UPLOAD PROFILE PICTURE (/upload-pic)
+// ==========================================
+export const uploadProfilePic = catchAsync(async (req: Request, res: Response) => {
+  const userId = req.user?.id;
+
+  if (!userId) return res.status(401).json({ message: 'Unauthorized' });
+  if (!req.file) return res.status(400).json({ message: 'No image provided' });
+
+  // Generate the public URL path for the frontend
+  const imageUrl = `/uploads/profiles/${req.file.filename}`;
+
+  const updatedUser = await prisma.user.update({
+    where: { id: userId },
+    data: { profilePic: imageUrl },
+    select: { id: true, profilePic: true }
+  });
+
+  res.status(200).json({ status: 'success', data: updatedUser });
 });

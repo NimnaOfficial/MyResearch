@@ -140,11 +140,18 @@ export default function AuthGateway() {
     }
 
     try {
-      const response = await fetch('http://127.0.0.1:5000/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: regData.email, password: regData.backupPass })
-      });
+      const response = await fetch('http://localhost:5000/api/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        email: regData.email, 
+        password: regData.backupPass,
+        // 🔥 THE FIX: Map the frontend 'name' to the backend 'fullName'
+        fullName: regData.name, 
+        age: regData.age,           
+        phone: regData.phone        
+      })
+    });
       const contentType = response.headers.get("content-type");
       if (!contentType || !contentType.includes("application/json")) {
         throw new Error(`CRITICAL: Server returned HTML instead of JSON. Status: ${response.status}. Check your fetch URL!`);

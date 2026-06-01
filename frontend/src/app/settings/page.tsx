@@ -1,13 +1,13 @@
 "use client";
 import { useState, useRef, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Float, MeshDistortMaterial, OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 import { 
-  User, Shield, Laptop, Smartphone, 
-  LogOut, AlertTriangle, CheckCircle2, Lock, Camera, Send, ChevronRight,
-  Mail, Phone, KeyRound, Type, Bookmark, ArchiveRestore, FileText, ScanFace
+  User, Shield, Laptop, LogOut, AlertTriangle, CheckCircle2, Lock, Camera, Send, ChevronRight,
+  Mail, KeyRound, Bookmark, ArchiveRestore, FileText, ScanFace, Loader2, Type, Hash, Phone
 } from 'lucide-react';
 
 import CustomCursor from '@/components/CustomCursor';
@@ -20,13 +20,7 @@ import Footer from '@/components/Footer';
 // ==========================================
 function ActiveTopography({ isLight }: { isLight: boolean }) {
   const meshRef = useRef<THREE.Mesh>(null);
-
-  useFrame((state) => {
-    if (meshRef.current) {
-      meshRef.current.rotation.z += 0.001;
-    }
-  });
-
+  useFrame((state) => { if (meshRef.current) meshRef.current.rotation.z += 0.001; });
   return (
     <group position={[0, -4, -5]} rotation={[-Math.PI / 2.5, 0, 0]}>
       <ambientLight intensity={isLight ? 1 : 0.5} />
@@ -34,16 +28,9 @@ function ActiveTopography({ isLight }: { isLight: boolean }) {
         <mesh ref={meshRef}>
           <planeGeometry args={[70, 70, 150, 150]} />
           <MeshDistortMaterial 
-            color={isLight ? "#0066ff" : "#001133"} 
-            emissive={isLight ? "#00aaff" : "#00f0ff"}
-            emissiveIntensity={isLight ? 0.4 : 1.5} 
-            wireframe={true} 
-            distort={0.4} 
-            speed={2} 
-            transparent
-            opacity={isLight ? 0.5 : 0.6}
-            roughness={0.2}
-            metalness={0.8}
+            color={isLight ? "#0066ff" : "#001133"} emissive={isLight ? "#00aaff" : "#00f0ff"}
+            emissiveIntensity={isLight ? 0.4 : 1.5} wireframe={true} distort={0.4} 
+            speed={2} transparent opacity={isLight ? 0.5 : 0.6} roughness={0.2} metalness={0.8}
           />
         </mesh>
       </Float>
@@ -51,97 +38,136 @@ function ActiveTopography({ isLight }: { isLight: boolean }) {
   );
 }
 
-// ==========================================
-// ADVANCED ANIMATION VARIANTS
-// ==========================================
-const staggerContainer = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: { staggerChildren: 0.1, delayChildren: 0.1 }
-  },
-  exit: {
-    opacity: 0,
-    transition: { staggerChildren: 0.05, staggerDirection: -1 }
-  }
-};
+const staggerContainer = { hidden: { opacity: 0 }, visible: { opacity: 1, transition: { staggerChildren: 0.1, delayChildren: 0.1 } }, exit: { opacity: 0, transition: { staggerChildren: 0.05, staggerDirection: -1 } } };
+const springItem = { hidden: { opacity: 0, y: 30, scale: 0.95, filter: 'blur(10px)' }, visible: { opacity: 1, y: 0, scale: 1, filter: 'blur(0px)', transition: { type: "spring" as const, stiffness: 120, damping: 15 } }, exit: { opacity: 0, y: -20, scale: 0.95, filter: 'blur(10px)', transition: { duration: 0.2 } } };
 
-const springItem = {
-  hidden: { opacity: 0, y: 30, scale: 0.95, filter: 'blur(10px)' },
-  visible: { 
-    opacity: 1, y: 0, scale: 1, filter: 'blur(0px)',
-    transition: { type: "spring" as const, stiffness: 120, damping: 15 } 
-  },
-  exit: { opacity: 0, y: -20, scale: 0.95, filter: 'blur(10px)', transition: { duration: 0.2 } }
-};
-
-// ==========================================
-// SETTINGS DATA ARCHITECTURE
-// ==========================================
 const SETTINGS_TABS = [
   { id: 'account', label: 'Account Data', icon: User, desc: 'Profile & Registration' },
   { id: 'hardware', label: 'Linked Nodes', icon: Laptop, desc: 'Hardware & Devices' },
-  { id: 'saved', label: 'Saved Vault', icon: Bookmark, desc: 'Posts & Releases' },
+  { id: 'saved', label: 'Authored Vault', icon: Bookmark, desc: 'Your Contributions' },
   { id: 'security', label: 'Security', icon: Shield, desc: 'Admin & Encryption' },
 ];
 
 export default function AdvancedSettingsMatrix() {
+  const router = useRouter();
   const [isLightMode, setIsLightMode] = useState(false);
   const [activeTab, setActiveTab] = useState('account');
   
-  // High-Security States
   const [isCodeRevealed, setIsCodeRevealed] = useState(false);
   const [isWindowFocused, setIsWindowFocused] = useState(true);
 
+  const [userData, setUserData] = useState<any>(null);
+  const [userVault, setUserVault] = useState<any[]>([]);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+
+  // Form State mapping exactly to Registration UI
   const [formData, setFormData] = useState({
-    fullName: "Nimna",
-    username: "Nima",
-    email: "operator@nima.dev",
-    phone: "+94 77 XXX XXXX",
-    password: "••••••••••••",
-    confirmPassword: "••••••••••••"
+    fullName: "",
+    age: "",
+    phone: "",
+    password: "",
+    confirmPassword: ""
   });
 
   const updateForm = (field: keyof typeof formData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const [requestStatus, setRequestStatus] = useState<'idle' | 'sending' | 'sent'>('idle');
+  useEffect(() => {
+    const fetchMatrixData = async () => {
+      const token = localStorage.getItem('matrix_token');
+      if (!token) { router.push('/auth'); return; }
 
+      try {
+        const userRes = await fetch('http://localhost:5000/api/auth/me', { headers: { 'Authorization': `Bearer ${token}` } });
+        if (userRes.ok) {
+          const { data } = await userRes.json();
+          setUserData(data);
+          
+          // Hydrate with DB values
+          setFormData(prev => ({ 
+            ...prev, 
+            fullName: data.fullName || "",
+            age: data.age || "",
+            phone: data.phone || ""
+          }));
+          
+          const postsRes = await fetch('http://localhost:5000/api/posts');
+          if (postsRes.ok) {
+            const postsJson = await postsRes.json();
+            const myPosts = (postsJson.data || []).filter((p: any) => p.authorId === data.id);
+            setUserVault(myPosts);
+          }
+        } else {
+          router.push('/auth');
+        }
+      } catch (err) { console.error(err); }
+    };
+    fetchMatrixData();
+  }, [router]);
+
+  const handleSaveAccount = async () => {
+    if (formData.password && formData.password !== formData.confirmPassword) {
+      alert("Encryption Mismatch: Passwords do not match.");
+      return;
+    }
+
+    setIsSaving(true);
+    const token = localStorage.getItem('matrix_token');
+
+    try {
+      const res = await fetch('http://localhost:5000/api/auth/update', {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          fullName: formData.fullName,
+          age: formData.age,
+          phone: formData.phone,
+          password: formData.password
+        })
+      });
+
+      if (res.ok) {
+        const result = await res.json();
+        setUserData(result.data);
+        setSaveSuccess(true);
+        setTimeout(() => setSaveSuccess(false), 3000);
+        setFormData(prev => ({ ...prev, password: "", confirmPassword: "" }));
+      } else {
+        alert("Transmission Failed. Data rejected by server.");
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('matrix_token');
+    localStorage.removeItem('userRole');
+    router.push('/auth');
+  };
+
+  const [requestStatus, setRequestStatus] = useState<'idle' | 'sending' | 'sent'>('idle');
   const handleAdminRequest = () => {
     setRequestStatus('sending');
     setTimeout(() => setRequestStatus('sent'), 2500);
   };
 
-  // ==========================================
-  // ANTI-SCREENSHOT EVENT LISTENERS
-  // ==========================================
+  // Anti-Screenshot Logic
   useEffect(() => {
-    const handleBlur = () => {
-      // The exact moment Snipping Tool or another window opens, kill the visibility
-      setIsWindowFocused(false);
-      setIsCodeRevealed(false);
-    };
-
-    const handleFocus = () => {
-      setIsWindowFocused(true);
-    };
-
+    const handleBlur = () => { setIsWindowFocused(false); setIsCodeRevealed(false); };
+    const handleFocus = () => { setIsWindowFocused(true); };
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Intercept PrintScreen, Windows Key, Command Key, and Shift combos
-      if (
-        e.key === 'PrintScreen' || 
-        e.metaKey || 
-        e.key === 'Meta' || 
-        (e.shiftKey && (e.metaKey || e.ctrlKey))
-      ) {
-        setIsCodeRevealed(false);
-      }
+      if (e.key === 'PrintScreen' || e.metaKey || e.key === 'Meta' || (e.shiftKey && (e.metaKey || e.ctrlKey))) { setIsCodeRevealed(false); }
     };
-
     const handleCopy = (e: ClipboardEvent) => {
       e.preventDefault();
-      // Inject dummy data into clipboard if they try to inspect and copy
       e.clipboardData?.setData('text/plain', '[ACCESS DENIED - ENCRYPTED PAYLOAD]');
     };
 
@@ -164,42 +190,19 @@ export default function AdvancedSettingsMatrix() {
   const textPrimary = isLightMode ? "text-slate-900" : "text-white";
   const textSecondary = isLightMode ? "text-slate-500" : "text-[#4d88ff]";
 
+  // Real Database UI Mapping
+  const displayName = userData?.fullName ? userData.fullName.toUpperCase() : "NIMA OPERATOR";
+  const secureCode = userData ? userData.username : "••••••••";
+
   return (
     <main className={`relative min-h-screen font-sans cursor-none overflow-x-hidden selection:bg-[#00f0ff]/30 flex flex-col transition-colors duration-1000 ${bgCore}`}>
       <CustomCursor />
-      
-      <style dangerouslySetInnerHTML={{__html: `
-        @keyframes textAnimation {
-          0% { background-position: 0 0; }
-          100% { background-position: 2000px 0; }
-        }
-        .video-text-animation {
-          color: rgba(225, 225, 255, 0.05);
-          background-image: url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop');
-          background-repeat: repeat-x;
-          background-clip: text;
-          -webkit-background-clip: text;
-          background-size: cover;
-          animation: textAnimation 25s linear infinite;
-        }
-        /* Strict CSS Blocks for selection and printing */
-        .secure-code-block {
-          user-select: none !important;
-          -webkit-user-select: none !important;
-          -moz-user-select: none !important;
-          pointer-events: none;
-        }
-        @media print {
-          .secure-code-container { display: none !important; }
-        }
-      `}} />
+      <style dangerouslySetInnerHTML={{__html: `@keyframes textAnimation { 0% { background-position: 0 0; } 100% { background-position: 2000px 0; } } .video-text-animation { color: rgba(225, 225, 255, 0.05); background-image: url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop'); background-repeat: repeat-x; background-clip: text; -webkit-background-clip: text; background-size: cover; animation: textAnimation 25s linear infinite; } .secure-code-block { user-select: none !important; -webkit-user-select: none !important; -moz-user-select: none !important; pointer-events: none; } @media print { .secure-code-container { display: none !important; } }`}} />
 
-      {/* THEME TOGGLE */}
       <div className="relative z-[100] pointer-events-auto">
         <ThemeToggle isLight={isLightMode} toggleTheme={() => setIsLightMode(!isLightMode)} />
       </div>
 
-      {/* 3D INTERACTIVE BACKGROUND */}
       <div className="fixed inset-0 z-0 overflow-hidden cursor-move">
         <Canvas camera={{ position: [0, 2, 8], fov: 60 }}>
           <OrbitControls enableZoom={false} enablePan={true} autoRotate={true} autoRotateSpeed={0.5} maxPolarAngle={Math.PI / 1.5} minPolarAngle={Math.PI / 4} />
@@ -215,9 +218,7 @@ export default function AdvancedSettingsMatrix() {
             <h1 className={`text-5xl md:text-7xl font-black uppercase tracking-tighter mb-2 ${isLightMode ? 'text-slate-900' : 'video-text-animation drop-shadow-[0_0_20px_rgba(0,240,255,0.3)]'}`}>
               Settings <span className={isLightMode ? 'text-blue-600' : ''}>Matrix</span>
             </h1>
-            <p className={`font-mono text-xs md:text-sm tracking-widest uppercase ${textSecondary}`}>
-              Manage Account Registration & Preferences
-            </p>
+            <p className={`font-mono text-xs md:text-sm tracking-widest uppercase ${textSecondary}`}>Manage Account Registration & Preferences</p>
           </div>
           <div className="hidden md:flex items-center space-x-3 px-5 py-2.5 rounded-full border font-mono text-[10px] uppercase tracking-widest backdrop-blur-md shadow-[0_0_20px_rgba(0,240,255,0.2)] bg-[#01030b]/60 border-[#00f0ff]/40 text-[#00f0ff]">
             <div className="w-2 h-2 rounded-full bg-[#00f0ff] animate-pulse" />
@@ -227,25 +228,16 @@ export default function AdvancedSettingsMatrix() {
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 w-full max-w-7xl items-start pointer-events-none">
           
-          {/* LEFT: NAVIGATION DOCK */}
-          <motion.div 
-            initial={{ opacity: 0, x: -50 }} animate={{ opacity: 1, x: 0 }} transition={{ type: "spring", stiffness: 90, damping: 20 }}
-            className={`lg:col-span-4 xl:col-span-3 rounded-[2.5rem] backdrop-blur-2xl p-6 border pointer-events-auto ${panelGlass}`}
-          >
+          <motion.div initial={{ opacity: 0, x: -50 }} animate={{ opacity: 1, x: 0 }} transition={{ type: "spring", stiffness: 90, damping: 20 }} className={`lg:col-span-4 xl:col-span-3 rounded-[2.5rem] backdrop-blur-2xl p-6 border pointer-events-auto ${panelGlass}`}>
             <div className="flex flex-col space-y-3">
               {SETTINGS_TABS.map((tab) => {
                 const isActive = activeTab === tab.id;
                 return (
                   <motion.button
-                    key={tab.id} onClick={() => setActiveTab(tab.id)}
-                    whileHover={{ scale: 1.02, x: 5 }} whileTap={{ scale: 0.98 }}
-                    className={`relative p-4 rounded-2xl flex items-center text-left transition-all duration-300 overflow-hidden group ${
-                      isActive ? (isLightMode ? 'text-white' : 'text-black') : (isLightMode ? 'text-slate-600 hover:bg-slate-100' : 'text-slate-400 hover:bg-[#0044ff]/10 hover:text-white')
-                    }`}
+                    key={tab.id} onClick={() => setActiveTab(tab.id)} whileHover={{ scale: 1.02, x: 5 }} whileTap={{ scale: 0.98 }}
+                    className={`relative p-4 rounded-2xl flex items-center text-left transition-all duration-300 overflow-hidden group ${isActive ? (isLightMode ? 'text-white' : 'text-black') : (isLightMode ? 'text-slate-600 hover:bg-slate-100' : 'text-slate-400 hover:bg-[#0044ff]/10 hover:text-white')}`}
                   >
-                    {isActive && (
-                      <motion.div layoutId="activeTabGlow" transition={{ type: "spring", stiffness: 100, damping: 15 }} className="absolute inset-0 bg-gradient-to-r from-[#0066ff] to-[#00f0ff] rounded-2xl z-0 shadow-[0_0_25px_rgba(0,240,255,0.4)]" />
-                    )}
+                    {isActive && <motion.div layoutId="activeTabGlow" transition={{ type: "spring", stiffness: 100, damping: 15 }} className="absolute inset-0 bg-gradient-to-r from-[#0066ff] to-[#00f0ff] rounded-2xl z-0 shadow-[0_0_25px_rgba(0,240,255,0.4)]" />}
                     <div className="relative z-10 flex items-center w-full">
                       <div className={`p-3 rounded-xl mr-4 transition-colors ${isActive ? (isLightMode ? 'bg-white/20' : 'bg-black/20') : 'bg-transparent group-hover:bg-[#0066ff]/20'}`}>
                         <tab.icon size={22} className={isActive ? (isLightMode ? 'text-white' : 'text-black') : 'text-[#0088ff] group-hover:text-[#00f0ff]'} />
@@ -262,63 +254,83 @@ export default function AdvancedSettingsMatrix() {
             </div>
 
             <div className={`mt-10 pt-8 border-t ${isLightMode ? 'border-slate-200' : 'border-[#0055ff]/30'}`}>
-              <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="flex items-center justify-center w-full p-4 rounded-xl text-xs font-bold uppercase tracking-widest text-red-500 hover:bg-red-500/10 transition-colors border border-transparent hover:border-red-500/30">
+              <motion.button onClick={handleLogout} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="flex items-center justify-center w-full p-4 rounded-xl text-xs font-bold uppercase tracking-widest text-red-500 hover:bg-red-500/10 transition-colors border border-transparent hover:border-red-500/30">
                 <LogOut size={18} className="mr-3" /> Sign Out
               </motion.button>
             </div>
           </motion.div>
 
-          {/* RIGHT: DYNAMIC CONTENT PANELS */}
-          <motion.div 
-            initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }} transition={{ type: "spring", stiffness: 90, damping: 20 }}
-            className={`lg:col-span-8 xl:col-span-9 rounded-[3rem] backdrop-blur-2xl p-8 lg:p-12 border min-h-[700px] flex flex-col pointer-events-auto ${panelGlass}`}
-          >
+          <motion.div initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }} transition={{ type: "spring", stiffness: 90, damping: 20 }} className={`lg:col-span-8 xl:col-span-9 rounded-[3rem] backdrop-blur-2xl p-8 lg:p-12 border min-h-[700px] flex flex-col pointer-events-auto ${panelGlass}`}>
             <AnimatePresence mode="wait">
               
               {/* 1. ACCOUNT DATA */}
               {activeTab === 'account' && (
                 <motion.div key="account" variants={staggerContainer} initial="hidden" animate="visible" exit="exit" className="flex flex-col h-full">
-                  
                   <motion.div variants={springItem} className="flex flex-col md:flex-row items-center md:items-start justify-between w-full mb-12 gap-8">
                     
-                    {/* User Profile Info */}
                     <div className="flex flex-col md:flex-row items-center md:items-start space-y-6 md:space-y-0 md:space-x-8">
+                      
+                      {/* PROFILE PICTURE CAMERA UPLOAD LOGIC */}
                       <motion.div whileHover={{ scale: 1.05, rotate: 5 }} whileTap={{ scale: 0.95 }} className="relative group cursor-pointer shrink-0">
-                        <div className="w-32 h-32 rounded-full bg-gradient-to-tr from-[#0044ff] to-[#00f0ff] p-[3px] shadow-[0_0_40px_rgba(0,102,255,0.4)]">
+                        <input 
+                          type="file" 
+                          id="profilePicUpload" 
+                          className="hidden" 
+                          accept="image/*"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+
+                            const uploadFormData = new FormData();
+                            uploadFormData.append('profilePic', file);
+
+                            const token = localStorage.getItem('matrix_token');
+                            const res = await fetch('http://localhost:5000/api/auth/upload-pic', {
+                              method: 'POST',
+                              headers: { 'Authorization': `Bearer ${token}` },
+                              body: uploadFormData
+                            });
+
+                            if (res.ok) {
+                              const result = await res.json();
+                              setUserData((prev: any) => ({ ...prev, profilePic: result.data.profilePic }));
+                            } else {
+                              alert("Failed to upload image. Ensure server static files are configured.");
+                            }
+                          }}
+                        />
+                        
+                        <label htmlFor="profilePicUpload" className="w-32 h-32 rounded-full bg-gradient-to-tr from-[#0044ff] to-[#00f0ff] p-[3px] shadow-[0_0_40px_rgba(0,102,255,0.4)] flex cursor-pointer">
                           <div className={`w-full h-full rounded-full flex items-center justify-center overflow-hidden relative ${isLightMode ? 'bg-white' : 'bg-[#01030a]'}`}>
-                            <User size={50} className={textSecondary} />
+                            
+                            {/* LIVE IMAGE RENDER */}
+                            {userData?.profilePic ? (
+                              <img src={`http://localhost:5000${userData.profilePic}`} alt="Profile" className="w-full h-full object-cover" />
+                            ) : (
+                              <User size={50} className={textSecondary} />
+                            )}
+
                             <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                               <Camera size={24} className="text-[#00f0ff] mb-2" />
                               <span className="text-[10px] font-bold text-white tracking-widest">Update</span>
                             </div>
                           </div>
-                        </div>
+                        </label>
                       </motion.div>
+
                       <div className="text-center md:text-left mt-4 md:mt-2">
-                        <h2 className={`text-4xl font-black uppercase tracking-tighter ${textPrimary}`}>{formData.fullName}</h2>
-                        <p className={`text-sm font-mono mt-2 ${textSecondary}`}>@{formData.username}</p>
+                        <h2 className={`text-4xl md:text-5xl font-black uppercase tracking-tighter ${textPrimary}`}>{displayName}</h2>
                       </div>
                     </div>
 
-                    {/* ULTRA-SECURE SECRET CODE BLOCK */}
                     <div className={`secure-code-container p-5 md:p-6 rounded-3xl border flex flex-col items-center justify-center shrink-0 shadow-inner relative overflow-hidden transition-colors ${isLightMode ? 'bg-red-50 border-red-200' : 'bg-[#010206] border-red-500/30'}`}>
                       <div className="absolute inset-0 bg-[repeating-linear-gradient(45deg,transparent,transparent_10px,rgba(255,0,0,0.03)_10px,rgba(255,0,0,0.03)_20px)] pointer-events-none" />
+                      <span className={`text-[9px] md:text-[10px] font-black uppercase tracking-widest mb-3 flex items-center z-10 ${isLightMode ? 'text-red-600' : 'text-red-500'}`}><Shield size={12} className="mr-2"/> Secure Access Code</span>
                       
-                      <span className={`text-[9px] md:text-[10px] font-black uppercase tracking-widest mb-3 flex items-center z-10 ${isLightMode ? 'text-red-600' : 'text-red-500'}`}>
-                        <Shield size={12} className="mr-2"/> Secure Access Code
-                      </span>
-                      
-                      <div 
-                        className="relative z-10 cursor-crosshair px-4 py-2 bg-black/20 rounded-xl border border-red-500/20"
-                        onPointerDown={() => setIsCodeRevealed(true)}
-                        onPointerUp={() => setIsCodeRevealed(false)}
-                        onPointerLeave={() => setIsCodeRevealed(false)}
-                        onContextMenu={(e) => e.preventDefault()}
-                      >
+                      <div className="relative z-10 cursor-crosshair px-4 py-2 bg-black/20 rounded-xl border border-red-500/20" onPointerDown={() => setIsCodeRevealed(true)} onPointerUp={() => setIsCodeRevealed(false)} onPointerLeave={() => setIsCodeRevealed(false)} onContextMenu={(e) => e.preventDefault()}>
                         <div className={`secure-code-block font-mono text-2xl md:text-3xl font-black tracking-[0.2em] transition-all duration-100 ${isCodeRevealed && isWindowFocused ? 'filter-none opacity-100' : 'filter blur-[10px] opacity-40'} ${isLightMode ? 'text-slate-800' : 'text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.8)]'}`}>
-                          AEX4921B7C
+                          {secureCode}
                         </div>
-                        {/* Overlay that intercepts clicks to prevent text selection completely */}
                         <div className="absolute inset-0 z-20" />
                       </div>
                       
@@ -335,59 +347,65 @@ export default function AdvancedSettingsMatrix() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8 flex-grow">
                     <div className="space-y-6">
                       <motion.div variants={springItem} whileHover={{ scale: 1.02 }} className="space-y-2 group">
-                        <label htmlFor="fullName" className={`text-xs font-bold uppercase tracking-widest ml-2 ${textSecondary}`}>Full Name</label>
+                        <label className={`text-xs font-bold uppercase tracking-widest ml-2 ${textSecondary}`}>Display Name</label>
                         <div className="relative">
-                          <input id="fullName" type="text" placeholder="Enter Full Name" value={formData.fullName} onChange={(e) => updateForm('fullName', e.target.value)} className={`w-full p-4 pl-12 rounded-2xl border outline-none font-medium transition-all ${innerCard} ${textPrimary}`} />
+                          <input type="text" placeholder="Enter Full Name" value={formData.fullName} onChange={(e) => updateForm('fullName', e.target.value)} className={`w-full p-4 pl-12 rounded-2xl border outline-none font-medium transition-all ${innerCard} ${textPrimary}`} />
                           <Type size={18} className={`absolute left-4 top-1/2 -translate-y-1/2 transition-colors group-focus-within:text-[#00f0ff] ${isLightMode ? 'text-blue-500' : 'text-[#0066ff]'}`} />
                         </div>
                       </motion.div>
 
                       <motion.div variants={springItem} whileHover={{ scale: 1.02 }} className="space-y-2 group">
-                        <label htmlFor="email" className={`text-xs font-bold uppercase tracking-widest ml-2 ${textSecondary}`}>Email Address</label>
+                        <label className={`text-xs font-bold uppercase tracking-widest ml-2 ${textSecondary}`}>Phone Number</label>
                         <div className="relative">
-                          <input id="email" type="email" placeholder="Enter Email" value={formData.email} onChange={(e) => updateForm('email', e.target.value)} className={`w-full p-4 pl-12 rounded-2xl border outline-none font-medium transition-all ${innerCard} ${textPrimary}`} />
-                          <Mail size={18} className={`absolute left-4 top-1/2 -translate-y-1/2 transition-colors group-focus-within:text-[#00f0ff] ${isLightMode ? 'text-blue-500' : 'text-[#0066ff]'}`} />
+                          <input type="text" placeholder="Enter Phone Number" value={formData.phone} onChange={(e) => updateForm('phone', e.target.value)} className={`w-full p-4 pl-12 rounded-2xl border outline-none font-medium transition-all ${innerCard} ${textPrimary}`} />
+                          <Phone size={18} className={`absolute left-4 top-1/2 -translate-y-1/2 transition-colors group-focus-within:text-[#00f0ff] ${isLightMode ? 'text-blue-500' : 'text-[#0066ff]'}`} />
                         </div>
                       </motion.div>
 
                       <motion.div variants={springItem} whileHover={{ scale: 1.02 }} className="space-y-2 group">
-                        <label htmlFor="password" className={`text-xs font-bold uppercase tracking-widest ml-2 ${textSecondary}`}>Password</label>
+                        <label className={`text-xs font-bold uppercase tracking-widest ml-2 ${textSecondary}`}>New Password</label>
                         <div className="relative">
-                          <input id="password" type="password" placeholder="Enter Password" value={formData.password} onChange={(e) => updateForm('password', e.target.value)} className={`w-full p-4 pl-12 rounded-2xl border outline-none font-medium transition-all ${innerCard} ${textPrimary}`} />
+                          <input type="password" placeholder="Leave blank to keep current" value={formData.password} onChange={(e) => updateForm('password', e.target.value)} className={`w-full p-4 pl-12 rounded-2xl border outline-none font-medium transition-all ${innerCard} ${textPrimary}`} />
                           <KeyRound size={18} className={`absolute left-4 top-1/2 -translate-y-1/2 transition-colors group-focus-within:text-[#00f0ff] ${isLightMode ? 'text-blue-500' : 'text-[#0066ff]'}`} />
                         </div>
                       </motion.div>
                     </div>
 
                     <div className="space-y-6">
-                      <motion.div variants={springItem} whileHover={{ scale: 1.02 }} className="space-y-2 group">
-                        <label htmlFor="username" className={`text-xs font-bold uppercase tracking-widest ml-2 ${textSecondary}`}>Username</label>
+                      <motion.div variants={springItem} className="space-y-2 group">
+                        {/* SECURED IMMUTABLE EMAIL FIELD */}
+                        <label className={`text-xs font-bold uppercase tracking-widest ml-2 ${textSecondary}`}>Registered Email</label>
                         <div className="relative">
-                          <input id="username" type="text" placeholder="Enter Username" value={formData.username} onChange={(e) => updateForm('username', e.target.value)} className={`w-full p-4 pl-12 rounded-2xl border outline-none font-medium transition-all ${innerCard} ${textPrimary}`} />
-                          <User size={18} className={`absolute left-4 top-1/2 -translate-y-1/2 transition-colors group-focus-within:text-[#00f0ff] ${isLightMode ? 'text-blue-500' : 'text-[#0066ff]'}`} />
+                          <input type="email" readOnly title="Registered Email" placeholder="Registered Email" value={userData ? userData.email : ""} className={`w-full p-4 pl-12 rounded-2xl border outline-none font-medium transition-all cursor-not-allowed ${isLightMode ? 'bg-slate-200 border-slate-300 text-slate-500' : 'bg-[#001133]/40 border-[#00f0ff]/10 text-slate-400'}`} />
+                          <Lock size={18} className={`absolute left-4 top-1/2 -translate-y-1/2 ${isLightMode ? 'text-slate-400' : 'text-[#00f0ff]/50'}`} />
                         </div>
                       </motion.div>
 
                       <motion.div variants={springItem} whileHover={{ scale: 1.02 }} className="space-y-2 group">
-                        <label htmlFor="phone" className={`text-xs font-bold uppercase tracking-widest ml-2 ${textSecondary}`}>Phone Number</label>
+                        <label className={`text-xs font-bold uppercase tracking-widest ml-2 ${textSecondary}`}>Age</label>
                         <div className="relative">
-                          <input id="phone" type="text" placeholder="Enter Phone Number" value={formData.phone} onChange={(e) => updateForm('phone', e.target.value)} className={`w-full p-4 pl-12 rounded-2xl border outline-none font-medium transition-all ${innerCard} ${textPrimary}`} />
-                          <Phone size={18} className={`absolute left-4 top-1/2 -translate-y-1/2 transition-colors group-focus-within:text-[#00f0ff] ${isLightMode ? 'text-blue-500' : 'text-[#0066ff]'}`} />
+                          <input type="text" placeholder="Enter Age" value={formData.age} onChange={(e) => updateForm('age', e.target.value)} className={`w-full p-4 pl-12 rounded-2xl border outline-none font-medium transition-all ${innerCard} ${textPrimary}`} />
+                          <Hash size={18} className={`absolute left-4 top-1/2 -translate-y-1/2 transition-colors group-focus-within:text-[#00f0ff] ${isLightMode ? 'text-blue-500' : 'text-[#0066ff]'}`} />
                         </div>
                       </motion.div>
 
                       <motion.div variants={springItem} whileHover={{ scale: 1.02 }} className="space-y-2 group">
-                        <label htmlFor="confirmPassword" className={`text-xs font-bold uppercase tracking-widest ml-2 ${textSecondary}`}>Confirm Password</label>
+                        <label className={`text-xs font-bold uppercase tracking-widest ml-2 ${textSecondary}`}>Confirm Password</label>
                         <div className="relative">
-                          <input id="confirmPassword" type="password" placeholder="Confirm Password" value={formData.confirmPassword} onChange={(e) => updateForm('confirmPassword', e.target.value)} className={`w-full p-4 pl-12 rounded-2xl border outline-none font-medium transition-all ${innerCard} ${textPrimary}`} />
+                          <input type="password" placeholder="Confirm new password" value={formData.confirmPassword} onChange={(e) => updateForm('confirmPassword', e.target.value)} className={`w-full p-4 pl-12 rounded-2xl border outline-none font-medium transition-all ${innerCard} ${textPrimary}`} />
                           <KeyRound size={18} className={`absolute left-4 top-1/2 -translate-y-1/2 transition-colors group-focus-within:text-[#00f0ff] ${isLightMode ? 'text-blue-500' : 'text-[#0066ff]'}`} />
                         </div>
                       </motion.div>
                     </div>
                   </div>
 
-                  <motion.button variants={springItem} whileHover={{ scale: 1.05, boxShadow: "0 0 40px rgba(0, 240, 255, 0.6)" }} whileTap={{ scale: 0.95 }} className="mt-10 ml-auto px-10 py-5 rounded-2xl font-black uppercase tracking-widest text-xs text-black bg-gradient-to-r from-[#0066ff] to-[#00f0ff] shadow-[0_0_30px_rgba(0,240,255,0.4)] transition-all">
-                    Save Account Changes
+                  <motion.button 
+                    variants={springItem} onClick={handleSaveAccount} disabled={isSaving}
+                    whileHover={{ scale: 1.05, boxShadow: "0 0 40px rgba(0, 240, 255, 0.6)" }} whileTap={{ scale: 0.95 }} 
+                    className={`mt-10 ml-auto px-10 py-5 rounded-2xl font-black uppercase tracking-widest text-xs flex items-center transition-all ${saveSuccess ? 'bg-green-500 text-white shadow-[0_0_30px_rgba(0,255,100,0.4)]' : 'text-black bg-gradient-to-r from-[#0066ff] to-[#00f0ff] shadow-[0_0_30px_rgba(0,240,255,0.4)]'}`}
+                  >
+                    {isSaving ? <Loader2 className="animate-spin mr-2" size={16} /> : saveSuccess ? <CheckCircle2 className="mr-2" size={16} /> : null}
+                    {isSaving ? 'Encrypting Payload...' : saveSuccess ? 'Data Synchronized' : 'Save Account Changes'}
                   </motion.button>
                 </motion.div>
               )}
@@ -396,72 +414,54 @@ export default function AdvancedSettingsMatrix() {
               {activeTab === 'hardware' && (
                 <motion.div key="hardware" variants={staggerContainer} initial="hidden" animate="visible" exit="exit">
                   <motion.h2 variants={springItem} className={`text-3xl font-black uppercase tracking-wide mb-10 ${textPrimary}`}>Linked Hardware</motion.h2>
-                  
                   <div className="space-y-6">
                     <motion.div variants={springItem} whileHover={{ scale: 1.02, y: -5 }} className={`p-8 rounded-3xl border flex flex-col md:flex-row md:items-center justify-between transition-all ${innerCard}`}>
                       <div className="flex items-center space-x-6 mb-4 md:mb-0">
-                        <div className={`p-5 rounded-2xl shadow-inner ${isLightMode ? 'bg-blue-100 text-blue-600' : 'bg-[#00f0ff]/10 text-[#00f0ff] shadow-[inset_0_0_20px_rgba(0,240,255,0.2)]'}`}>
-                          <Laptop size={36} />
-                        </div>
+                        <div className={`p-5 rounded-2xl shadow-inner ${isLightMode ? 'bg-blue-100 text-blue-600' : 'bg-[#00f0ff]/10 text-[#00f0ff] shadow-[inset_0_0_20px_rgba(0,240,255,0.2)]'}`}><Laptop size={36} /></div>
                         <div>
-                          <h4 className={`font-black text-2xl tracking-wide ${textPrimary}`}>Lenovo LOQ ARP15</h4>
-                          <p className={`text-sm mt-1 ${textSecondary}`}>Primary Development Node</p>
+                          <h4 className={`font-black text-2xl tracking-wide ${textPrimary}`}>Current Active Node</h4>
+                          <p className={`text-sm mt-1 ${textSecondary}`}>Web Gateway</p>
                         </div>
                       </div>
                       <div className="flex items-center space-x-2 bg-green-500/10 border border-green-500/30 px-6 py-3 rounded-xl text-green-500 w-fit">
-                        <CheckCircle2 size={18} />
-                        <span className="text-sm font-bold uppercase tracking-widest">Active Sync</span>
-                      </div>
-                    </motion.div>
-
-                    <motion.div variants={springItem} whileHover={{ scale: 1.02, y: -5 }} className={`p-8 rounded-3xl border flex flex-col md:flex-row md:items-center justify-between transition-all ${innerCard}`}>
-                      <div className="flex items-center space-x-6 mb-4 md:mb-0">
-                        <div className={`p-5 rounded-2xl shadow-inner ${isLightMode ? 'bg-slate-200 text-slate-600' : 'bg-[#010206] text-slate-500 shadow-[inset_0_0_20px_rgba(0,0,0,0.5)]'}`}>
-                          <Smartphone size={36} />
-                        </div>
-                        <div>
-                          <h4 className={`font-black text-2xl tracking-wide ${textPrimary}`}>Samsung Mobile Device</h4>
-                          <p className={`text-sm mt-1 ${textSecondary}`}>Remote Sync Node</p>
-                        </div>
-                      </div>
-                      <div className={`flex items-center space-x-2 border px-6 py-3 rounded-xl w-fit ${isLightMode ? 'bg-slate-100 border-slate-300 text-slate-500' : 'bg-[#010206] border-[#0044ff]/20 text-[#6699ff]'}`}>
-                        <span className="text-sm font-bold uppercase tracking-widest">Offline Mode</span>
+                        <CheckCircle2 size={18} /> <span className="text-sm font-bold uppercase tracking-widest">Active Sync</span>
                       </div>
                     </motion.div>
                   </div>
                 </motion.div>
               )}
 
-              {/* 3. SAVED VAULT */}
+              {/* 3. SAVED VAULT (DYNAMICALLY HYDRATED) */}
               {activeTab === 'saved' && (
                 <motion.div key="saved" variants={staggerContainer} initial="hidden" animate="visible" exit="exit" className="flex flex-col h-full">
-                  <motion.h2 variants={springItem} className={`text-3xl font-black uppercase tracking-wide mb-6 ${textPrimary}`}>Saved Vault</motion.h2>
+                  <motion.h2 variants={springItem} className={`text-3xl font-black uppercase tracking-wide mb-6 ${textPrimary}`}>Authored Vault</motion.h2>
                   <motion.p variants={springItem} className={`text-base leading-relaxed mb-10 max-w-2xl ${textSecondary}`}>
-                    Your locally encrypted archive of bookmarked research papers, deployment logs, and system architectures.
+                    Your locally encrypted archive of research papers, deployment logs, and system architectures that you have injected into the matrix.
                   </motion.p>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 flex-grow">
-                     {[
-                       { title: "Spatial DOM Recycling Models", type: "Research", date: "May 30, 2026", icon: FileText, color: "text-[#00ff66]", bg: "bg-[#00ff66]/10", border: "border-[#00ff66]/30" },
-                       { title: "Spatial API & Generative Models", type: "Release", date: "May 27, 2026", icon: ArchiveRestore, color: "text-orange-500", bg: "bg-orange-500/10", border: "border-orange-500/30" },
-                       { title: "Lanka Washing System Sync", type: "Release", date: "May 15, 2026", icon: ArchiveRestore, color: "text-orange-500", bg: "bg-orange-500/10", border: "border-orange-500/30" }
-                     ].map((item, i) => (
-                       <motion.div key={i} variants={springItem} whileHover={{ scale: 1.02, y: -5 }} className={`p-6 md:p-8 rounded-3xl border flex flex-col justify-between transition-all cursor-pointer shadow-lg ${innerCard}`}>
+                     {userVault.length > 0 ? userVault.map((item, i) => (
+                       <motion.div key={item.id} variants={springItem} whileHover={{ scale: 1.02, y: -5 }} className={`p-6 md:p-8 rounded-3xl border flex flex-col justify-between transition-all cursor-pointer shadow-lg ${innerCard}`}>
                           <div className="flex items-start justify-between mb-8">
-                            <div className={`p-4 rounded-2xl ${isLightMode ? 'bg-slate-200' : item.bg}`}>
-                              <item.icon size={24} className={isLightMode ? 'text-slate-700' : item.color} />
+                            <div className={`p-4 rounded-2xl ${isLightMode ? 'bg-slate-200' : 'bg-[#00ff66]/10'}`}>
+                              <FileText size={24} className={isLightMode ? 'text-slate-700' : 'text-[#00ff66]'} />
                             </div>
-                            <Bookmark size={20} className={isLightMode ? 'text-slate-400' : item.color} fill={isLightMode ? "currentColor" : "none"} />
+                            <Bookmark size={20} className={isLightMode ? 'text-slate-400' : 'text-[#00ff66]'} fill={isLightMode ? "currentColor" : "none"} />
                           </div>
                           <div>
                             <h4 className={`font-black text-xl tracking-wide mb-4 leading-tight ${textPrimary}`}>{item.title}</h4>
                             <div className="flex flex-wrap items-center gap-3">
-                              <span className={`text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-lg border ${isLightMode ? 'border-slate-300 text-slate-600 bg-slate-100' : item.border + " " + item.color + " " + item.bg}`}>{item.type}</span>
-                              <span className={`text-[10px] font-mono tracking-widest ${textSecondary}`}>{item.date}</span>
+                              <span className={`text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-lg border ${isLightMode ? 'border-slate-300 text-slate-600 bg-slate-100' : 'border-[#00ff66]/30 text-[#00ff66] bg-[#00ff66]/10'}`}>{item.type || 'RESEARCH'}</span>
+                              <span className={`text-[10px] font-mono tracking-widest ${textSecondary}`}>{new Date(item.createdAt).toLocaleDateString()}</span>
                             </div>
                           </div>
                        </motion.div>
-                     ))}
+                     )) : (
+                       <div className={`col-span-full py-12 flex flex-col items-center justify-center rounded-3xl border border-dashed ${isLightMode ? 'border-slate-300' : 'border-slate-800'}`}>
+                         <ArchiveRestore size={32} className={`mb-4 ${textSecondary}`} />
+                         <p className={`font-mono text-sm tracking-widest uppercase ${textSecondary}`}>Vault is currently empty.</p>
+                       </div>
+                     )}
                   </div>
                 </motion.div>
               )}
@@ -484,10 +484,7 @@ export default function AdvancedSettingsMatrix() {
                     </p>
                     
                     <motion.button 
-                      whileHover={{ scale: requestStatus === 'idle' ? 1.05 : 1 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={handleAdminRequest}
-                      disabled={requestStatus !== 'idle'}
+                      whileHover={{ scale: requestStatus === 'idle' ? 1.05 : 1 }} whileTap={{ scale: 0.95 }} onClick={handleAdminRequest} disabled={requestStatus !== 'idle'}
                       className={`w-full md:w-auto px-10 py-5 rounded-2xl text-sm font-black uppercase tracking-widest transition-all shadow-lg ${
                         requestStatus === 'idle' ? 'bg-red-500/10 text-red-500 border border-red-500/40 hover:bg-red-500 hover:text-white hover:shadow-[0_0_30px_rgba(255,0,0,0.5)]' :
                         requestStatus === 'sending' ? 'bg-yellow-500/20 text-yellow-500 border border-yellow-500/50 shadow-[0_0_30px_rgba(255,200,0,0.3)]' :
@@ -510,7 +507,6 @@ export default function AdvancedSettingsMatrix() {
         </div>
       </div>
       
-      {/* FOOTER */}
       <div className="relative z-10 w-full mt-auto pointer-events-auto">
         <Footer isLight={isLightMode} currentRole="user" />
       </div>

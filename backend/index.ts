@@ -8,6 +8,7 @@ import authRoutes from './src/routes/auth.routes';
 import postRoutes from './src/routes/post.routes';
 import releaseRoutes from './src/routes/release.routes';
 import { errorHandler } from './src/middleware/errorHandler';
+import path from 'path';
 
 dotenv.config();
 
@@ -39,6 +40,7 @@ app.get('/api/health', (req: Request, res: Response) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/posts', postRoutes);
 app.use('/api/releases', releaseRoutes);
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // Global Error Handler
 app.use(errorHandler);
