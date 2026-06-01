@@ -1,8 +1,18 @@
 import { Router } from 'express';
 import { createPost, getPosts } from '../controllers/post.controller';
 import { requireAuth } from '../middleware/requireAuth';
+import prisma from '../config/prisma';
 
 const router = Router();
+
+router.get('/', async (req, res) => {
+  try {
+    const posts = await prisma.post.findMany({ orderBy: { createdAt: 'desc' } });
+    res.status(200).json({ status: 'success', data: posts });
+  } catch (error) {
+    res.status(500).json({ status: 'error', message: 'Failed to fetch data cores.' });
+  }
+});
 
 // PUBLIC ROUTE: Anyone can read published posts
 router.get('/', getPosts);

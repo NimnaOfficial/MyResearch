@@ -7,48 +7,45 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model User {
+  id           String   @id @default(uuid())
+  username     String   @unique
+  email        String   @unique
+  isVerified   Boolean  @default(false)
+  passwordHash String
+  createdAt    DateTime @default(now())
+  posts        Post[]   
+}
+
 model Category {
   id    String @id @default(uuid())
-  name  String @unique
+  name  String
   slug  String @unique
-  posts Post[] 
+  posts Post[]
 }
 
 model Post {
-  id          String     @id @default(uuid())
-  title       String
-  slug        String     @unique
-  content     String     @db.Text 
-  type        PostType   @default(BLOG)
-  published   Boolean    @default(false)
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt 
+  id         String    @id @default(uuid())
+  title      String
+  slug       String    @unique
+  content    String
+  type       String    @default("BLOG")
+  published  Boolean   @default(false)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
   
-  authorId    String
-  author      User       @relation(fields: [authorId], references: [id])
-  categories  Category[] 
+  // Relations
+  authorId   String
+  author     User      @relation(fields: [authorId], references: [id])
+  categoryId String?
+  Category   Category? @relation(fields: [categoryId], references: [id])
 }
 
 model Release {
   id           String   @id @default(uuid())
   projectName  String
   version      String
-  releaseNotes String   @db.Text 
+  releaseNotes String
   downloadUrl  String
   publishedAt  DateTime @default(now())
-}
-
-model User {
-  id           String   @id @default(uuid())
-  username     String   @unique
-  email        String   @unique // <-- 1. Track the email
-  isVerified   Boolean  @default(false) // <-- 2. Track verification status
-  passwordHash String
-  createdAt    DateTime @default(now())
-  posts        Post[]   
-}
-
-enum PostType {
-  BLOG
-  RESEARCH
 }

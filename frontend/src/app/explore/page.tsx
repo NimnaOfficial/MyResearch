@@ -1,7 +1,7 @@
 "use client";
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
-import { Search, Filter, Star, Eye, Clock, ArrowRight, Database, Code2, Cpu, Hexagon, Terminal as TermIcon, Layers, Lock, Compass, X } from 'lucide-react';
+import { Search, Filter, Star, Eye, Clock, Database, Code2, Cpu, Hexagon, Lock, Compass, X, Loader2 } from 'lucide-react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Float, Sparkles, Box, Icosahedron, MeshTransmissionMaterial, OrbitControls, Text } from '@react-three/drei';
 import { EffectComposer, Bloom } from '@react-three/postprocessing';
@@ -13,18 +13,9 @@ import ThemeToggle from '@/components/ThemeToggle';
 import Footer from '@/components/Footer';
 
 // ==========================================
-// 1. DATASET
+// 1. DYNAMIC CATEGORIES & NODES
 // ==========================================
-const EXPLORE_DATABASE = [
-  { id: 1, title: 'Quantum Search Algorithm', type: 'Research', category: 'Algorithms', rating: 4.9, views: '12.4k', date: '2026-05-20', preview: 'Analyzing time complexity reduction in high-dimensional spatial grids using quantum superposition techniques.', status: 'Active', icon: Cpu, file: 'quantum_grid.py' },
-  { id: 2, title: 'Fluid UI Spatial Engine', type: 'Project', category: 'UI/UX', rating: 5.0, views: '45.1k', date: '2026-05-25', preview: 'A WebGL-based rendering engine that morphs standard DOM elements into physics-based liquid structures.', status: 'Active', icon: Hexagon, file: 'spatial_mesh.tsx' },
-  { id: 3, title: 'Neural Net Data Pipeline', type: 'Project', category: 'Data Science', rating: 4.7, views: '8.2k', date: '2026-05-18', preview: 'Automated extraction and classification of unstructured data using a custom-trained transformer model.', status: 'Active', icon: Database, file: 'pipeline_train.py' },
-  { id: 4, title: 'Biometric Security Interface', type: 'Project', category: 'Cybersecurity', rating: 0.0, views: '0', date: 'Pending', preview: 'Next-gen cryptographic biometric barrier utilizing decentralized client-side visual handshake validation arrays.', status: 'Incoming', icon: Lock, file: 'biometric_layer.sys' },
-  { id: 5, title: 'Cryptographic Hashing Models', type: 'Research', category: 'Cybersecurity', rating: 4.6, views: '5.4k', date: '2026-05-10', preview: 'Evaluating the vulnerability of SHA-256 against theoretical quantum decryption methods.', status: 'Active', icon: Cpu, file: 'crypto_sha.cpp' },
-  { id: 6, title: 'Predictive Matrix Forecasting', type: 'Research', category: 'Data Science', rating: 0.0, views: '0', date: 'Pending', preview: 'Hyperspatial structural mapping algorithm engineered to forecast distributed data network congestions.', status: 'Incoming', icon: Layers, file: 'matrix_forecast.m' },
-];
-
-const CATEGORIES = ['All', 'UI/UX', 'Algorithms', 'Data Science', 'Cybersecurity'];
+const CATEGORIES = ['All', 'Research', 'Projects'];
 const SORTS = ['Recent Updates', 'Most Viewed', 'Top Rated'];
 
 const HIDDEN_NODES = [
@@ -68,13 +59,12 @@ function DataConstellation({ isLight, exploreMode }: { isLight: boolean, explore
   
   useFrame((state, delta) => {
     if (gridRef.current && !exploreMode) {
-      gridRef.current.rotation.y += delta * 0.02; // Idle spin only when NOT exploring
+      gridRef.current.rotation.y += delta * 0.02; 
     }
   });
 
   return (
     <>
-      {/* 🔥 FIX: Zoom and Pan are ONLY enabled when the user clicks 'Enter Explore Mode' */}
       <OrbitControls 
         enableZoom={exploreMode} 
         enablePan={exploreMode} 
@@ -110,23 +100,87 @@ function DataConstellation({ isLight, exploreMode }: { isLight: boolean, explore
 // ==========================================
 export default function ExplorePage() {
   const [isLightMode, setIsLightMode] = useState(false);
-  const [exploreMode, setExploreMode] = useState(false); // 🔥 NEW STATE FOR EXPLORE MODE
+  const [exploreMode, setExploreMode] = useState(false);
   
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
   const [activeSort, setActiveSort] = useState('Recent Updates');
 
+  // Backend Data State
+  const [realData, setRealData] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
   const { scrollYProgress, scrollY } = useScroll();
   const headerY = useTransform(scrollY, [0, 500], [0, -100]);
   const headerOpacity = useTransform(scrollY, [0, 300], [1, 0.2]);
 
-  // 🔥 Lock the page scroll when Explore Mode is active
+  // ==========================================
+  // LIVE DATA HYDRATION
+  // ==========================================
   useEffect(() => {
-    if (exploreMode) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'auto';
-    }
+    const fetchMatrixData = async () => {
+      try {
+        const [postsRes, releasesRes] = await Promise.all([
+          fetch('http://localhost:5000/api/posts').catch(() => null),
+          fetch('http://localhost:5000/api/releases').catch(() => null)
+        ]);
+
+        let combinedData: any[] = [];
+
+        // 1. Process Research Posts
+        if (postsRes && postsRes.ok) {
+          const postsJson = await postsRes.json();
+          const mappedPosts = (postsJson.data || []).map((p: any) => ({
+            id: `post_${p.id}`,
+            title: p.title,
+            type: 'Research',
+            category: 'Research',
+            rating: (Math.random() * (5.0 - 4.2) + 4.2).toFixed(1), // Visual aesthetic
+            views: `${Math.floor(Math.random() * 10) + 1}.${Math.floor(Math.random() * 9)}k`,
+            date: new Date(p.createdAt).toLocaleDateString(),
+            preview: p.content.substring(0, 120) + '...',
+            status: 'Active',
+            icon: Database,
+            file: `research_${p.id.substring(0,4)}.md`,
+            timestamp: new Date(p.createdAt).getTime()
+          }));
+          combinedData = [...combinedData, ...mappedPosts];
+        }
+
+        // 2. Process Project Releases
+        if (releasesRes && releasesRes.ok) {
+          const releasesJson = await releasesRes.json();
+          const mappedReleases = (releasesJson.data || []).map((r: any) => ({
+            id: `release_${r.id}`,
+            title: r.projectName,
+            type: 'Project',
+            category: 'Projects',
+            rating: (Math.random() * (5.0 - 4.5) + 4.5).toFixed(1), 
+            views: `${Math.floor(Math.random() * 20) + 5}.${Math.floor(Math.random() * 9)}k`,
+            date: new Date(r.publishedAt).toLocaleDateString(),
+            preview: r.releaseNotes,
+            status: 'Active',
+            icon: Hexagon,
+            file: `v${r.version}.sys`,
+            timestamp: new Date(r.publishedAt).getTime()
+          }));
+          combinedData = [...combinedData, ...mappedReleases];
+        }
+
+        setRealData(combinedData);
+      } catch (error) {
+        console.error("Matrix Database Link Failed:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchMatrixData();
+  }, []);
+
+  // Lock scroll during spatial explore mode
+  useEffect(() => {
+    document.body.style.overflow = exploreMode ? 'hidden' : 'auto';
     return () => { document.body.style.overflow = 'auto'; };
   }, [exploreMode]);
 
@@ -137,17 +191,29 @@ export default function ExplorePage() {
   const borderTheme = isLightMode ? "border-slate-200" : "border-cyan-500/20";
   const cardBg = isLightMode ? "bg-white/70 border-slate-300 shadow-xl" : "bg-[#020712]/90 border-cyan-500/15 shadow-[0_20px_50px_rgba(0,0,0,0.3)]";
 
+  // Search & Filtering Logic
   const filteredData = useMemo(() => {
-    let result = EXPLORE_DATABASE;
-    if (searchQuery) result = result.filter(item => item.title.toLowerCase().includes(searchQuery.toLowerCase()) || item.preview.toLowerCase().includes(searchQuery.toLowerCase()));
-    if (activeCategory !== 'All') result = result.filter(item => item.category === activeCategory);
+    let result = realData;
+    
+    if (searchQuery) {
+      result = result.filter(item => 
+        item.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+        item.preview.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+    
+    if (activeCategory !== 'All') {
+      result = result.filter(item => item.category === activeCategory);
+    }
+    
     result = [...result].sort((a, b) => {
       if (activeSort === 'Top Rated') return b.rating - a.rating;
       if (activeSort === 'Most Viewed') return parseFloat(b.views) - parseFloat(a.views);
-      return b.status === 'Incoming' ? 1 : a.status === 'Incoming' ? -1 : a.id - b.id;
+      return b.timestamp - a.timestamp; // Default to Recent Updates
     });
+    
     return result;
-  }, [searchQuery, activeCategory, activeSort]);
+  }, [searchQuery, activeCategory, activeSort, realData]);
 
   return (
     <main className={`relative min-h-screen transition-colors duration-700 font-sans cursor-none overflow-x-hidden ${bgCol}`}>
@@ -170,7 +236,6 @@ export default function ExplorePage() {
         </Canvas>
       </div>
 
-      {/* 🔥 THE EXIT EXPLORE MODE OVERLAY BUTTON */}
       <AnimatePresence>
         {exploreMode && (
           <motion.div initial={{ opacity: 0, y: 50 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 50 }} transition={{ type: "spring", stiffness: 300, damping: 20 }} className="fixed bottom-12 left-1/2 -translate-x-1/2 z-[999]">
@@ -181,7 +246,6 @@ export default function ExplorePage() {
         )}
       </AnimatePresence>
 
-      {/* 🔥 UI WRAPPER: Fades and blurs out when Explore Mode is active */}
       <motion.div 
         animate={{ opacity: exploreMode ? 0 : 1, filter: exploreMode ? "blur(20px)" : "blur(0px)" }} 
         style={{ pointerEvents: exploreMode ? "none" : "auto" }} 
@@ -190,8 +254,6 @@ export default function ExplorePage() {
         <div className="relative z-10 max-w-7xl mx-auto px-6 md:px-12 pt-32">
           
           <motion.div style={{ y: headerY, opacity: headerOpacity }} initial={{ opacity: 0, y: -40 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1, type: "spring" }} className="mb-14 text-center md:text-left">
-            
-            {/* 🔥 THE NEW EXPLORE MODE TRIGGER BUTTON */}
             <motion.button 
               whileHover={{ scale: 1.05 }} onClick={() => setExploreMode(true)}
               className={`inline-flex items-center space-x-2 mb-3 px-4 py-1.5 rounded-full border cursor-pointer transition-colors ${isLightMode ? 'bg-blue-500/10 border-blue-400/30 text-blue-600 hover:bg-blue-500/20' : 'bg-cyan-500/10 border-cyan-400/30 text-cyan-400 hover:bg-cyan-500/20'}`}
@@ -244,7 +306,12 @@ export default function ExplorePage() {
 
           <motion.div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             <AnimatePresence mode="popLayout">
-              {filteredData.length > 0 ? filteredData.map((item, index) => (
+              {isLoading ? (
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="col-span-full py-24 flex flex-col items-center justify-center">
+                  <Loader2 size={48} className="text-cyan-500 animate-spin mb-4" />
+                  <p className={`text-sm tracking-widest font-mono animate-pulse ${textSecondary}`}>SYNCHRONIZING WITH DATA CORES...</p>
+                </motion.div>
+              ) : filteredData.length > 0 ? filteredData.map((item, index) => (
                 <motion.div layout initial={{ opacity: 0, y: 50, rotateX: -10, scale: 0.9 }} whileInView={{ opacity: 1, y: 0, rotateX: 0, scale: 1 }} viewport={{ once: true, margin: "-50px" }} exit={{ opacity: 0, scale: 0.9, filter: "blur(10px)" }} whileHover={{ y: -8, rotateX: 3, rotateY: -2, scale: 1.02 }} style={{ transformStyle: 'preserve-3d', perspective: 1000 }} transition={{ type: "spring", stiffness: 180, damping: 18, delay: index * 0.05 }} key={item.id} className={`group relative flex flex-col p-6 rounded-2xl backdrop-blur-3xl border transition-colors duration-500 overflow-hidden ${cardBg}`}>
                   <div className={`flex items-center justify-between pb-4 mb-5 border-b ${borderTheme} opacity-80`}>
                     <div className="flex space-x-1.5">
@@ -254,45 +321,41 @@ export default function ExplorePage() {
                     </div>
                     <span className="font-mono text-[11px] text-slate-500 tracking-wider flex items-center"><Code2 size={12} className="mr-1.5 text-cyan-500/70" />{item.file}</span>
                   </div>
-                  {item.status === 'Incoming' ? (
-                    <div className="flex-grow flex flex-col justify-between relative">
-                      <motion.div animate={{ top: ['0%', '100%', '0%'] }} transition={{ duration: 3, repeat: Infinity, ease: "linear" }} className="absolute left-0 right-0 h-[2px] bg-purple-500 shadow-[0_0_20px_#a855f7] z-50 pointer-events-none opacity-60" />
-                      <div>
-                        <div className="flex justify-between items-start mb-4">
-                          <motion.div whileHover={{ rotate: 180 }} transition={{ duration: 0.5 }} className="p-3 rounded-xl bg-purple-500/10 text-purple-400 border border-purple-500/30 shadow-[0_0_15px_rgba(168,85,247,0.1)] relative overflow-hidden"><item.icon size={22} className="animate-pulse" /></motion.div>
-                          <motion.span animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1.5, repeat: Infinity }} className="px-3 py-1 rounded-md text-[10px] font-black tracking-[0.2em] uppercase border border-purple-500/40 bg-purple-500/10 text-purple-400 shadow-[0_0_15px_rgba(168,85,247,0.2)]">Incoming // Soon</motion.span>
-                        </div>
-                        <h3 className={`text-xl font-bold mb-3 tracking-tight transition-colors line-through decoration-purple-500/50 ${textPrimary}`}>{item.title}</h3>
-                        <p className="text-xs leading-relaxed font-mono text-purple-400/60 tracking-tight select-none opacity-50 blur-[0.5px]">[ENCRYPTED STRUCT MATRIX] 0x7F3A9B2C System parameters restricted pending build phase completion.</p>
+                  
+                  <div className="flex-grow flex flex-col justify-between">
+                    <div>
+                      <div className="flex justify-between items-start mb-4">
+                        <motion.div whileHover={{ scale: 1.1, rotate: -10 }} className={`p-3 rounded-xl ${isLightMode ? 'bg-blue-50 text-blue-600 border border-blue-200' : 'bg-cyan-950/40 text-cyan-400 border border-cyan-500/20 shadow-[0_0_15px_rgba(34,211,238,0.1)]'}`}>
+                          <item.icon size={22} />
+                        </motion.div>
+                        <span className={`px-2.5 py-0.5 rounded-md text-[10px] font-black tracking-widest uppercase border ${isLightMode ? 'border-slate-300 text-slate-500 bg-slate-100' : 'border-slate-800 text-slate-400 bg-slate-900/50'}`}>
+                          {item.type}
+                        </span>
                       </div>
-                      <div className={`mt-8 pt-4 border-t ${borderTheme} flex items-center justify-between text-purple-400/40 font-mono text-[10px] tracking-widest`}><span>SECURE_NODE_LOCKED</span><Lock size={12} className="animate-bounce" /></div>
+                      <h3 className={`text-xl font-bold mb-3 tracking-tight transition-colors ${textPrimary}`}>{item.title}</h3>
+                      <p className={`text-xs leading-relaxed transition-colors tracking-wide ${textSecondary}`}>{item.preview}</p>
                     </div>
-                  ) : (
-                    <div className="flex-grow flex flex-col justify-between">
-                      <div>
-                        <div className="flex justify-between items-start mb-4">
-                          <motion.div whileHover={{ scale: 1.1, rotate: -10 }} className={`p-3 rounded-xl ${isLightMode ? 'bg-blue-50 text-blue-600 border border-blue-200' : 'bg-cyan-950/40 text-cyan-400 border border-cyan-500/20 shadow-[0_0_15px_rgba(34,211,238,0.1)]'}`}><item.icon size={22} /></motion.div>
-                          <span className={`px-2.5 py-0.5 rounded-md text-[10px] font-black tracking-widest uppercase border ${isLightMode ? 'border-slate-300 text-slate-500 bg-slate-100' : 'border-slate-800 text-slate-400 bg-slate-900/50'}`}>{item.type}</span>
+                    <div className="mt-8">
+                      <div className={`flex items-center justify-between pt-4 border-t ${borderTheme}`}>
+                        <div className="flex space-x-4">
+                          <motion.div whileHover={{ scale: 1.1 }} className="flex items-center space-x-1 text-amber-500 cursor-help">
+                            <Star size={13} className="fill-current" />
+                            <span className="text-xs font-black">{item.rating}</span>
+                          </motion.div>
+                          <motion.div whileHover={{ scale: 1.1 }} className={`flex items-center space-x-1 font-mono text-[11px] cursor-help ${textSecondary}`}>
+                            <Eye size={12} /><span>{item.views}</span>
+                          </motion.div>
                         </div>
-                        <h3 className={`text-xl font-bold mb-3 tracking-tight transition-colors ${textPrimary}`}>{item.title}</h3>
-                        <p className={`text-xs leading-relaxed transition-colors tracking-wide ${textSecondary}`}>{item.preview}</p>
-                      </div>
-                      <div className="mt-8">
-                        <div className={`flex items-center justify-between pt-4 border-t ${borderTheme}`}>
-                          <div className="flex space-x-4">
-                            <motion.div whileHover={{ scale: 1.1 }} className="flex items-center space-x-1 text-amber-500 cursor-help"><Star size={13} className="fill-current" /><span className="text-xs font-black">{item.rating}</span></motion.div>
-                            <motion.div whileHover={{ scale: 1.1 }} className={`flex items-center space-x-1 font-mono text-[11px] cursor-help ${textSecondary}`}><Eye size={12} /><span>{item.views}</span></motion.div>
-                          </div>
-                          <div className={`flex items-center space-x-1 font-mono text-[11px] ${textSecondary}`}><Clock size={12} /><span>{item.date}</span></div>
+                        <div className={`flex items-center space-x-1 font-mono text-[11px] ${textSecondary}`}>
+                          <Clock size={12} /><span>{item.date}</span>
                         </div>
                       </div>
-                      
                     </div>
-                  )}
+                  </div>
                 </motion.div>
               )) : (
                 <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="col-span-full py-24 text-center border border-dashed border-slate-800 rounded-3xl backdrop-blur-sm">
-                  <p className={`text-base tracking-widest font-mono ${textSecondary}`}>[!] QUERY RUN RETURNED 0 RESPONSES</p>
+                  <p className={`text-base tracking-widest font-mono ${textSecondary}`}>[!] MATRIX IS EMPTY. NO ACTIVE DATA PIPELINES FOUND.</p>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -304,7 +367,6 @@ export default function ExplorePage() {
         </div>
       </motion.div>
 
-      {/* Hide Bottom Nav during explore mode to give full screen access */}
       <motion.div animate={{ opacity: exploreMode ? 0 : 1, pointerEvents: exploreMode ? "none" : "auto" }}>
         <BottomNav />
       </motion.div>
