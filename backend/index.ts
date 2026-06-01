@@ -1,39 +1,52 @@
-import express from 'express';
-import type { Request, Response } from 'express';
+import express, { Request, Response } from 'express';
 import cors from 'cors';
-import { PrismaClient } from '@prisma/client';
+import helmet from 'helmet';
+import dotenv from 'dotenv';
+
+// 1. Import all the routes we built from your src folder
+import authRoutes from './src/routes/auth.routes';
+import postRoutes from './src/routes/post.routes';
+import releaseRoutes from './src/routes/release.routes';
+import { errorHandler } from './src/middleware/errorHandler';
+
+dotenv.config();
 
 const app = express();
-const prisma = new PrismaClient();
-const PORT = process.env.PORT || 5000;
 
-// Middleware
-app.use(cors()); // Allows your Next.js frontend to talk to this backend
-app.use(express.json()); // Allows us to receive JSON data
+app.use(helmet()); 
+app.disable('x-powered-by'); 
 
-// --- API ROUTES ---
+// 2. Completely open CORS so Next.js can connect without being blocked
+app.use(cors({
+  origin: true, 
+  credentials: true,
+}));
 
-// 1. Health Check Route (To make sure the server is alive)
+app.use(express.json({ limit: '10mb' }));
+
+// 3. Network Traffic Radar (So you can see every request in your terminal!)
+app.use((req: Request, res: Response, next) => {
+  console.log(`[NETWORK TRAFFIC] ${req.method} request to: ${req.url}`);
+  next();
+});
+
+// Health Check
 app.get('/api/health', (req: Request, res: Response) => {
-  res.status(200).json({ message: 'Nima Platform API is running smoothly!' });
+  res.status(200).json({ status: 'active', message: 'Matrix API Online.' });
 });
 
-// 2. Fetch All Published Posts (Blogs & Research)
-app.get('/api/posts', async (req: Request, res: Response) => {
-  try {
-    const posts = await prisma.post.findMany({
-      where: { published: true },
-      include: { author: true, categories: true }, // Joins related data
-      orderBy: { createdAt: 'desc' }
-    });
-    res.status(200).json(posts);
-  } catch (error) {
-    console.error("Error fetching posts:", error);
-    res.status(500).json({ error: 'Failed to fetch posts' });
-  }
-});
+// 4. MOUNT THE ROUTES TO THE API
+app.use('/api/auth', authRoutes);
+app.use('/api/posts', postRoutes);
+app.use('/api/releases', releaseRoutes);
 
-// Start the server
-app.listen(PORT, () => {
-  console.log(`🚀 Backend server is running on http://localhost:${PORT}`);
+// Global Error Handler
+app.use(errorHandler);
+
+const PORT = parseInt(process.env.PORT || '5000', 10);
+
+// 5. Force IPv4 and IPv6 binding
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`[SYSTEM] Gateway established on port ${PORT}`);
+  console.log(`[NETWORK] Listening on http://localhost:${PORT} AND http://127.0.0.1:${PORT}`);
 });

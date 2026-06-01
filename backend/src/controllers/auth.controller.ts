@@ -118,3 +118,35 @@ export const loginUser = catchAsync(async (req: Request, res: Response) => {
     data: { id: user.id, secretCode: user.username }
   });
 });
+
+// ==========================================
+// FETCH PERSONAL IDENTITY (/me)
+// ==========================================
+export const getMe = catchAsync(async (req: Request, res: Response) => {
+  const userId = req.user?.id; // Safely extracted by the requireAuth middleware!
+
+  if (!userId) {
+    return res.status(401).json({ message: 'Unauthorized: No active session.' });
+  }
+
+  // Fetch the user, but NEVER return the passwordHash!
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      username: true, // This is their Secret Code
+      email: true,
+      isVerified: true,
+      createdAt: true,
+    }
+  });
+
+  if (!user) {
+    return res.status(404).json({ message: 'Identity not found in the matrix.' });
+  }
+
+  res.status(200).json({
+    status: 'success',
+    data: user,
+  });
+});
