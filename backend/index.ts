@@ -10,6 +10,8 @@ import releaseRoutes from './src/routes/release.routes';
 import { errorHandler } from './src/middleware/errorHandler';
 import path from 'path';
 
+import feedbackRoutes from './src/routes/feedback.routes';
+
 dotenv.config();
 
 const app = express();
@@ -41,6 +43,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/posts', postRoutes);
 app.use('/api/releases', releaseRoutes);
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+app.use('/api/feedback', feedbackRoutes)
 
 // Global Error Handler
 app.use(errorHandler);

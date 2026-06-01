@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
@@ -8,7 +8,8 @@ import {
   ArrowLeft, Database, User, Settings, Star, LogOut, 
   ArchiveRestore, Download, FileText, Bookmark, 
   Microscope, CheckCircle, FileJson, FileSpreadsheet, Server, ShieldAlert,
-  Image as ImageIcon, Maximize2, Terminal as TerminalIcon, Hexagon, Network
+  Image as ImageIcon, Maximize2, Terminal as TerminalIcon, Hexagon, Network,
+  ExternalLink, Loader2
 } from 'lucide-react';
 
 import CustomCursor from '@/components/CustomCursor';
@@ -17,107 +18,36 @@ import BottomNav from '@/components/BottomNav';
 import Footer from '@/components/Footer';
 
 // ==========================================
-// MOCK RESEARCH DATABASE (Metadata Included)
+// FALLBACK / MOCK DATA
 // ==========================================
-const RESEARCH_DATABASE: Record<string, any> = {
-  "v2.4.0": {
-    title: "Spatial DOM Recycling Models",
-    field: "Frontend Physics Research",
-    status: "PEER REVIEWED",
-    date: "MAY 2026",
-    heroImg: "from-[#00ff66]/20 to-transparent",
-    abstract: "An academic exploration into high-performance, physics-driven user interface architecture. This paper analyzes the methodology of bypassing standard DOM limitations, dropping frame rendering times to near zero utilizing custom mathematical spring models.",
-    methodology: "A highly controlled empirical setup was established using Next.js 14 to render 10,000 spatial nodes simultaneously. We bypassed the standard React reconciliation phase by directly mutating DOM node styles via Framer Motion's useMotionValue, sampling frame drops and memory leaks over a 60-minute interaction window. Variables were isolated to test composite layer transformations exclusively.",
-    conclusion: "The findings conclusively demonstrate that decoupling spatial animations from the React render cycle eliminates layout thrashing. By relying exclusively on composite layer transformations, we maintained a strict 144fps across 99.8% of the testing duration, proving spatial DOM recycling as a viable architecture for hyper-scale user interfaces.",
-    metrics: [
-      { label: "Confidence Interval", value: "99.8%", trend: "High" },
-      { label: "Sample Size", value: "1.2M", trend: "Valid" },
-      { label: "P-Value", value: "< 0.001", trend: "Sig" }
-    ],
-    figures: [
-      { title: "DOM Node Render Graph", hue: "from-emerald-500 to-teal-900" },
-      { title: "Garbage Collection Spikes", hue: "from-green-500 to-emerald-900" },
-      { title: "Frame Rate Stability Matrix", hue: "from-lime-500 to-green-900" },
-      { title: "Memory Allocation Schema", hue: "from-teal-500 to-emerald-900" }
-    ],
-    dataSources: [
-      { name: "DOM Render Telemetry", type: "JSON", size: "2.4 GB", icon: FileJson },
-      { name: "Frame Drop Logs", type: "CSV", size: "450 MB", icon: FileSpreadsheet },
-      { name: "V8 Garbage Collection Snapshots", type: "LOG", size: "1.2 GB", icon: FileText }
-    ],
-    metadata: {
-      writer: "Nima (Lead Architect)",
-      contributors: ["CSx Matrix Systems", "Open Source Algorithms"],
-      startDate: "FEB 12, 2026",
-      endDate: "MAY 02, 2026",
-      topics: ["DOM Traversal", "Physics Animation", "React Reconciliation"]
-    }
-  },
-  "v2.3.5": {
-    title: "AI Neural Node Mapping",
-    field: "Machine Learning / Systems",
-    status: "PUBLISHED",
-    date: "MAY 2026",
-    heroImg: "from-[#00ff66]/20 to-transparent",
-    abstract: "Research detailing the structural inheritance and latency optimization within a 30-class Object-Oriented AI model. The study maps the data sync efficiencies between a localized desktop component and a live cloud server.",
-    methodology: "Data was streamed through a multi-layered neural network utilizing cross-entropy loss functions. The desktop client instantiated 30 concurrent JVM threads to process localized visual data, synchronizing with the PHP backend via encrypted payloads. Latency was measured across 500 individual training epochs.",
-    conclusion: "Synchronizing localized desktop inference with cloud-based storage reduces overall processing latency by 40% compared to pure cloud-inference models. The 30-class architecture maintained 94.2% data accuracy, proving highly effective for distributed systems.",
-    metrics: [
-      { label: "Data Accuracy", value: "94.2%", trend: "+2.1%" },
-      { label: "Training Epochs", value: "500", trend: "Locked" },
-      { label: "Loss Function", value: "0.04", trend: "Min" }
-    ],
-    figures: [
-      { title: "Neural Layer Topology", hue: "from-emerald-500 to-teal-900" },
-      { title: "Cross-Entropy Variance", hue: "from-green-500 to-emerald-900" },
-      { title: "Latency Sync Distribution", hue: "from-lime-500 to-green-900" }
-    ],
-    dataSources: [
-      { name: "Epoch Training Matrix", type: "CSV", size: "8.1 GB", icon: FileSpreadsheet },
-      { name: "Cloud Sync Latency Data", type: "JSON", size: "920 MB", icon: FileJson },
-      { name: "Raw Image Datasets", type: "ZIP", size: "50.0 GB", icon: ArchiveRestore }
-    ],
-    metadata: {
-      writer: "Nima (Lead Architect)",
-      contributors: ["CSx Matrix Systems"],
-      startDate: "JAN 05, 2026",
-      endDate: "APR 28, 2026",
-      topics: ["Neural Networks", "Data Sync", "Object-Oriented Architecture"]
-    }
-  },
-  "default": {
-    title: "Classified Research",
-    field: "Encrypted Data",
-    status: "LOCKED",
-    date: "UNKNOWN",
-    heroImg: "from-slate-800 to-black",
-    abstract: "The requested academic blueprint requires elevated clearance. The telemetry data for this research has been sanitized for security protocols. Please authenticate to view the full document.",
-    methodology: "[REDACTED] This section requires Level 4 clearance.",
-    conclusion: "[REDACTED] Findings are classified under institutional security protocols.",
-    metrics: [
-      { label: "Clearance", value: "Level 4", trend: "Required" },
-      { label: "Encryption", value: "AES-256", trend: "Active" }
-    ],
-    figures: [
-      { title: "Classified Schematic A", hue: "from-slate-700 to-slate-900" },
-      { title: "Classified Schematic B", hue: "from-gray-700 to-gray-900" }
-    ],
-    dataSources: [
-      { name: "Encrypted Vault", type: "BIN", size: "UNKNOWN", icon: ShieldAlert }
-    ],
-    metadata: {
-      writer: "[REDACTED]",
-      contributors: ["[REDACTED]"],
-      startDate: "UNKNOWN",
-      endDate: "UNKNOWN",
-      topics: ["Classified Systems", "Encryption"]
-    }
+const FALLBACK_DATA = {
+  title: "Classified Research",
+  field: "Encrypted Data",
+  status: "LOCKED",
+  date: "UNKNOWN",
+  heroImg: "from-slate-800 to-black",
+  abstract: "The requested academic blueprint requires elevated clearance. Please authenticate or ensure the server is online.",
+  methodology: "[REDACTED] This section requires Level 4 clearance.",
+  conclusion: "[REDACTED] Findings are classified under institutional security protocols.",
+  metrics: [
+    { label: "Clearance", value: "Level 4", trend: "Required" },
+    { label: "Encryption", value: "AES-256", trend: "Active" }
+  ],
+  figures: [
+    { title: "Classified Schematic A", hue: "from-slate-700 to-slate-900", url: "" }
+  ],
+  dataSources: [
+    { name: "Encrypted Vault", type: "BIN", size: "UNKNOWN", url: "#", icon: ShieldAlert }
+  ],
+  metadata: {
+    writer: "SYSTEM",
+    contributors: ["SYSTEM"],
+    startDate: "UNKNOWN",
+    endDate: "UNKNOWN",
+    topics: ["Classified", "Offline"]
   }
 };
 
-// ==========================================
-// BACKGROUND: ACTIVE THEME-AWARE NODES
-// ==========================================
 function ActiveDataBackground({ isLight }: { isLight: boolean }) {
   const nodes = Array.from({ length: 20 });
   const gridColor = isLight ? 'rgba(0,255,102,0.1)' : 'rgba(0,255,102,0.03)';
@@ -127,33 +57,15 @@ function ActiveDataBackground({ isLight }: { isLight: boolean }) {
   return (
     <div className={`fixed inset-0 z-0 pointer-events-none overflow-hidden transition-colors duration-1000 ${bgColor}`}>
       <motion.div 
-        initial={{ opacity: 0, scale: 1.1 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 2 }}
+        initial={{ opacity: 0, scale: 1.1 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 2 }}
         className="absolute inset-0 [mask-image:radial-gradient(ellipse_at_center,black_20%,transparent_80%)]" 
-        style={{
-          backgroundImage: `linear-gradient(${gridColor} 1px, transparent 1px), linear-gradient(90deg, ${gridColor2} 1px, transparent 1px)`,
-          backgroundSize: '80px 80px'
-        }}
+        style={{ backgroundImage: `linear-gradient(${gridColor} 1px, transparent 1px), linear-gradient(90deg, ${gridColor2} 1px, transparent 1px)`, backgroundSize: '80px 80px' }}
       />
       {nodes.map((_, i) => {
         const size = Math.random() * 30 + 10;
         const isCyan = i % 2 === 0;
         return (
-          <motion.div
-            key={i}
-            className={`absolute flex items-center justify-center opacity-30 ${isCyan ? 'text-[#00f0ff]' : 'text-[#00ff66]'}`}
-            style={{ left: `${Math.random() * 100}vw`, top: `${Math.random() * 100}vh` }}
-            animate={{
-              y: [0, Math.random() * -150 - 50, 0],
-              x: [0, Math.random() * 50 - 25, 0],
-              rotateZ: [0, Math.random() * 180, 360],
-              rotateX: [0, 180, 360], 
-              scale: [1, Math.random() * 0.5 + 1, 1],
-              opacity: [0.1, 0.5, 0.1]
-            }}
-            transition={{ duration: Math.random() * 25 + 15, repeat: Infinity, ease: "linear" }}
-          >
+          <motion.div key={i} className={`absolute flex items-center justify-center opacity-30 ${isCyan ? 'text-[#00f0ff]' : 'text-[#00ff66]'}`} style={{ left: `${Math.random() * 100}vw`, top: `${Math.random() * 100}vh` }} animate={{ y: [0, Math.random() * -150 - 50, 0], x: [0, Math.random() * 50 - 25, 0], rotateZ: [0, Math.random() * 180, 360], rotateX: [0, 180, 360], scale: [1, Math.random() * 0.5 + 1, 1], opacity: [0.1, 0.5, 0.1] }} transition={{ duration: Math.random() * 25 + 15, repeat: Infinity, ease: "linear" }}>
             <Hexagon size={size} strokeWidth={1.5} />
           </motion.div>
         );
@@ -164,25 +76,11 @@ function ActiveDataBackground({ isLight }: { isLight: boolean }) {
   );
 }
 
-// ==========================================
-// RIGHT RAIL: INTERACTIVE SVG NODE GRAPH
-// ==========================================
 function CitationNodeGraph({ isLight }: { isLight: boolean }) {
   const [nodes, setNodes] = useState<{ id: number; cx: number; cy: number; connections: number[] }[]>([]);
-  
   useEffect(() => {
-    const generatedNodes = Array.from({ length: 35 }).map((_, i) => ({
-      id: i, cx: 10 + Math.random() * 80, cy: 10 + Math.random() * 80, connections: [] as number[]
-    }));
-
-    generatedNodes.forEach(node1 => {
-      generatedNodes.forEach(node2 => {
-        if (node1.id !== node2.id) {
-          const dist = Math.hypot(node1.cx - node2.cx, node1.cy - node2.cy);
-          if (dist < 22 && Math.random() > 0.6) node1.connections.push(node2.id);
-        }
-      });
-    });
+    const generatedNodes = Array.from({ length: 35 }).map((_, i) => ({ id: i, cx: 10 + Math.random() * 80, cy: 10 + Math.random() * 80, connections: [] as number[] }));
+    generatedNodes.forEach(node1 => { generatedNodes.forEach(node2 => { if (node1.id !== node2.id) { const dist = Math.hypot(node1.cx - node2.cx, node1.cy - node2.cy); if (dist < 22 && Math.random() > 0.6) node1.connections.push(node2.id); } }); });
     setNodes(generatedNodes);
   }, []);
 
@@ -196,34 +94,27 @@ function CitationNodeGraph({ isLight }: { isLight: boolean }) {
         <Network size={14} className="text-[#00ff66]" />
         <span className="text-[10px] font-black uppercase tracking-widest text-[#00ff66]">Citation Network</span>
       </div>
-
       <svg className="absolute inset-0 w-full h-full" style={{ filter: 'drop-shadow(0 0 6px rgba(0,255,102,0.6))' }}>
-        {nodes.map(node => 
-          node.connections.map(targetId => {
-            const target = nodes[targetId];
-            if (!target) return null;
-            return (
-              <motion.line 
-                key={`${node.id}-${targetId}`} 
-                x1={`${node.cx}%`} y1={`${node.cy}%`} x2={`${target.cx}%`} y2={`${target.cy}%`} 
-                stroke={isLight ? "rgba(0,255,102,0.3)" : "rgba(0,255,102,0.4)"} strokeWidth="1" 
-                initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 2, ease: "easeInOut" }}
-              />
-            );
-          })
-        )}
-        {nodes.map(node => (
-          <motion.circle key={node.id} cx={`${node.cx}%`} cy={`${node.cy}%`} r={node.connections.length > 2 ? "3" : "1.5"} fill={node.connections.length > 2 ? "#00ff66" : "#fff"} animate={{ r: [1.5, 3, 1.5], opacity: [0.5, 1, 0.5] }} transition={{ duration: 2 + Math.random() * 2, repeat: Infinity }} className="cursor-crosshair hover:fill-white" />
-        ))}
+        {nodes.map(node => node.connections.map(targetId => { const target = nodes[targetId]; if (!target) return null; return ( <motion.line key={`${node.id}-${targetId}`} x1={`${node.cx}%`} y1={`${node.cy}%`} x2={`${target.cx}%`} y2={`${target.cy}%`} stroke={isLight ? "rgba(0,255,102,0.3)" : "rgba(0,255,102,0.4)"} strokeWidth="1" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 2, ease: "easeInOut" }} /> ); }))}
+        {nodes.map(node => {
+          const isMajor = node.connections.length > 2;
+          return (
+            <motion.circle key={node.id} cx={`${node.cx}%`} cy={`${node.cy}%`} initial={{ r: isMajor ? 3 : 1.5, opacity: 0.5 }} animate={{ r: isMajor ? [3, 4.5, 3] : [1.5, 2.5, 1.5], opacity: [0.5, 1, 0.5] }} fill={isMajor ? "#00ff66" : "#fff"} transition={{ duration: 2 + Math.random() * 2, repeat: Infinity }} className="cursor-crosshair hover:fill-white" />
+          );
+        })}
       </svg>
     </motion.div>
   );
 }
 
-// ==========================================
-// RIGHT RAIL: DATA SOURCES REPOSITORY
-// ==========================================
 function DataSourcesRepository({ data, isLight }: { data: any, isLight: boolean }) {
+  const getIcon = (type: string) => {
+    if(type.includes('JSON')) return FileJson;
+    if(type.includes('CSV') || type.includes('XLS')) return FileSpreadsheet;
+    if(type.includes('ZIP') || type.includes('RAR')) return ArchiveRestore;
+    return FileText;
+  };
+
   return (
     <motion.div 
       drag dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }} dragElastic={0.1}
@@ -236,40 +127,34 @@ function DataSourcesRepository({ data, isLight }: { data: any, isLight: boolean 
       </div>
 
       <div className="flex flex-col gap-3 md:gap-4">
-        {data.dataSources.map((source: any, index: number) => (
-          <motion.div 
-            key={index}
-            whileHover={{ scale: 1.02, x: 5 }}
-            className={`p-3 md:p-4 rounded-2xl border flex items-center justify-between cursor-pointer transition-colors ${isLight ? 'bg-white border-slate-200 hover:border-[#00ff66]' : 'bg-[#010308] border-white/5 hover:border-[#00ff66]/50 hover:bg-[#00ff66]/5'}`}
-          >
-            <div className="flex items-center space-x-3 md:space-x-4 overflow-hidden">
-              <div className={`p-2.5 rounded-xl shrink-0 ${isLight ? 'bg-slate-100 text-slate-600' : 'bg-white/5 text-[#00ff66]'}`}>
-                 <source.icon size={16} />
-              </div>
-              <div className="flex flex-col truncate pr-2">
-                <span className={`text-[10px] md:text-xs font-bold truncate ${isLight ? 'text-slate-800' : 'text-white'}`}>{source.name}</span>
-                <span className="text-[9px] md:text-[10px] font-mono text-slate-500 tracking-widest mt-1">{source.size}</span>
-              </div>
-            </div>
-            <div className={`px-2 py-1 rounded-md text-[9px] md:text-[10px] font-black tracking-widest shrink-0 ${isLight ? 'bg-slate-200 text-slate-600' : 'bg-[#00ff66]/10 text-[#00ff66] border border-[#00ff66]/20'}`}>
-              {source.type}
-            </div>
-          </motion.div>
-        ))}
+        {data.dataSources.map((source: any, index: number) => {
+          const Icon = getIcon(source.type);
+          return (
+            <a href={source.url || '#'} target="_blank" rel="noopener noreferrer" key={index} className="block group">
+              <motion.div whileHover={{ scale: 1.02, x: 5 }} className={`p-3 md:p-4 rounded-2xl border flex items-center justify-between cursor-pointer transition-colors ${isLight ? 'bg-white border-slate-200 hover:border-[#00ff66]' : 'bg-[#010308] border-white/5 hover:border-[#00ff66]/50 hover:bg-[#00ff66]/5'}`}>
+                <div className="flex items-center space-x-3 md:space-x-4 overflow-hidden">
+                  <div className={`p-2.5 rounded-xl shrink-0 ${isLight ? 'bg-slate-100 text-slate-600' : 'bg-white/5 text-[#00ff66]'}`}><Icon size={16} /></div>
+                  <div className="flex flex-col truncate pr-2">
+                    <span className={`text-[10px] md:text-xs font-bold truncate flex items-center ${isLight ? 'text-slate-800' : 'text-white'}`}>
+                      {source.name}
+                      <ExternalLink size={10} className="ml-2 opacity-0 group-hover:opacity-100 transition-opacity text-[#00ff66]" />
+                    </span>
+                    <span className="text-[9px] md:text-[10px] font-mono text-slate-500 tracking-widest mt-1">{source.size || 'External'}</span>
+                  </div>
+                </div>
+                <div className={`px-2 py-1 rounded-md text-[9px] md:text-[10px] font-black tracking-widest shrink-0 ${isLight ? 'bg-slate-200 text-slate-600' : 'bg-[#00ff66]/10 text-[#00ff66] border border-[#00ff66]/20'}`}>{source.type}</div>
+              </motion.div>
+            </a>
+          );
+        })}
       </div>
-      
       <div className="mt-6 md:mt-8 pt-4 md:pt-6 border-t border-white/10">
-         <p className="text-[9px] md:text-[10px] font-mono text-slate-500 leading-relaxed uppercase tracking-widest text-center">
-           Datasets are sanitized and peer-reviewed for integrity.
-         </p>
+         <p className="text-[9px] md:text-[10px] font-mono text-slate-500 leading-relaxed uppercase tracking-widest text-center">External datasets are stored in secure cloud vaults.</p>
       </div>
     </motion.div>
   );
 }
 
-// ==========================================
-// KINETIC FIGURE ACCORDION (Visual Schematics)
-// ==========================================
 function FigureAccordion({ figures, isLight }: { figures: any[], isLight: boolean }) {
   const [activeIndex, setActiveIndex] = useState(0);
 
@@ -283,25 +168,21 @@ function FigureAccordion({ figures, isLight }: { figures: any[], isLight: boolea
             onMouseEnter={() => setActiveIndex(index)}
             animate={{ flex: isActive ? 4 : 1 }}
             transition={{ type: "spring", stiffness: 100, damping: 20 }}
-            className={`relative rounded-[2rem] border overflow-hidden cursor-crosshair group flex items-end p-4 md:p-6 ${
+            className={`relative rounded-[2rem] border overflow-hidden cursor-crosshair group flex items-end p-4 md:p-6 bg-black ${
               isLight ? 'border-slate-300 shadow-md' : 'border-[#00ff66]/10 shadow-[0_10px_30px_rgba(0,0,0,0.5)]'
             }`}
           >
-            <div className={`absolute inset-0 bg-gradient-to-br ${fig.hue} opacity-80 group-hover:opacity-100 transition-opacity duration-500`} />
+            {fig.url ? ( <img src={fig.url} alt={fig.title} className="absolute inset-0 w-full h-full object-cover opacity-50 group-hover:opacity-80 transition-opacity duration-500" /> ) : ( <div className={`absolute inset-0 bg-gradient-to-br ${fig.hue || 'from-slate-800 to-black'} opacity-80 group-hover:opacity-100 transition-opacity duration-500`} /> )}
             <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.8)_1px,transparent_1px)]" style={{ backgroundSize: '10px 10px' }} />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-90" />
-
+            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent opacity-100" />
             <div className={`relative z-10 flex flex-col items-start w-full transition-all duration-300 ${isActive ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 hidden md:flex'}`}>
-              <div className="flex items-center space-x-2 mb-3 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-lg border border-white/10">
+              <div className="flex items-center space-x-2 mb-3 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-lg border border-white/20">
                 <ImageIcon size={14} className="text-[#00ff66]" />
                 <span className="text-[10px] font-black uppercase tracking-widest text-[#00ff66] whitespace-nowrap">Figure 0{index + 1}</span>
               </div>
               <h4 className="text-white font-black text-lg md:text-2xl uppercase tracking-tight leading-tight truncate w-full">{fig.title}</h4>
-              <button aria-label="Expand Figure" className="mt-4 p-2 bg-white/10 hover:bg-[#00ff66] hover:text-black text-white rounded-full transition-colors backdrop-blur-md">
-                 <Maximize2 size={14} />
-              </button>
+              {fig.url && ( <a href={fig.url} target="_blank" rel="noopener noreferrer" className="mt-4 p-2 bg-white/10 hover:bg-[#00ff66] hover:text-black text-white rounded-full transition-colors backdrop-blur-md"><Maximize2 size={14} /></a> )}
             </div>
-
             <div className={`absolute top-0 bottom-0 left-0 w-full flex items-center justify-center pointer-events-none transition-opacity duration-300 ${isActive ? 'opacity-0' : 'opacity-100 hidden md:flex'}`}>
                <span className="text-white font-black text-xs md:text-sm uppercase tracking-[0.2em] -rotate-90 whitespace-nowrap opacity-60">Figure 0{index + 1}</span>
             </div>
@@ -323,37 +204,122 @@ export default function ResearchDetailPage() {
   if (rawId === '%5Bid%5D' || !rawId) rawId = 'v2.4.0'; 
   const researchId = decodeURIComponent(rawId);
   
-  const data = RESEARCH_DATABASE[researchId] || RESEARCH_DATABASE["default"];
+  const [data, setData] = useState<any>(FALLBACK_DATA);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  // 🔥 SYNCHRONOUS DOWNLOAD LOCK STATE 🔥
+  const [isDownloading, setIsDownloading] = useState(false);
+  const isDownloadingRef = useRef(false);
 
+  const [userData, setUserData] = useState<any>(null);
   const [isLightMode, setIsLightMode] = useState(false);
   const [timeState, setTimeState] = useState({ time: "", date: "" });
   const [activeTab, setActiveTab] = useState('Abstract');
   const [isProfileHovered, setIsProfileHovered] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
-  
   const [currentUserRole, setCurrentUserRole] = useState<'guest' | 'user' | 'admin'>('guest');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const storedRole = localStorage.getItem('userRole');
-      if (storedRole) {
-        setCurrentUserRole(storedRole as 'guest' | 'user' | 'admin');
-        setIsAuthenticated(storedRole === 'user' || storedRole === 'admin');
-      } else {
-        const isInternalRoute = document.referrer.includes(window.location.host);
-        if (isInternalRoute) { setCurrentUserRole('user'); setIsAuthenticated(true); } 
-        else { setCurrentUserRole('guest'); setIsAuthenticated(false); }
+    const initMatrix = async () => {
+      const token = localStorage.getItem('matrix_token');
+      if (token) {
+        setIsAuthenticated(true);
+        setCurrentUserRole('user');
+        try {
+          const res = await fetch('http://localhost:5000/api/auth/me', { headers: { 'Authorization': `Bearer ${token}` } });
+          if (res.ok) setUserData((await res.json()).data);
+        } catch (e) { console.error(e); }
       }
-    }
-    const updateClock = () => {
-      const now = new Date();
-      setTimeState({ time: now.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' }), date: now.toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) });
     };
-    updateClock();
-    const timer = setInterval(updateClock, 1000);
+    initMatrix();
+
+    const timer = setInterval(() => {
+      const now = new Date();
+      setTimeState({ time: now.toLocaleTimeString('en-US', { hour12: false }), date: now.toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) });
+    }, 1000);
     return () => clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    const fetchResearch = async () => {
+      setIsLoading(true);
+      try {
+        const res = await fetch(`http://localhost:5000/api/posts/${researchId}`);
+        if (res.ok) {
+          const json = await res.json();
+          const dbData = json.data;
+          let parsedAdvanced = {};
+          try { if (dbData.advancedData) parsedAdvanced = JSON.parse(dbData.advancedData); } catch(e){}
+
+          setData({
+            title: dbData.title || FALLBACK_DATA.title,
+            field: dbData.type || "Research",
+            status: dbData.published ? "PUBLISHED" : "DRAFT",
+            date: new Date(dbData.createdAt).toLocaleDateString() || "Unknown",
+            heroImg: dbData.heroImg || "from-[#00ff66]/20 to-transparent",
+            abstract: dbData.content || FALLBACK_DATA.abstract,
+            methodology: dbData.methodology || (parsedAdvanced as any).methodology || FALLBACK_DATA.methodology,
+            conclusion: dbData.conclusion || (parsedAdvanced as any).conclusion || FALLBACK_DATA.conclusion,
+            metrics: dbData.metrics || (parsedAdvanced as any).metrics || FALLBACK_DATA.metrics,
+            figures: dbData.figures || (parsedAdvanced as any).figures || FALLBACK_DATA.figures,
+            dataSources: dbData.dataSources || (parsedAdvanced as any).dataSources || FALLBACK_DATA.dataSources,
+            metadata: dbData.metadata || (parsedAdvanced as any).metadata || FALLBACK_DATA.metadata,
+          });
+        }
+      } catch (err) {
+        console.error("Failed to fetch:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchResearch();
+  }, [researchId]);
+
+  // 🔥 THE FIX: SILENT, GRACEFUL DEGRADATION FOR DOUBLE-CLICKS 🔥
+  const handleDownloadPDF = async (e?: React.MouseEvent) => {
+    if (e) e.preventDefault();
+    if (isDownloadingRef.current) return;
+    
+    isDownloadingRef.current = true;
+    setIsDownloading(true);
+
+    try {
+      const token = localStorage.getItem('matrix_token');
+      const res = await fetch(`http://localhost:5000/api/posts/${researchId}/pdf`, {
+        method: 'GET',
+        headers: { ...(token && { 'Authorization': `Bearer ${token}` }) }
+      });
+
+      if (res.ok) {
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${data.title.replace(/\s+/g, '_')}_Research_Doc.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        
+        // Delayed cleanup gives the browser plenty of time to save the file without panicking
+        setTimeout(() => window.URL.revokeObjectURL(url), 2000); 
+      } else {
+        console.warn("PDF Engine returned a non-200 status. Ensure backend is running.");
+      }
+    } catch (error) {
+      // Replaced aggressive native alert with a silent console warning
+      console.warn("PDF Download gracefully interrupted. Check your network or wait for React fast-refresh to finish.", error);
+    } finally {
+      isDownloadingRef.current = false;
+      setIsDownloading(false);
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('userRole');
+    localStorage.removeItem('matrix_token');
+    window.location.href = '/auth';
+  };
 
   const textPrimary = isLightMode ? "text-slate-900" : "text-white";
   const textSecondary = isLightMode ? "text-slate-600" : "text-slate-400";
@@ -362,32 +328,32 @@ export default function ResearchDetailPage() {
   const containerVariants = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.1 } } };
   const itemVariants = { hidden: { opacity: 0, y: 30, scale: 0.95 }, show: { opacity: 1, y: 0, scale: 1, transition: { type: "spring" as const, stiffness: 100, damping: 20 } } };
 
+  if (isLoading) {
+    return (
+      <div className={`min-h-screen flex items-center justify-center font-mono ${isLightMode ? 'bg-slate-50 text-slate-800' : 'bg-[#010205] text-[#00ff66]'}`}>
+        <Loader2 className="animate-spin mr-3" size={24} /> ACCESSING DEEP MATRIX ARCHIVES...
+      </div>
+    );
+  }
+
   return (
     <main className={`relative min-h-screen font-sans cursor-none flex flex-col transition-colors duration-1000 w-full overflow-x-hidden ${isLightMode ? 'text-slate-900 bg-slate-50' : 'text-white bg-[#010205]'}`}>
       <CustomCursor />
       <ActiveDataBackground isLight={isLightMode} />
 
-      {/* ==========================================
-          HEADER (100% Transparent, Fixed Order)
-          ========================================== */}
+      {/* HEADER */}
       <header className={`fixed top-0 left-0 right-0 h-24 w-full flex items-center justify-between px-4 sm:px-6 lg:px-12 z-50 pointer-events-none bg-transparent border-none`}>
-        
-        {/* Left Side: Theme, Back, & Title */}
         <div className="flex items-center space-x-3 sm:space-x-4 md:space-x-6 pointer-events-auto h-full pl-2">
-          
           <div className="relative flex items-center justify-center shrink-0">
              <ThemeToggle isLight={isLightMode} toggleTheme={() => setIsLightMode(!isLightMode)} />
           </div>
-
           <motion.button 
             whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-            aria-label="Go back to research directory"
             onClick={() => router.push('/research')} 
             className={`flex items-center justify-center w-10 h-10 md:w-12 md:h-12 rounded-2xl border transition-all hover:bg-[#00ff66] hover:text-black hover:border-[#00ff66] shadow-sm shrink-0 ${isLightMode ? 'border-slate-300 text-slate-700 bg-white/80 backdrop-blur-md' : 'border-white/20 text-slate-300 bg-white/5 backdrop-blur-md'}`}
           >
             <ArrowLeft size={20} />
           </motion.button>
-
           <div className="flex items-center space-x-3 md:space-x-4">
             <ArchiveRestore size={20} className="text-[#00ff66] hidden sm:block shrink-0" />
             <div className="flex flex-col justify-center overflow-hidden">
@@ -397,7 +363,6 @@ export default function ResearchDetailPage() {
           </div>
         </div>
 
-        {/* Right Side: Profile HUD */}
         <div className="flex items-center space-x-4 pointer-events-auto h-full shrink-0 relative">
            {isAuthenticated && (
               <div className="relative" onMouseEnter={() => setIsProfileHovered(true)} onMouseLeave={() => setIsProfileHovered(false)}>
@@ -407,12 +372,18 @@ export default function ResearchDetailPage() {
                   </span>
                   <div className={`w-px h-4 hidden lg:block ${isLightMode ? 'bg-slate-300' : 'bg-slate-800'}`} />
                   <div className="flex items-center space-x-2 md:space-x-3 group">
-                    <div className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-gradient-to-tr from-[#00ff66] to-[#00f0ff] p-[1.5px] transition-all duration-500 shrink-0">
+                    <div className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-gradient-to-tr from-[#00ff66] to-[#00f0ff] p-[1.5px] transition-all duration-500 shrink-0 overflow-hidden">
                       <div className={`w-full h-full rounded-full flex items-center justify-center ${isLightMode ? 'bg-white' : 'bg-[#010205]'}`}>
-                        <User size={14} className={textPrimary} />
+                        {userData?.profilePic ? (
+                          <img src={userData.profilePic} alt="Profile" className="w-full h-full object-cover" />
+                        ) : (
+                          <User size={14} className={textPrimary} />
+                        )}
                       </div>
                     </div>
-                    <span className={`text-[10px] md:text-xs font-black uppercase tracking-widest transition-colors hidden sm:block ${textPrimary} group-hover:text-[#00ff66]`}>Nima</span>
+                    <span className={`text-[10px] md:text-xs font-black uppercase tracking-widest transition-colors hidden sm:block ${textPrimary} group-hover:text-[#00ff66]`}>
+                      {userData ? (userData.fullName || 'OPERATOR') : 'GUEST'}
+                    </span>
                   </div>
                 </div>
 
@@ -422,13 +393,11 @@ export default function ResearchDetailPage() {
                       <Link href="/settings" className={`flex items-center px-4 py-3 text-xs font-bold uppercase tracking-widest rounded-2xl transition-all ${isLightMode ? 'text-slate-700 hover:bg-slate-100' : 'text-slate-300 hover:bg-white/5'}`}>
                         <Settings size={14} className="mr-3 text-[#00ff66]" /> Settings
                       </Link>
-                      
                       <button type="button" className={`flex items-center px-4 py-3 text-xs font-bold uppercase tracking-widest text-[#00ff66] rounded-2xl transition-all group ${isLightMode ? 'hover:bg-green-50' : 'hover:bg-[#00ff66]/10'}`}>
                         <Bookmark size={14} className="mr-3 text-[#00ff66] group-hover:drop-shadow-[0_0_8px_rgba(0,255,102,0.8)]" /> Saved Research
                       </button>
-
                       <div className={`h-px w-full my-1 ${isLightMode ? 'bg-slate-200' : 'bg-slate-800/50'}`} />
-                      <button type="button" onClick={() => { localStorage.removeItem('userRole'); setCurrentUserRole('guest'); setIsAuthenticated(false); }} className={`flex items-center px-4 py-3 text-xs font-bold uppercase tracking-widest text-red-500 rounded-2xl transition-all group ${isLightMode ? 'hover:bg-red-50' : 'hover:bg-red-500/10'}`}>
+                      <button type="button" onClick={handleLogout} className={`flex items-center px-4 py-3 text-xs font-bold uppercase tracking-widest text-red-500 rounded-2xl transition-all group ${isLightMode ? 'hover:bg-red-50' : 'hover:bg-red-500/10'}`}>
                         <LogOut size={14} className="mr-3 text-red-500 group-hover:drop-shadow-[0_0_8px_rgba(239,68,68,0.8)]" /> Terminate Link
                       </button>
                     </motion.div>
@@ -439,9 +408,7 @@ export default function ResearchDetailPage() {
         </div>
       </header>
 
-      {/* ==========================================
-          FLOATING NAVIGATION PILL
-          ========================================== */}
+      {/* FLOATING NAVIGATION PILL */}
       <div className="sticky top-28 z-40 w-full flex justify-center px-4 md:px-6 pointer-events-auto mt-32 mb-10">
         <div className={`flex flex-wrap items-center justify-center gap-2 p-1.5 md:p-2 rounded-[2rem] md:rounded-full border shadow-2xl backdrop-blur-xl ${isLightMode ? 'bg-white/80 border-slate-300' : 'bg-black/40 border-[#00ff66]/30'}`}>
           {['Abstract', 'Methodology', 'Visual Schematics', 'Conclusion'].map(tab => (
@@ -459,13 +426,11 @@ export default function ResearchDetailPage() {
         </div>
       </div>
 
-      {/* ==========================================
-          THE FLUID RESEARCH GRID (Native Scroll Enabled)
-          ========================================== */}
+      {/* THE FLUID RESEARCH GRID */}
       <div className="flex-1 w-full max-w-[1500px] mx-auto pb-10 px-4 md:px-6 lg:px-12 relative z-10 flex flex-col xl:flex-row items-start gap-6 md:gap-8 pointer-events-auto">
         
         {/* CENTER CONSOLE */}
-        <motion.div variants={containerVariants} initial="hidden" whileInView="show" viewport={{ once: true, margin: "-50px" }} className={`flex-1 flex flex-col gap-6 md:gap-8 min-w-0`}>
+        <motion.div variants={containerVariants} initial="hidden" animate="show" viewport={{ once: true, margin: "-50px" }} className={`flex-1 flex flex-col gap-6 md:gap-8 min-w-0`}>
           
           {/* Hero Banner */}
           <motion.div 
@@ -485,21 +450,20 @@ export default function ResearchDetailPage() {
                 
                 <div className="flex items-center space-x-3 pointer-events-auto">
                    <motion.button 
-                     aria-label={isSaved ? "Remove Bookmark" : "Save Research"}
-                     onClick={() => setIsSaved(!isSaved)}
-                     whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                     onClick={() => setIsSaved(!isSaved)} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
                      className={`flex items-center justify-center w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl border transition-all ${isSaved ? 'bg-[#00ff66]/20 border-[#00ff66] text-[#00ff66]' : `${isLightMode ? 'bg-slate-100 border-slate-300 text-slate-600' : 'bg-black/50 border-white/20 text-slate-300 hover:border-[#00ff66]'}`}`}
                    >
                      <Bookmark size={18} fill={isSaved ? "#00ff66" : "none"} className={isSaved ? 'text-[#00ff66]' : ''} />
                    </motion.button>
 
+                   {/* PUPPETEER DOWNLOAD TRIGGER */}
                    <motion.button 
-                     aria-label="Download Research as PDF"
-                     whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-                     className={`flex items-center gap-2 md:gap-3 px-4 md:px-6 py-2.5 md:py-3.5 rounded-xl md:rounded-2xl border transition-all shadow-[0_0_20px_rgba(0,255,102,0.15)] hover:shadow-[0_0_30px_rgba(0,255,102,0.4)] ${isLightMode ? 'bg-[#00ff66] text-slate-900 border-[#00ff66]' : 'bg-[#00ff66]/10 text-[#00ff66] border-[#00ff66]/50 hover:bg-[#00ff66] hover:text-black'}`}
+                     onClick={handleDownloadPDF} disabled={isDownloading}
+                     whileHover={{ scale: isDownloading ? 1 : 1.05 }} whileTap={{ scale: isDownloading ? 1 : 0.95 }}
+                     className={`flex items-center gap-2 md:gap-3 px-4 md:px-6 py-2.5 md:py-3.5 rounded-xl md:rounded-2xl border transition-all shadow-[0_0_20px_rgba(0,255,102,0.15)] hover:shadow-[0_0_30px_rgba(0,255,102,0.4)] ${isDownloading ? 'opacity-80 cursor-wait' : ''} ${isLightMode ? 'bg-[#00ff66] text-slate-900 border-[#00ff66]' : 'bg-[#00ff66]/10 text-[#00ff66] border-[#00ff66]/50 hover:bg-[#00ff66] hover:text-black'}`}
                    >
-                     <Download size={16} />
-                     <span className="text-[10px] md:text-xs font-black uppercase tracking-widest">Download PDF</span>
+                     {isDownloading ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
+                     <span className="text-[10px] md:text-xs font-black uppercase tracking-widest">{isDownloading ? 'Compiling PDF...' : 'Download PDF'}</span>
                    </motion.button>
                 </div>
              </div>
@@ -602,9 +566,7 @@ export default function ResearchDetailPage() {
         </motion.div>
       </div>
 
-      {/* ==========================================
-          LINUX TERMINAL METADATA MODULE 
-          ========================================== */}
+      {/* LINUX TERMINAL METADATA MODULE */}
       <div className="w-full max-w-[1500px] mx-auto px-4 md:px-6 lg:px-12 mb-20 relative z-10 pointer-events-auto">
         <motion.div 
           initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: "-50px" }} transition={{ type: "spring", stiffness: 100 }}
@@ -612,7 +574,6 @@ export default function ResearchDetailPage() {
           whileHover={{ scale: 1.01, y: -5, rotateX: 1, rotateY: -1, zIndex: 50, boxShadow: "0 20px 50px rgba(0,0,0,0.8)" }} 
           className={`w-full rounded-[2rem] border overflow-hidden shadow-2xl h-auto cursor-grab active:cursor-grabbing ${isLightMode ? 'bg-slate-900 border-slate-700' : 'bg-[#02050a]/90 backdrop-blur-xl border-[#00ff66]/20 shadow-[0_10px_50px_rgba(0,0,0,0.8)]'}`}
         >
-          {/* Authentic Linux Header */}
           <div className="h-10 md:h-12 border-b border-[#00ff66]/20 bg-black/40 flex items-center px-4 justify-between relative">
             <div className="flex items-center space-x-2 relative z-10">
               <div className="w-3 h-3 md:w-3.5 md:h-3.5 rounded-full bg-red-500/80 hover:bg-red-500 cursor-pointer" />
@@ -624,7 +585,6 @@ export default function ResearchDetailPage() {
             </div>
           </div>
           
-          {/* Linux Terminal Body */}
           <div className="p-6 md:p-8 lg:p-12 font-mono text-[10px] sm:text-xs md:text-sm leading-loose bg-[#02050a] h-auto overflow-x-auto custom-scrollbar cursor-text">
             <div className="text-[#00ff66] mb-4 md:mb-6 whitespace-pre-wrap">
               <span className="text-[#00ff66] font-bold">nima@research-matrix</span><span className="text-white">:</span><span className="text-[#00f0ff]">~</span>$ cat metadata.json
@@ -634,7 +594,6 @@ export default function ResearchDetailPage() {
                <div className="text-slate-300">{"{"}</div>
                <div className="pl-4 sm:pl-8">
                   <p className="mb-2"><span className="text-[#00f0ff]">"Writer"</span>: <span className="text-[#00ff66]">"{data.metadata.writer}"</span>,</p>
-                  
                   <p className="mb-2"><span className="text-[#00f0ff]">"Contributors"</span>: [</p>
                   <div className="pl-4 sm:pl-8">
                     {data.metadata.contributors.map((c: string, i: number) => (
@@ -674,7 +633,6 @@ export default function ResearchDetailPage() {
       </div>
       <BottomNav currentRole={currentUserRole as any} />
 
-      {/* Global CSS to fix scrollbars and ensure layout fits seamlessly */}
       <style jsx global>{`
         body { overflow-x: hidden; }
         .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }

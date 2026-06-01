@@ -116,6 +116,7 @@ export const loginUser = catchAsync(async (req: Request, res: Response) => {
 // ==========================================
 // FETCH PERSONAL IDENTITY (/me)
 // ==========================================
+
 export const getMe = catchAsync(async (req: Request, res: Response) => {
   const userId = req.user?.id; 
 
@@ -127,10 +128,11 @@ export const getMe = catchAsync(async (req: Request, res: Response) => {
       id: true,
       username: true,
       email: true,
-      // 🔥 THE FIX: WE MUST EXTRACT THESE FOR THE SETTINGS PAGE!
       fullName: true,
       age: true,
       phone: true,
+      // 🔥 THE FIX: Tell Prisma to grab the Profile Picture URL!
+      profilePic: true, 
       isVerified: true,
       createdAt: true,
     }

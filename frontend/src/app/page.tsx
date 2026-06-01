@@ -218,16 +218,39 @@ export default function WelcomePage() {
   const [isLightMode, setIsLightMode] = useState(false);
   const lastScrollY = useRef(0);
 
-  // 🔹 AUTHENTICATION STATE
+  // 🔹 DYNAMIC AUTHENTICATION & USER STATE
   const [hasToken, setHasToken] = useState(false);
+  const [userData, setUserData] = useState<any>(null); // Added state to hold DB profile info
   const [isProfileHovered, setIsProfileHovered] = useState(false);
   const [timeState, setTimeState] = useState({ time: "", date: "" });
 
   const [isSystemBooting, setIsSystemBooting] = useState(false); 
   
   useEffect(() => {
-    // Check Auth
-    setHasToken(!!localStorage.getItem('matrix_token'));
+    const token = localStorage.getItem('matrix_token');
+    if (token) {
+      setHasToken(true);
+      // 🔥 Fetch User Profile Data on Load
+      const fetchUserData = async () => {
+        try {
+          const res = await fetch('http://localhost:5000/api/auth/me', {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (res.ok) {
+            const result = await res.json();
+            setUserData(result.data);
+          } else {
+            setHasToken(false);
+            localStorage.removeItem('matrix_token');
+          }
+        } catch (err) {
+          console.error("Failed to fetch user matrix data", err);
+        }
+      };
+      fetchUserData();
+    } else {
+      setHasToken(false);
+    }
 
     // Boot Logic
     const hasBooted = sessionStorage.getItem('csxpedia_booted');
@@ -260,6 +283,7 @@ export default function WelcomePage() {
     localStorage.removeItem('userRole');
     localStorage.removeItem('matrix_token');
     setHasToken(false);
+    setUserData(null);
     router.push('/auth');
   };
 
@@ -296,7 +320,7 @@ export default function WelcomePage() {
       <ThemeToggle isLight={isLightMode} toggleTheme={() => setIsLightMode(!isLightMode)} />
 
       {/* ==========================================
-          HEADER (RESTORED PROFILE ICON FOR AUTHENTICATED USERS)
+          HEADER (DYNAMIC DATABASE PROFILE INJECTION)
           ========================================== */}
       <div className="fixed top-0 left-0 right-0 z-50 pt-6 px-6 lg:px-12 flex justify-end items-start pointer-events-none">
         {hasToken && (
@@ -308,12 +332,23 @@ export default function WelcomePage() {
                 </span>
                 <div className={`w-px h-4 hidden sm:block ${isLightMode ? 'bg-slate-300' : 'bg-slate-800'}`} />
                 <div className="flex items-center space-x-3 group">
-                  <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-cyan-400 to-blue-500 p-[1.5px] transition-all duration-500">
-                    <div className={`w-full h-full rounded-full flex items-center justify-center ${isLightMode ? 'bg-white' : 'bg-[#010205]'}`}>
-                      <User size={12} className={textPrimary} />
+                  
+                  {/* DYNAMIC PROFILE PICTURE */}
+                  <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-cyan-400 to-blue-500 p-[1.5px] transition-all duration-500 shrink-0 overflow-hidden">
+                    <div className={`w-full h-full rounded-full flex items-center justify-center overflow-hidden ${isLightMode ? 'bg-white' : 'bg-[#010205]'}`}>
+                      {userData?.profilePic ? (
+                        <img src={userData.profilePic} alt="Profile" className="w-full h-full object-cover" />
+                      ) : (
+                        <User size={12} className={textPrimary} />
+                      )}
                     </div>
                   </div>
-                  <span className={`text-xs font-black uppercase tracking-widest transition-colors ${textPrimary} group-hover:text-cyan-400`}>Nima</span>
+
+                  {/* DYNAMIC FULL NAME */}
+                  <span className={`text-xs font-black uppercase tracking-widest transition-colors ${textPrimary} group-hover:text-cyan-400`}>
+                    {userData ? (userData.fullName || 'OPERATOR') : 'GUEST'}
+                  </span>
+
                 </div>
               </div>
 

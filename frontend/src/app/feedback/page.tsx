@@ -5,10 +5,11 @@ import { motion, AnimatePresence, useMotionValue, useTransform } from 'framer-mo
 import { Canvas } from '@react-three/fiber';
 import { Float, Sparkles, Icosahedron, Octahedron, PresentationControls, Text } from '@react-three/drei';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { 
   Search, Star, Tag, Send, MessageSquareText, ShieldCheck, 
   Lightbulb, Bug, X, User, Settings, LogOut, Activity, AlertTriangle, TerminalSquare,
-  Loader2, CheckCircle2 // <-- Added new icons for the submit states
+  Loader2, CheckCircle2 
 } from 'lucide-react';
 
 import CustomCursor from '@/components/CustomCursor';
@@ -61,57 +62,30 @@ function DigitalSkeletonCore({ rating, isTyping, isLight, lastChar }: { rating: 
       <PresentationControls global config={{ mass: 1, tension: 100 }} snap={{ mass: 2, tension: 500 }} rotation={[0, -0.2, 0]}>
         <Float speed={spinSpeed} floatIntensity={1.5} rotationIntensity={2}>
           
-          {/* Holographic Keystroke Projection */}
           <AnimatePresence>
             {lastChar && isTyping && (
-              <Text 
-                position={[0, 0, 0]} 
-                fontSize={1.8} 
-                font="/fonts/Inter-Black.woff"
-                color={coreColor} 
-                anchorX="center" 
-                anchorY="middle"
-                fillOpacity={0.9}
-              >
+              <Text position={[0, 0, 0]} fontSize={1.8} font="/fonts/Inter-Black.woff" color={coreColor} anchorX="center" anchorY="middle" fillOpacity={0.9}>
                 {lastChar.toUpperCase()}
               </Text>
             )}
           </AnimatePresence>
 
-          {/* Outer Wireframe Ring 1 */}
           <mesh rotation={[Math.PI / 2, 0, 0]}>
             <torusGeometry args={[2.8, 0.01, 16, 100]} />
             <meshBasicMaterial color={coreColor} opacity={0.3} transparent />
           </mesh>
 
-          {/* Outer Wireframe Ring 2 */}
           <mesh rotation={[0, Math.PI / 4, 0]}>
             <torusGeometry args={[2.4, 0.02, 16, 100]} />
             <meshBasicMaterial color={isLight ? "#000" : "#fff"} opacity={0.1} transparent />
           </mesh>
 
-          {/* The Skeleton Geometry - Icosahedron */}
           <Icosahedron args={[1.6, 1]}>
-            <meshStandardMaterial 
-              color={coreColor} 
-              wireframe={true} 
-              emissive={coreColor}
-              emissiveIntensity={isTyping ? 1.5 : 0.5}
-              transparent
-              opacity={0.8}
-            />
+            <meshStandardMaterial color={coreColor} wireframe={true} emissive={coreColor} emissiveIntensity={isTyping ? 1.5 : 0.5} transparent opacity={0.8} />
           </Icosahedron>
 
-          {/* Inner Dense Core - Octahedron */}
           <Octahedron args={[0.8, 0]}>
-            <meshStandardMaterial 
-              color={coreColor} 
-              wireframe={true} 
-              emissive={isLight ? "#000" : "#fff"}
-              emissiveIntensity={isTyping ? 1 : 0.2}
-              transparent
-              opacity={0.4}
-            />
+            <meshStandardMaterial color={coreColor} wireframe={true} emissive={isLight ? "#000" : "#fff"} emissiveIntensity={isTyping ? 1 : 0.2} transparent opacity={0.4} />
           </Octahedron>
 
         </Float>
@@ -132,8 +106,7 @@ function AnimatedCyberGrid({ isLight }: { isLight: boolean }) {
   return (
     <div className={`fixed inset-0 z-0 pointer-events-none transition-colors duration-1000 ${bgColor} overflow-hidden`}>
       <motion.div 
-        animate={{ y: [0, -100, 0] }} 
-        transition={{ duration: 30, ease: "linear", repeat: Infinity }}
+        animate={{ y: [0, -100, 0] }} transition={{ duration: 30, ease: "linear", repeat: Infinity }}
         className="absolute inset-0 w-full h-[200%] opacity-50"
         style={{
           backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='103.92304845413264' viewBox='0 0 60 103.92304845413264' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 103.92304845413264L60 86.60254037844386L60 51.96152422706632L30 34.64101615137754L0 51.96152422706632L0 86.60254037844386Z' fill='transparent' stroke='${encodeURIComponent(hexColor)}' stroke-width='1'/%3E%3C/svg%3E")`,
@@ -150,10 +123,14 @@ function AnimatedCyberGrid({ isLight }: { isLight: boolean }) {
 // MAIN FEEDBACK PAGE
 // ==========================================
 export default function MasterFeedbackVault() {
+  const router = useRouter();
   const [isLightMode, setIsLightMode] = useState(false);
   const [timeState, setTimeState] = useState({ time: "", date: "" });
   const [isProfileHovered, setIsProfileHovered] = useState(false);
   
+  // DYNAMIC USER DATA
+  const [userData, setUserData] = useState<any>(null);
+
   // Form State
   const [rating, setRating] = useState(3); 
   const [feedbackType, setFeedbackType] = useState('Feature Request');
@@ -173,14 +150,12 @@ export default function MasterFeedbackVault() {
   const [prediction, setPrediction] = useState('');
   const lastChar = message.length > 0 ? message.slice(-1) : '';
 
-  // 3D Form Tracking Physics
   const formRef = useRef<HTMLDivElement>(null);
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
   const rotateX = useTransform(mouseY, [-300, 300], [4, -4]); 
   const rotateY = useTransform(mouseX, [-300, 300], [-4, 4]);
 
-  // Dynamic Theme Variables
   const textPrimary = isLightMode ? "text-slate-900" : "text-white";
   const textSecondary = isLightMode ? "text-slate-600" : "text-slate-400";
   const glassBg = isLightMode ? "bg-white/90 border-slate-200 shadow-2xl" : "bg-[#010308]/90 border-white/5 shadow-[0_0_50px_rgba(0,0,0,0.5)]";
@@ -188,6 +163,23 @@ export default function MasterFeedbackVault() {
 
   const activeAccent = rating <= 2 ? '#ef4444' : rating === 3 ? '#f59e0b' : '#00f0ff';
   const activeAccentGlow = rating <= 2 ? 'rgba(239,68,68,0.3)' : rating === 3 ? 'rgba(245,158,11,0.3)' : 'rgba(0,240,255,0.3)';
+
+  // LIVE DATABASE HYDRATION
+  useEffect(() => {
+    const fetchMatrixData = async () => {
+      const token = localStorage.getItem('matrix_token');
+      if (!token) return;
+
+      try {
+        const userRes = await fetch('http://localhost:5000/api/auth/me', { headers: { 'Authorization': `Bearer ${token}` } });
+        if (userRes.ok) {
+          const { data } = await userRes.json();
+          setUserData(data);
+        }
+      } catch (err) { console.error(err); }
+    };
+    fetchMatrixData();
+  }, []);
 
   useEffect(() => {
     const updateClock = () => {
@@ -202,7 +194,6 @@ export default function MasterFeedbackVault() {
     return () => clearInterval(timer);
   }, []);
 
-  // Smarter AI Ghost-Typing Engine
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const val = e.target.value;
     setMessage(val);
@@ -257,6 +248,12 @@ export default function MasterFeedbackVault() {
     setTaggedItems(taggedItems.filter(t => t.id !== id));
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem('matrix_token');
+    localStorage.removeItem('userRole');
+    router.push('/auth');
+  };
+
   const filteredSearch = SEARCHABLE_ITEMS.filter(item => 
     item.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
     item.id.toLowerCase().includes(searchQuery.toLowerCase())
@@ -274,41 +271,42 @@ export default function MasterFeedbackVault() {
     { id: 'Critical', color: 'text-red-500', bg: 'bg-red-500/10', border: 'border-red-500/30' },
   ];
 
-  // 🚀 INTERCEPT SUBMISSION AND HANDLE IT ASYNCHRONOUSLY
+  // 🔥 FIRST-PARTY LOCAL DATABASE SUBMISSION 🔥
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+    const token = localStorage.getItem('matrix_token');
 
     try {
-      await fetch("https://submit-form.com/m2AXzAFpb", {
+      const res = await fetch("http://localhost:5000/api/feedback/submit", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Accept: "application/json",
+          ...(token ? { "Authorization": `Bearer ${token}` } : {})
         },
         body: JSON.stringify({
           rating,
-          feedback_type: feedbackType,
-          priority_level: priority,
-          would_recommend: recommend ? "Yes" : "No",
-          tagged_items: taggedItems.map(t => `${t.id} (${t.title})`).join(', '),
+          category: feedbackType,
+          priority,
+          recommend,
+          tags: taggedItems.map(t => `${t.id} (${t.title})`).join(', '),
           message,
         }),
       });
       
-      // Show Success State
-      setIsSuccess(true);
-      
-      // Wait 3 seconds, then reset the form
-      setTimeout(() => {
-        setIsSuccess(false);
-        setMessage('');
-        setTaggedItems([]);
-        setRating(3);
-        setPriority('Medium');
-        setFeedbackType('Feature Request');
-      }, 3000);
-
+      if (res.ok) {
+        setIsSuccess(true);
+        setTimeout(() => {
+          setIsSuccess(false);
+          setMessage('');
+          setTaggedItems([]);
+          setRating(3);
+          setPriority('Medium');
+          setFeedbackType('Feature Request');
+        }, 3000);
+      } else {
+        alert("Telemetry submission failed. Ensure you are authorized.");
+      }
     } catch (error) {
       console.error("Submission failed:", error);
     } finally {
@@ -316,25 +314,20 @@ export default function MasterFeedbackVault() {
     }
   };
 
+  const displayName = userData?.fullName ? userData.fullName.toUpperCase() : "GUEST";
+
   return (
     <main className={`relative min-h-screen font-sans cursor-none overflow-x-hidden selection:bg-[${activeAccent}]/30 flex flex-col transition-colors duration-1000 ${isLightMode ? 'text-slate-900' : 'text-white'}`}>
       <CustomCursor />
       
       <AnimatedCyberGrid isLight={isLightMode} />
 
-      {/* ==========================================
-          THEME TOGGLE
-          ========================================== */}
       <div className="fixed top-24 left-6 lg:left-12 z-[100] pointer-events-auto">
         <ThemeToggle isLight={isLightMode} toggleTheme={() => setIsLightMode(!isLightMode)} />
       </div>
 
-      {/* ==========================================
-          HEADER
-          ========================================== */}
       <div className="fixed top-0 left-0 right-0 z-50 pt-6 px-6 lg:px-12 flex justify-between items-start pointer-events-none">
         
-        {/* LOGO */}
         <div className="flex items-center space-x-3 pointer-events-auto mt-20">
           <div className="w-10 h-10 shrink-0 bg-gradient-to-br from-[#f59e0b] to-[#00f0ff] rounded-lg flex items-center justify-center text-black shadow-[0_0_20px_rgba(245,158,11,0.3)]">
             <Activity size={20} />
@@ -353,12 +346,22 @@ export default function MasterFeedbackVault() {
               </span>
               <div className={`w-px h-4 hidden sm:block ${isLightMode ? 'bg-slate-300' : 'bg-slate-800'}`} />
               <div className="flex items-center space-x-3 group">
-                <div className={`w-7 h-7 rounded-full bg-gradient-to-tr from-[${activeAccent}] to-[#00f0ff] p-[1.5px] transition-all duration-500`} style={{ backgroundImage: `linear-gradient(to top right, ${activeAccent}, #00f0ff)` }}>
-                  <div className={`w-full h-full rounded-full flex items-center justify-center ${isLightMode ? 'bg-white' : 'bg-[#010205]'}`}>
-                    <User size={12} className={textPrimary} />
+                
+                {/* 🔥 DYNAMIC PROFILE PICTURE UPGRADE 🔥 */}
+                <div className={`w-7 h-7 rounded-full bg-gradient-to-tr from-[${activeAccent}] to-[#00f0ff] p-[1.5px] transition-all duration-500 shrink-0 overflow-hidden`} style={{ backgroundImage: `linear-gradient(to top right, ${activeAccent}, #00f0ff)` }}>
+                  <div className={`w-full h-full rounded-full flex items-center justify-center overflow-hidden ${isLightMode ? 'bg-white' : 'bg-[#010205]'}`}>
+                    {userData?.profilePic ? (
+                      <img src={userData.profilePic} alt="Profile" className="w-full h-full object-cover" />
+                    ) : (
+                      <User size={12} className={textPrimary} />
+                    )}
                   </div>
                 </div>
-                <span className={`text-xs font-black uppercase tracking-widest transition-colors ${textPrimary}`} style={{ color: isProfileHovered ? activeAccent : undefined }}>Nima</span>
+
+                <span className={`text-xs font-black uppercase tracking-widest transition-colors ${textPrimary}`} style={{ color: isProfileHovered ? activeAccent : undefined }}>
+                  {displayName}
+                </span>
+
               </div>
             </div>
 
@@ -371,11 +374,8 @@ export default function MasterFeedbackVault() {
                   <Link href="/settings" className={`flex items-center px-4 py-3 text-xs font-bold uppercase tracking-widest rounded-xl transition-all ${isLightMode ? 'text-slate-700 hover:bg-slate-100' : 'text-slate-300 hover:bg-white/5'}`}>
                     <Settings size={14} className="mr-3 text-[#f59e0b]" /> Settings
                   </Link>
-                  <button type="button" aria-label="Saved Links" className={`flex items-center px-4 py-3 text-xs font-bold uppercase tracking-widest text-cyan-500 rounded-xl transition-all group ${isLightMode ? 'hover:bg-cyan-50' : 'hover:bg-cyan-500/10'}`}>
-                    <Star size={14} className="mr-3 text-cyan-400 group-hover:drop-shadow-[0_0_8px_rgba(0,240,255,0.8)]" /> Saved Links
-                  </button>
                   <div className={`h-px w-full my-1 ${isLightMode ? 'bg-slate-200' : 'bg-slate-800/50'}`} />
-                  <button type="button" aria-label="Terminate Link" className={`flex items-center px-4 py-3 text-xs font-bold uppercase tracking-widest text-red-500 rounded-xl transition-all group ${isLightMode ? 'hover:bg-red-50' : 'hover:bg-red-500/10'}`}>
+                  <button onClick={handleLogout} type="button" aria-label="Terminate Link" className={`flex items-center px-4 py-3 text-xs font-bold uppercase tracking-widest text-red-500 rounded-xl transition-all group ${isLightMode ? 'hover:bg-red-50' : 'hover:bg-red-500/10'}`}>
                     <LogOut size={14} className="mr-3 text-red-500 group-hover:drop-shadow-[0_0_8px_rgba(239,68,68,0.8)]" /> Terminate Link
                   </button>
                 </motion.div>
@@ -385,12 +385,8 @@ export default function MasterFeedbackVault() {
         </div>
       </div>
 
-      {/* ==========================================
-          MAIN CONTENT SPLIT
-          ========================================== */}
       <div className="relative z-10 w-full min-h-screen pt-32 pb-48 px-6 lg:px-12 flex flex-col lg:flex-row gap-8 flex-grow">
         
-        {/* LEFT SIDE: DIGITAL SKELETON CORE & COPY */}
         <div className="w-full lg:w-1/2 flex flex-col justify-center items-center lg:items-start min-h-[500px] relative">
           
           <motion.div initial={{ opacity: 0, x: -50 }} animate={{ opacity: 1, x: 0 }} transition={ultraSmoothSpring} className="relative z-10 text-center lg:text-left mb-8 pointer-events-none drop-shadow-2xl">
@@ -417,9 +413,7 @@ export default function MasterFeedbackVault() {
           </div>
         </div>
 
-        {/* RIGHT SIDE: MAGNETIC 3D FORM */}
         <div className="w-full lg:w-1/2 flex justify-center lg:justify-end items-center pb-20 [perspective:2000px]">
-          
           <motion.div 
             ref={formRef}
             onMouseMove={handleMouseMove}
@@ -432,10 +426,8 @@ export default function MasterFeedbackVault() {
               boxShadow: `0 30px 80px ${activeAccentGlow}, inset 0 0 20px rgba(255,255,255,0.02)` 
             }}
           >
-            {/* 🚀 CHANGED TO USE CUSTOM ONSUBMIT HANDLER */}
             <form onSubmit={handleFormSubmit} className="flex flex-col space-y-8 pointer-events-auto relative z-10">
 
-              {/* 1. ROW: TYPE & RATING */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <motion.div variants={itemReveal}>
                   <label className={`block text-xs font-bold uppercase tracking-widest mb-3 ${textSecondary}`}>Category</label>
@@ -484,7 +476,6 @@ export default function MasterFeedbackVault() {
                 </motion.div>
               </div>
 
-              {/* 2. ROW: TAGGING & PRIORITY */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 <motion.div variants={itemReveal} className="md:col-span-2 relative z-50">
                   <label className={`block text-xs font-bold uppercase tracking-widest mb-3 ${textSecondary}`}>Target Link (Optional)</label>
@@ -563,12 +554,10 @@ export default function MasterFeedbackVault() {
                 </motion.div>
               </div>
 
-              {/* 3. THE MESSAGE CORE */}
               <motion.div variants={itemReveal} className="relative">
                 <div className="flex justify-between items-end mb-3">
                   <label className={`block text-xs font-bold uppercase tracking-widest ${textSecondary}`}>Telemetry Log</label>
                   
-                  {/* LIVE SYNTAX ANALYZER */}
                   <div className="flex items-end space-x-1 h-4">
                     {[1, 2, 3, 4, 5].map((bar) => (
                       <motion.div 
@@ -593,7 +582,6 @@ export default function MasterFeedbackVault() {
                     style={{ borderColor: isTyping ? activeAccent : undefined }}
                   />
                   
-                  {/* AI Prediction Chip */}
                   <AnimatePresence>
                     {prediction && !isSubmitting && !isSuccess && (
                       <motion.div 
@@ -615,7 +603,6 @@ export default function MasterFeedbackVault() {
                 </div>
               </motion.div>
 
-              {/* 4. BOTTOM CONTROLS & DYNAMIC SUBMIT BUTTON */}
               <motion.div variants={itemReveal} className="flex flex-col sm:flex-row items-center justify-between pt-4 border-t border-white/10 gap-6">
                 
                 <div className="flex items-center space-x-4 cursor-pointer group" onClick={() => !isSubmitting && !isSuccess && setRecommend(!recommend)}>
@@ -641,7 +628,6 @@ export default function MasterFeedbackVault() {
                   </div>
                 </div>
 
-                {/* 🚀 THE NEW AJAX SUBMIT BUTTON WITH LOADING & SUCCESS STATES */}
                 <button 
                   type="submit"
                   disabled={isSubmitting || isSuccess}

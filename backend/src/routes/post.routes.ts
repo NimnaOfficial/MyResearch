@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { createPost, getPosts } from '../controllers/post.controller';
 import { requireAuth } from '../middleware/requireAuth';
 import prisma from '../config/prisma';
+import { generateResearchPDF } from '../controllers/pdf.controller';
 
 const router = Router();
 
@@ -19,5 +20,7 @@ router.get('/', getPosts);
 
 // PROTECTED ROUTE: Only authenticated identities can create posts
 router.post('/', requireAuth, createPost);
+
+router.get('/:id/pdf', generateResearchPDF);
 
 export default router;

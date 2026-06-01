@@ -117,7 +117,7 @@ export default function AuthGateway() {
         setTimeout(() => setAuthState('idle'), 3000);
       }
     } catch (err) {
-      console.error("🔥 CRITICAL NETWORK ERROR 🔥:", err);
+      console.error("⚠️ CRITICAL NETWORK ERROR ⚠️:", err);
       setAuthState('error');
       setAuthError('Matrix connection failed. Check server status.');
       setTimeout(() => setAuthState('idle'), 3000);
@@ -168,7 +168,7 @@ export default function AuthGateway() {
         setTimeout(() => setAuthState('idle'), 3000);
       }
     } catch (err) {
-      console.error("🔥 CRITICAL NETWORK ERROR 🔥:", err);
+      console.error("⚠️ CRITICAL NETWORK ERROR ⚠️:", err);
       setAuthState('error');
       setAuthError('Matrix connection failed. Check server status.');
       setTimeout(() => setAuthState('idle'), 3000);
@@ -355,13 +355,24 @@ export default function AuthGateway() {
         )}
       </AnimatePresence>
 
-      {/* BOTTOM COMPONENTS */}
-      <div className="relative z-20 w-full pointer-events-auto border-t border-slate-500/20 bg-black/20 backdrop-blur-md mt-auto">
-        <Footer isLight={isLightMode} currentRole="guest" />
-      </div>
-      <div className="relative z-30 pointer-events-auto">
-        <BottomNav currentRole="guest" />
-      </div>
+      {/* BOTTOM COMPONENTS - SYNCHRONIZED FADE IN */}
+      <AnimatePresence>
+        {!isBooting && (
+          <motion.div 
+            initial={{ opacity: 0 }} 
+            animate={{ opacity: 1 }} 
+            transition={{ delay: 0.5, duration: 1 }}
+            className="w-full mt-auto flex flex-col"
+          >
+            <div className="relative z-20 w-full pointer-events-auto border-t border-slate-500/20 bg-black/20 backdrop-blur-md">
+              <Footer isLight={isLightMode} currentRole="guest" />
+            </div>
+            <div className="relative z-30 pointer-events-auto">
+              <BottomNav currentRole="guest" />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </main>
   );
 }

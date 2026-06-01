@@ -54,3 +54,63 @@ export const sendSecretCodeEmail = async (toEmail: string, secretCode: string, v
     console.log(`======================================================\n`);
   }
 };
+
+// Add this to the bottom of backend/src/utils/sendEmail.ts
+
+export const sendFeedbackNotificationEmail = async (
+  senderInfo: string,
+  rating: number,
+  category: string,
+  priority: string,
+  message: string,
+  tags: string
+) => {
+  // We send it TO your own email so you get the alert!
+  const mailOptions = {
+    from: `"CSxPEDIA Matrix" <${process.env.EMAIL_USER}>`,
+    to: process.env.EMAIL_USER, 
+    subject: `[TELEMETRY LOG] ${priority.toUpperCase()} - ${category}`,
+    html: `
+      <div style="font-family: 'Courier New', Courier, monospace; background-color: #01030a; color: #00f0ff; padding: 40px; border-radius: 10px; border: 1px solid #1e293b;">
+        <h2 style="color: #00ff66; letter-spacing: 2px; margin-top: 0;">NEW TELEMETRY INTERCEPTED</h2>
+        <p style="color: #94a3b8; font-size: 14px;">A new log has been injected into the PostgreSQL Matrix.</p>
+        
+        <table style="width: 100%; margin: 30px 0; border-collapse: collapse;">
+          <tr>
+            <td style="padding: 10px; border-bottom: 1px solid #1e293b; color: #94a3b8;">OPERATOR</td>
+            <td style="padding: 10px; border-bottom: 1px solid #1e293b; color: #fff; font-weight: bold;">${senderInfo}</td>
+          </tr>
+          <tr>
+            <td style="padding: 10px; border-bottom: 1px solid #1e293b; color: #94a3b8;">CATEGORY</td>
+            <td style="padding: 10px; border-bottom: 1px solid #1e293b; color: #fff;">${category}</td>
+          </tr>
+          <tr>
+            <td style="padding: 10px; border-bottom: 1px solid #1e293b; color: #94a3b8;">PRIORITY</td>
+            <td style="padding: 10px; border-bottom: 1px solid #1e293b; color: ${priority === 'Critical' ? '#ef4444' : priority === 'Medium' ? '#f59e0b' : '#00f0ff'};">${priority.toUpperCase()}</td>
+          </tr>
+          <tr>
+            <td style="padding: 10px; border-bottom: 1px solid #1e293b; color: #94a3b8;">RATING</td>
+            <td style="padding: 10px; border-bottom: 1px solid #1e293b; color: #fff;">${rating} / 5 Stars</td>
+          </tr>
+          <tr>
+            <td style="padding: 10px; border-bottom: 1px solid #1e293b; color: #94a3b8;">TARGET NODES</td>
+            <td style="padding: 10px; border-bottom: 1px solid #1e293b; color: #a855f7;">${tags || 'None Selected'}</td>
+          </tr>
+        </table>
+
+        <div style="padding: 20px; background-color: rgba(0, 240, 255, 0.05); border-left: 4px solid #00f0ff; border-radius: 4px;">
+          <p style="color: #94a3b8; font-size: 12px; margin-top: 0; margin-bottom: 10px;">DECRYPTED MESSAGE:</p>
+          <p style="color: #ffffff; font-size: 16px; margin: 0; white-space: pre-wrap;">${message}</p>
+        </div>
+      </div>
+    `,
+  };
+
+  try {
+    // Note: ensure 'transporter' is defined at the top of your file from the previous Nodemailer setup
+    await transporter.sendMail(mailOptions);
+    console.log(`[NETWORK] ✅ Telemetry Email Notification successfully transmitted to Admin.`);
+  } catch (error) {
+    console.error(`[NETWORK BLOCKED] ⚠️ Telemetry Email failed to send:`, error);
+  }
+};

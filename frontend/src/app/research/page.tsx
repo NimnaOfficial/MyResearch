@@ -366,14 +366,23 @@ export default function MasterResearchVault() {
               </span>
               <div className={`w-px h-4 hidden sm:block ${isLightMode ? 'bg-slate-300' : 'bg-slate-800'}`}></div>
               <div className="flex items-center space-x-3 group">
-                <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-[#00ff66] to-[#00f0ff] p-[1.5px]">
-                  <div className={`w-full h-full rounded-full flex items-center justify-center ${isLightMode ? 'bg-white' : 'bg-[#010205]'}`}>
-                    <User size={12} className={textPrimary} />
+                
+                {/* UPGRADED PROFILE PICTURE DISPLAY */}
+                <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-[#00ff66] to-[#00f0ff] p-[1.5px] shrink-0 overflow-hidden">
+                  <div className={`w-full h-full rounded-full flex items-center justify-center overflow-hidden ${isLightMode ? 'bg-white' : 'bg-[#010205]'}`}>
+                    {userData?.profilePic ? (
+                      <img src={userData.profilePic} alt="Profile" className="w-full h-full object-cover" />
+                    ) : (
+                      <User size={12} className={textPrimary} />
+                    )}
                   </div>
                 </div>
+                
+                {/* UPGRADED FULL NAME DISPLAY */}
                 <span className={`text-xs font-black uppercase tracking-widest transition-colors ${textPrimary} group-hover:text-[#00f0ff]`}>
-                  {userData ? userData.username : 'GUEST'}
+                  {userData ? (userData.fullName || 'OPERATOR') : 'GUEST'}
                 </span>
+                
               </div>
             </div>
 

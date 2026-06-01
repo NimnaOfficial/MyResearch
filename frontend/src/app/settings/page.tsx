@@ -8,7 +8,7 @@ import * as THREE from 'three';
 import { 
   User, Shield, Laptop, LogOut, AlertTriangle, CheckCircle2, Lock, Camera, Send, ChevronRight,
   Mail, KeyRound, Bookmark, ArchiveRestore, FileText, ScanFace, Loader2, Type, Hash, Phone,
-  X, UploadCloud 
+  X, UploadCloud, ArrowLeft 
 } from 'lucide-react';
 
 import Cropper from 'react-easy-crop';
@@ -65,7 +65,7 @@ export default function AdvancedSettingsMatrix() {
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
-  // Form State
+  // Form State mapping exactly to Registration UI
   const [formData, setFormData] = useState({
     fullName: "", age: "", phone: "", password: "", confirmPassword: ""
   });
@@ -213,12 +213,24 @@ export default function AdvancedSettingsMatrix() {
 
       <div className="relative z-10 w-full pt-32 pb-40 px-6 lg:px-12 flex-grow flex flex-col items-center pointer-events-none">
         
-        <motion.div initial={{ opacity: 0, y: -30, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ type: "spring", stiffness: 80 }} className="w-full max-w-7xl mb-12 flex flex-col md:flex-row md:items-end justify-between pointer-events-auto">
-          <div>
-            <h1 className={`text-5xl md:text-7xl font-black uppercase tracking-tighter mb-2 ${isLightMode ? 'text-slate-900' : 'video-text-animation drop-shadow-[0_0_20px_rgba(0,240,255,0.3)]'}`}>
-              Settings <span className={isLightMode ? 'text-blue-600' : ''}>Matrix</span>
-            </h1>
-            <p className={`font-mono text-xs md:text-sm tracking-widest uppercase ${textSecondary}`}>Manage Account Registration & Preferences</p>
+        <motion.div initial={{ opacity: 0, y: -30, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ type: "spring", stiffness: 80 }} className="w-full max-w-7xl mb-12 flex flex-col items-start pointer-events-auto">
+          
+          {/* SECURE BACK BUTTON NAVIGATION */}
+          <button 
+            onClick={() => router.push('/research')} 
+            className={`group flex items-center space-x-3 px-5 py-2.5 mb-6 rounded-full border font-mono text-[10px] uppercase tracking-widest backdrop-blur-md transition-all cursor-pointer ${isLightMode ? 'bg-white/60 border-slate-300 text-slate-700 hover:bg-white hover:shadow-md' : 'bg-[#01030b]/60 border-[#00f0ff]/30 text-[#00f0ff] hover:bg-[#00f0ff]/10 hover:shadow-[0_0_20px_rgba(0,240,255,0.2)]'}`}
+          >
+            <ArrowLeft size={14} className="group-hover:-translate-x-1 transition-transform" />
+            <span>Return to Matrix</span>
+          </button>
+
+          <div className="flex flex-col md:flex-row md:items-end justify-between w-full">
+            <div>
+              <h1 className={`text-5xl md:text-7xl font-black uppercase tracking-tighter mb-2 ${isLightMode ? 'text-slate-900' : 'video-text-animation drop-shadow-[0_0_20px_rgba(0,240,255,0.3)]'}`}>
+                Settings <span className={isLightMode ? 'text-blue-600' : ''}>Matrix</span>
+              </h1>
+              <p className={`font-mono text-xs md:text-sm tracking-widest uppercase ${textSecondary}`}>Manage Account Registration & Preferences</p>
+            </div>
           </div>
         </motion.div>
 
@@ -232,7 +244,7 @@ export default function AdvancedSettingsMatrix() {
                 return (
                   <motion.button
                     key={tab.id} onClick={() => setActiveTab(tab.id)} whileHover={{ scale: 1.02, x: 5 }} whileTap={{ scale: 0.98 }}
-                    className={`relative p-4 rounded-2xl flex items-center text-left transition-all duration-300 overflow-hidden group ${isActive ? (isLightMode ? 'text-white' : 'text-black') : (isLightMode ? 'text-slate-600 hover:bg-slate-100' : 'text-slate-400 hover:bg-[#0044ff]/10 hover:text-white')}`}
+                    className={`relative p-4 rounded-2xl flex items-center text-left transition-all duration-300 overflow-hidden group cursor-pointer ${isActive ? (isLightMode ? 'text-white' : 'text-black') : (isLightMode ? 'text-slate-600 hover:bg-slate-100' : 'text-slate-400 hover:bg-[#0044ff]/10 hover:text-white')}`}
                   >
                     {isActive && <motion.div layoutId="activeTabGlow" transition={{ type: "spring", stiffness: 100, damping: 15 }} className="absolute inset-0 bg-gradient-to-r from-[#0066ff] to-[#00f0ff] rounded-2xl z-0 shadow-[0_0_25px_rgba(0,240,255,0.4)]" />}
                     <div className="relative z-10 flex items-center w-full">
@@ -250,7 +262,7 @@ export default function AdvancedSettingsMatrix() {
               })}
             </div>
             <div className={`mt-10 pt-8 border-t ${isLightMode ? 'border-slate-200' : 'border-[#0055ff]/30'}`}>
-              <motion.button onClick={handleLogout} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="flex items-center justify-center w-full p-4 rounded-xl text-xs font-bold uppercase tracking-widest text-red-500 hover:bg-red-500/10 transition-colors border border-transparent hover:border-red-500/30">
+              <motion.button onClick={handleLogout} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="flex items-center justify-center w-full p-4 rounded-xl text-xs font-bold uppercase tracking-widest text-red-500 hover:bg-red-500/10 transition-colors border border-transparent hover:border-red-500/30 cursor-pointer">
                 <LogOut size={18} className="mr-3" /> Sign Out
               </motion.button>
             </div>
@@ -277,10 +289,10 @@ export default function AdvancedSettingsMatrix() {
                             const file = e.target.files?.[0];
                             if (file) {
                               setSelectedImage(URL.createObjectURL(file));
-                              setCrop({ x: 0, y: 0 }); // Reset state
+                              setCrop({ x: 0, y: 0 }); 
                               setZoom(1);
                             }
-                            e.target.value = ''; // Reset input to allow same file re-selection
+                            e.target.value = ''; 
                           }}
                         />
                         <label htmlFor="profilePicUpload" className="w-32 h-32 rounded-full bg-gradient-to-tr from-[#0044ff] to-[#00f0ff] p-[3px] shadow-[0_0_40px_rgba(0,102,255,0.4)] flex cursor-pointer">
@@ -374,7 +386,7 @@ export default function AdvancedSettingsMatrix() {
                   <motion.button 
                     variants={springItem} onClick={handleSaveAccount} disabled={isSaving}
                     whileHover={{ scale: 1.05, boxShadow: "0 0 40px rgba(0, 240, 255, 0.6)" }} whileTap={{ scale: 0.95 }} 
-                    className={`mt-10 ml-auto px-10 py-5 rounded-2xl font-black uppercase tracking-widest text-xs flex items-center transition-all ${saveSuccess ? 'bg-green-500 text-white shadow-[0_0_30px_rgba(0,255,100,0.4)]' : 'text-black bg-gradient-to-r from-[#0066ff] to-[#00f0ff] shadow-[0_0_30px_rgba(0,240,255,0.4)]'}`}
+                    className={`mt-10 ml-auto px-10 py-5 rounded-2xl font-black uppercase tracking-widest text-xs flex items-center transition-all cursor-pointer ${saveSuccess ? 'bg-green-500 text-white shadow-[0_0_30px_rgba(0,255,100,0.4)]' : 'text-black bg-gradient-to-r from-[#0066ff] to-[#00f0ff] shadow-[0_0_30px_rgba(0,240,255,0.4)]'}`}
                   >
                     {isSaving ? <Loader2 className="animate-spin mr-2" size={16} /> : saveSuccess ? <CheckCircle2 className="mr-2" size={16} /> : null}
                     {isSaving ? 'Encrypting Payload...' : saveSuccess ? 'Data Synchronized' : 'Save Account Changes'}
@@ -414,7 +426,7 @@ export default function AdvancedSettingsMatrix() {
         {selectedImage && (
           <motion.div 
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/90 backdrop-blur-md p-4 pointer-events-auto"
+            className={`fixed inset-0 z-[9999] flex items-center justify-center bg-black/90 backdrop-blur-md p-4 pointer-events-auto cursor-default`}
           >
             <motion.div 
               initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }}
@@ -425,13 +437,12 @@ export default function AdvancedSettingsMatrix() {
                   <h3 className={`text-xl font-black uppercase tracking-widest ${isLightMode ? 'text-slate-800' : 'text-white'}`}>Adjust Avatar</h3>
                   <p className={`text-[10px] font-mono tracking-widest ${textSecondary}`}>Pinch & drag to align matrix projection.</p>
                 </div>
-                <button type="button" onClick={() => setSelectedImage(null)} className="p-3 rounded-2xl hover:bg-red-500/10 border border-transparent hover:border-red-500/30 text-red-500 transition-all" title="Close image cropper">
+                <button onClick={() => setSelectedImage(null)} title="Close image cropper" className="p-3 rounded-2xl hover:bg-red-500/10 border border-transparent hover:border-red-500/30 text-red-500 transition-all cursor-pointer">
                   <X size={20} />
                 </button>
               </div>
               
-              {/* Cropper Container - Needs explicit relative height! */}
-              <div className="relative w-full h-[350px] sm:h-[400px] bg-black rounded-3xl overflow-hidden mb-8 border border-slate-800 shadow-[inset_0_0_50px_rgba(0,0,0,0.8)]">
+              <div className="relative w-full h-[350px] sm:h-[400px] bg-black rounded-3xl overflow-hidden mb-8 border border-slate-800 shadow-[inset_0_0_50px_rgba(0,0,0,0.8)] cursor-grab active:cursor-grabbing">
                 <Cropper
                   image={selectedImage}
                   crop={crop}
@@ -443,13 +454,12 @@ export default function AdvancedSettingsMatrix() {
                   onZoomChange={setZoom}
                   onCropComplete={(_, croppedPixels) => setCroppedAreaPixels(croppedPixels)}
                   style={{
-                    containerStyle: { background: '#050505' },
-                    cropAreaStyle: { border: '2px solid #00f0ff', boxShadow: '0 0 20px rgba(0, 240, 255, 0.3)' }
+                    containerStyle: { background: '#050505', borderRadius: '1.5rem' },
+                    cropAreaStyle: { border: '2px solid #00f0ff', boxShadow: '0 0 0 9999em rgba(0,0,0,0.8), 0 0 20px rgba(0,240,255,0.5)' }
                   }}
                 />
               </div>
 
-              {/* Zoom Slider */}
               <div className="mb-8 px-2">
                 <div className="flex justify-between items-center mb-2">
                   <label className={`text-[10px] font-bold uppercase tracking-widest ${textSecondary}`}>Zoom Level</label>
@@ -457,15 +467,16 @@ export default function AdvancedSettingsMatrix() {
                 </div>
                 <input 
                   type="range" min={1} max={3} step={0.1} value={zoom} onChange={(e) => setZoom(Number(e.target.value))}
-                  className="w-full accent-[#00f0ff] h-1 bg-slate-800 rounded-full appearance-none cursor-ew-resize"
+                  className="w-full accent-[#00f0ff] h-1 bg-slate-800 rounded-full appearance-none cursor-pointer"
+                  title="Zoom Level"
+                  aria-label="Zoom Level"
                 />
               </div>
 
-              {/* Action Buttons */}
               <div className="flex space-x-4">
                 <button 
                   onClick={() => setSelectedImage(null)} disabled={isUploading}
-                  className={`flex-1 py-4 rounded-xl font-bold uppercase tracking-widest text-xs border transition-all ${isLightMode ? 'bg-slate-100 text-slate-600 border-slate-300 hover:bg-slate-200' : 'bg-transparent text-slate-400 border-slate-700 hover:bg-slate-800 hover:text-white'}`}
+                  className={`flex-1 py-4 rounded-xl font-bold uppercase tracking-widest text-xs border transition-all cursor-pointer ${isLightMode ? 'bg-slate-100 text-slate-600 border-slate-300 hover:bg-slate-200' : 'bg-transparent text-slate-400 border-slate-700 hover:bg-slate-800 hover:text-white'}`}
                 >
                   Cancel
                 </button>
@@ -499,7 +510,7 @@ export default function AdvancedSettingsMatrix() {
                       setIsUploading(false);
                     }
                   }}
-                  className="flex-[2] flex items-center justify-center py-4 rounded-xl bg-gradient-to-r from-[#0066ff] to-[#00f0ff] text-black font-black uppercase tracking-widest text-xs hover:shadow-[0_0_30px_rgba(0,240,255,0.4)] transition-all disabled:opacity-50"
+                  className="flex-[2] flex items-center justify-center py-4 rounded-xl bg-gradient-to-r from-[#0066ff] to-[#00f0ff] text-black font-black uppercase tracking-widest text-xs hover:shadow-[0_0_30px_rgba(0,240,255,0.4)] transition-all disabled:opacity-50 cursor-pointer"
                 >
                   {isUploading ? <Loader2 className="animate-spin mr-2" size={18} /> : <UploadCloud className="mr-2" size={18} />}
                   {isUploading ? 'Transmitting...' : 'Confirm & Upload'}
