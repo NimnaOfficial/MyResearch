@@ -175,12 +175,12 @@ export const uploadProfilePic = catchAsync(async (req: Request, res: Response) =
   if (!userId) return res.status(401).json({ message: 'Unauthorized' });
   if (!req.file) return res.status(400).json({ message: 'No image provided' });
 
-  // Generate the public URL path for the frontend
-  const imageUrl = `/uploads/profiles/${req.file.filename}`;
+  // 🔥 THE FIX: Cloudinary automatically injects the secure cloud URL into `req.file.path`
+  const cloudImageUrl = req.file.path; 
 
   const updatedUser = await prisma.user.update({
     where: { id: userId },
-    data: { profilePic: imageUrl },
+    data: { profilePic: cloudImageUrl },
     select: { id: true, profilePic: true }
   });
 

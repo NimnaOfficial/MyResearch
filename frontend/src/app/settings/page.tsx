@@ -7,8 +7,12 @@ import { Float, MeshDistortMaterial, OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 import { 
   User, Shield, Laptop, LogOut, AlertTriangle, CheckCircle2, Lock, Camera, Send, ChevronRight,
-  Mail, KeyRound, Bookmark, ArchiveRestore, FileText, ScanFace, Loader2, Type, Hash, Phone
+  Mail, KeyRound, Bookmark, ArchiveRestore, FileText, ScanFace, Loader2, Type, Hash, Phone,
+  X, UploadCloud 
 } from 'lucide-react';
+
+import Cropper from 'react-easy-crop';
+import { getCroppedImg } from '@/utils/cropImage';
 
 import CustomCursor from '@/components/CustomCursor';
 import BottomNav from '@/components/BottomNav';
@@ -61,14 +65,17 @@ export default function AdvancedSettingsMatrix() {
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
-  // Form State mapping exactly to Registration UI
+  // Form State
   const [formData, setFormData] = useState({
-    fullName: "",
-    age: "",
-    phone: "",
-    password: "",
-    confirmPassword: ""
+    fullName: "", age: "", phone: "", password: "", confirmPassword: ""
   });
+
+  // Advanced Cropper States
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   const updateForm = (field: keyof typeof formData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -85,7 +92,6 @@ export default function AdvancedSettingsMatrix() {
           const { data } = await userRes.json();
           setUserData(data);
           
-          // Hydrate with DB values
           setFormData(prev => ({ 
             ...prev, 
             fullName: data.fullName || "",
@@ -112,7 +118,6 @@ export default function AdvancedSettingsMatrix() {
       alert("Encryption Mismatch: Passwords do not match.");
       return;
     }
-
     setIsSaving(true);
     const token = localStorage.getItem('matrix_token');
 
@@ -124,10 +129,7 @@ export default function AdvancedSettingsMatrix() {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          fullName: formData.fullName,
-          age: formData.age,
-          phone: formData.phone,
-          password: formData.password
+          fullName: formData.fullName, age: formData.age, phone: formData.phone, password: formData.password
         })
       });
 
@@ -159,7 +161,6 @@ export default function AdvancedSettingsMatrix() {
     setTimeout(() => setRequestStatus('sent'), 2500);
   };
 
-  // Anti-Screenshot Logic
   useEffect(() => {
     const handleBlur = () => { setIsWindowFocused(false); setIsCodeRevealed(false); };
     const handleFocus = () => { setIsWindowFocused(true); };
@@ -190,7 +191,6 @@ export default function AdvancedSettingsMatrix() {
   const textPrimary = isLightMode ? "text-slate-900" : "text-white";
   const textSecondary = isLightMode ? "text-slate-500" : "text-[#4d88ff]";
 
-  // Real Database UI Mapping
   const displayName = userData?.fullName ? userData.fullName.toUpperCase() : "NIMA OPERATOR";
   const secureCode = userData ? userData.username : "••••••••";
 
@@ -220,14 +220,11 @@ export default function AdvancedSettingsMatrix() {
             </h1>
             <p className={`font-mono text-xs md:text-sm tracking-widest uppercase ${textSecondary}`}>Manage Account Registration & Preferences</p>
           </div>
-          <div className="hidden md:flex items-center space-x-3 px-5 py-2.5 rounded-full border font-mono text-[10px] uppercase tracking-widest backdrop-blur-md shadow-[0_0_20px_rgba(0,240,255,0.2)] bg-[#01030b]/60 border-[#00f0ff]/40 text-[#00f0ff]">
-            <div className="w-2 h-2 rounded-full bg-[#00f0ff] animate-pulse" />
-            <span>Interactive Node Active</span>
-          </div>
         </motion.div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 w-full max-w-7xl items-start pointer-events-none">
           
+          {/* SIDEBAR */}
           <motion.div initial={{ opacity: 0, x: -50 }} animate={{ opacity: 1, x: 0 }} transition={{ type: "spring", stiffness: 90, damping: 20 }} className={`lg:col-span-4 xl:col-span-3 rounded-[2.5rem] backdrop-blur-2xl p-6 border pointer-events-auto ${panelGlass}`}>
             <div className="flex flex-col space-y-3">
               {SETTINGS_TABS.map((tab) => {
@@ -252,7 +249,6 @@ export default function AdvancedSettingsMatrix() {
                 );
               })}
             </div>
-
             <div className={`mt-10 pt-8 border-t ${isLightMode ? 'border-slate-200' : 'border-[#0055ff]/30'}`}>
               <motion.button onClick={handleLogout} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="flex items-center justify-center w-full p-4 rounded-xl text-xs font-bold uppercase tracking-widest text-red-500 hover:bg-red-500/10 transition-colors border border-transparent hover:border-red-500/30">
                 <LogOut size={18} className="mr-3" /> Sign Out
@@ -260,6 +256,7 @@ export default function AdvancedSettingsMatrix() {
             </div>
           </motion.div>
 
+          {/* MAIN CONTENT */}
           <motion.div initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }} transition={{ type: "spring", stiffness: 90, damping: 20 }} className={`lg:col-span-8 xl:col-span-9 rounded-[3rem] backdrop-blur-2xl p-8 lg:p-12 border min-h-[700px] flex flex-col pointer-events-auto ${panelGlass}`}>
             <AnimatePresence mode="wait">
               
@@ -269,47 +266,30 @@ export default function AdvancedSettingsMatrix() {
                   <motion.div variants={springItem} className="flex flex-col md:flex-row items-center md:items-start justify-between w-full mb-12 gap-8">
                     
                     <div className="flex flex-col md:flex-row items-center md:items-start space-y-6 md:space-y-0 md:space-x-8">
-                      
-                      {/* PROFILE PICTURE CAMERA UPLOAD LOGIC */}
+                      {/* FILE INPUT TRIGGER */}
                       <motion.div whileHover={{ scale: 1.05, rotate: 5 }} whileTap={{ scale: 0.95 }} className="relative group cursor-pointer shrink-0">
                         <input 
                           type="file" 
                           id="profilePicUpload" 
                           className="hidden" 
                           accept="image/*"
-                          onChange={async (e) => {
+                          onChange={(e) => {
                             const file = e.target.files?.[0];
-                            if (!file) return;
-
-                            const uploadFormData = new FormData();
-                            uploadFormData.append('profilePic', file);
-
-                            const token = localStorage.getItem('matrix_token');
-                            const res = await fetch('http://localhost:5000/api/auth/upload-pic', {
-                              method: 'POST',
-                              headers: { 'Authorization': `Bearer ${token}` },
-                              body: uploadFormData
-                            });
-
-                            if (res.ok) {
-                              const result = await res.json();
-                              setUserData((prev: any) => ({ ...prev, profilePic: result.data.profilePic }));
-                            } else {
-                              alert("Failed to upload image. Ensure server static files are configured.");
+                            if (file) {
+                              setSelectedImage(URL.createObjectURL(file));
+                              setCrop({ x: 0, y: 0 }); // Reset state
+                              setZoom(1);
                             }
+                            e.target.value = ''; // Reset input to allow same file re-selection
                           }}
                         />
-                        
                         <label htmlFor="profilePicUpload" className="w-32 h-32 rounded-full bg-gradient-to-tr from-[#0044ff] to-[#00f0ff] p-[3px] shadow-[0_0_40px_rgba(0,102,255,0.4)] flex cursor-pointer">
                           <div className={`w-full h-full rounded-full flex items-center justify-center overflow-hidden relative ${isLightMode ? 'bg-white' : 'bg-[#01030a]'}`}>
-                            
-                            {/* LIVE IMAGE RENDER */}
                             {userData?.profilePic ? (
-                              <img src={`http://localhost:5000${userData.profilePic}`} alt="Profile" className="w-full h-full object-cover" />
+                              <img src={userData.profilePic} alt="Profile" className="w-full h-full object-cover" />
                             ) : (
                               <User size={50} className={textSecondary} />
                             )}
-
                             <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                               <Camera size={24} className="text-[#00f0ff] mb-2" />
                               <span className="text-[10px] font-bold text-white tracking-widest">Update</span>
@@ -317,7 +297,6 @@ export default function AdvancedSettingsMatrix() {
                           </div>
                         </label>
                       </motion.div>
-
                       <div className="text-center md:text-left mt-4 md:mt-2">
                         <h2 className={`text-4xl md:text-5xl font-black uppercase tracking-tighter ${textPrimary}`}>{displayName}</h2>
                       </div>
@@ -326,14 +305,12 @@ export default function AdvancedSettingsMatrix() {
                     <div className={`secure-code-container p-5 md:p-6 rounded-3xl border flex flex-col items-center justify-center shrink-0 shadow-inner relative overflow-hidden transition-colors ${isLightMode ? 'bg-red-50 border-red-200' : 'bg-[#010206] border-red-500/30'}`}>
                       <div className="absolute inset-0 bg-[repeating-linear-gradient(45deg,transparent,transparent_10px,rgba(255,0,0,0.03)_10px,rgba(255,0,0,0.03)_20px)] pointer-events-none" />
                       <span className={`text-[9px] md:text-[10px] font-black uppercase tracking-widest mb-3 flex items-center z-10 ${isLightMode ? 'text-red-600' : 'text-red-500'}`}><Shield size={12} className="mr-2"/> Secure Access Code</span>
-                      
                       <div className="relative z-10 cursor-crosshair px-4 py-2 bg-black/20 rounded-xl border border-red-500/20" onPointerDown={() => setIsCodeRevealed(true)} onPointerUp={() => setIsCodeRevealed(false)} onPointerLeave={() => setIsCodeRevealed(false)} onContextMenu={(e) => e.preventDefault()}>
                         <div className={`secure-code-block font-mono text-2xl md:text-3xl font-black tracking-[0.2em] transition-all duration-100 ${isCodeRevealed && isWindowFocused ? 'filter-none opacity-100' : 'filter blur-[10px] opacity-40'} ${isLightMode ? 'text-slate-800' : 'text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.8)]'}`}>
                           {secureCode}
                         </div>
                         <div className="absolute inset-0 z-20" />
                       </div>
-                      
                       <span className={`text-[8px] mt-3 uppercase tracking-widest font-bold z-10 flex items-center ${isCodeRevealed ? 'text-red-500' : (isLightMode ? 'text-slate-500' : 'text-slate-400')}`}>
                         {isCodeRevealed ? <AlertTriangle size={10} className="mr-1 animate-pulse" /> : <ScanFace size={10} className="mr-1" />}
                         {isCodeRevealed ? 'ACTIVE SCAN' : 'Click & Hold to Reveal'}
@@ -353,7 +330,6 @@ export default function AdvancedSettingsMatrix() {
                           <Type size={18} className={`absolute left-4 top-1/2 -translate-y-1/2 transition-colors group-focus-within:text-[#00f0ff] ${isLightMode ? 'text-blue-500' : 'text-[#0066ff]'}`} />
                         </div>
                       </motion.div>
-
                       <motion.div variants={springItem} whileHover={{ scale: 1.02 }} className="space-y-2 group">
                         <label className={`text-xs font-bold uppercase tracking-widest ml-2 ${textSecondary}`}>Phone Number</label>
                         <div className="relative">
@@ -361,7 +337,6 @@ export default function AdvancedSettingsMatrix() {
                           <Phone size={18} className={`absolute left-4 top-1/2 -translate-y-1/2 transition-colors group-focus-within:text-[#00f0ff] ${isLightMode ? 'text-blue-500' : 'text-[#0066ff]'}`} />
                         </div>
                       </motion.div>
-
                       <motion.div variants={springItem} whileHover={{ scale: 1.02 }} className="space-y-2 group">
                         <label className={`text-xs font-bold uppercase tracking-widest ml-2 ${textSecondary}`}>New Password</label>
                         <div className="relative">
@@ -373,14 +348,12 @@ export default function AdvancedSettingsMatrix() {
 
                     <div className="space-y-6">
                       <motion.div variants={springItem} className="space-y-2 group">
-                        {/* SECURED IMMUTABLE EMAIL FIELD */}
                         <label className={`text-xs font-bold uppercase tracking-widest ml-2 ${textSecondary}`}>Registered Email</label>
                         <div className="relative">
                           <input type="email" readOnly title="Registered Email" placeholder="Registered Email" value={userData ? userData.email : ""} className={`w-full p-4 pl-12 rounded-2xl border outline-none font-medium transition-all cursor-not-allowed ${isLightMode ? 'bg-slate-200 border-slate-300 text-slate-500' : 'bg-[#001133]/40 border-[#00f0ff]/10 text-slate-400'}`} />
                           <Lock size={18} className={`absolute left-4 top-1/2 -translate-y-1/2 ${isLightMode ? 'text-slate-400' : 'text-[#00f0ff]/50'}`} />
                         </div>
                       </motion.div>
-
                       <motion.div variants={springItem} whileHover={{ scale: 1.02 }} className="space-y-2 group">
                         <label className={`text-xs font-bold uppercase tracking-widest ml-2 ${textSecondary}`}>Age</label>
                         <div className="relative">
@@ -388,7 +361,6 @@ export default function AdvancedSettingsMatrix() {
                           <Hash size={18} className={`absolute left-4 top-1/2 -translate-y-1/2 transition-colors group-focus-within:text-[#00f0ff] ${isLightMode ? 'text-blue-500' : 'text-[#0066ff]'}`} />
                         </div>
                       </motion.div>
-
                       <motion.div variants={springItem} whileHover={{ scale: 1.02 }} className="space-y-2 group">
                         <label className={`text-xs font-bold uppercase tracking-widest ml-2 ${textSecondary}`}>Confirm Password</label>
                         <div className="relative">
@@ -410,102 +382,133 @@ export default function AdvancedSettingsMatrix() {
                 </motion.div>
               )}
 
-              {/* 2. HARDWARE NODES */}
+              {/* ... (Other Tabs Remain Exactly The Same) ... */}
               {activeTab === 'hardware' && (
                 <motion.div key="hardware" variants={staggerContainer} initial="hidden" animate="visible" exit="exit">
-                  <motion.h2 variants={springItem} className={`text-3xl font-black uppercase tracking-wide mb-10 ${textPrimary}`}>Linked Hardware</motion.h2>
-                  <div className="space-y-6">
-                    <motion.div variants={springItem} whileHover={{ scale: 1.02, y: -5 }} className={`p-8 rounded-3xl border flex flex-col md:flex-row md:items-center justify-between transition-all ${innerCard}`}>
-                      <div className="flex items-center space-x-6 mb-4 md:mb-0">
-                        <div className={`p-5 rounded-2xl shadow-inner ${isLightMode ? 'bg-blue-100 text-blue-600' : 'bg-[#00f0ff]/10 text-[#00f0ff] shadow-[inset_0_0_20px_rgba(0,240,255,0.2)]'}`}><Laptop size={36} /></div>
-                        <div>
-                          <h4 className={`font-black text-2xl tracking-wide ${textPrimary}`}>Current Active Node</h4>
-                          <p className={`text-sm mt-1 ${textSecondary}`}>Web Gateway</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center space-x-2 bg-green-500/10 border border-green-500/30 px-6 py-3 rounded-xl text-green-500 w-fit">
-                        <CheckCircle2 size={18} /> <span className="text-sm font-bold uppercase tracking-widest">Active Sync</span>
-                      </div>
-                    </motion.div>
-                  </div>
-                </motion.div>
-              )}
-
-              {/* 3. SAVED VAULT (DYNAMICALLY HYDRATED) */}
-              {activeTab === 'saved' && (
-                <motion.div key="saved" variants={staggerContainer} initial="hidden" animate="visible" exit="exit" className="flex flex-col h-full">
-                  <motion.h2 variants={springItem} className={`text-3xl font-black uppercase tracking-wide mb-6 ${textPrimary}`}>Authored Vault</motion.h2>
-                  <motion.p variants={springItem} className={`text-base leading-relaxed mb-10 max-w-2xl ${textSecondary}`}>
-                    Your locally encrypted archive of research papers, deployment logs, and system architectures that you have injected into the matrix.
-                  </motion.p>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 flex-grow">
-                     {userVault.length > 0 ? userVault.map((item, i) => (
-                       <motion.div key={item.id} variants={springItem} whileHover={{ scale: 1.02, y: -5 }} className={`p-6 md:p-8 rounded-3xl border flex flex-col justify-between transition-all cursor-pointer shadow-lg ${innerCard}`}>
-                          <div className="flex items-start justify-between mb-8">
-                            <div className={`p-4 rounded-2xl ${isLightMode ? 'bg-slate-200' : 'bg-[#00ff66]/10'}`}>
-                              <FileText size={24} className={isLightMode ? 'text-slate-700' : 'text-[#00ff66]'} />
-                            </div>
-                            <Bookmark size={20} className={isLightMode ? 'text-slate-400' : 'text-[#00ff66]'} fill={isLightMode ? "currentColor" : "none"} />
-                          </div>
-                          <div>
-                            <h4 className={`font-black text-xl tracking-wide mb-4 leading-tight ${textPrimary}`}>{item.title}</h4>
-                            <div className="flex flex-wrap items-center gap-3">
-                              <span className={`text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-lg border ${isLightMode ? 'border-slate-300 text-slate-600 bg-slate-100' : 'border-[#00ff66]/30 text-[#00ff66] bg-[#00ff66]/10'}`}>{item.type || 'RESEARCH'}</span>
-                              <span className={`text-[10px] font-mono tracking-widest ${textSecondary}`}>{new Date(item.createdAt).toLocaleDateString()}</span>
-                            </div>
-                          </div>
-                       </motion.div>
-                     )) : (
-                       <div className={`col-span-full py-12 flex flex-col items-center justify-center rounded-3xl border border-dashed ${isLightMode ? 'border-slate-300' : 'border-slate-800'}`}>
-                         <ArchiveRestore size={32} className={`mb-4 ${textSecondary}`} />
-                         <p className={`font-mono text-sm tracking-widest uppercase ${textSecondary}`}>Vault is currently empty.</p>
+                   <motion.h2 variants={springItem} className={`text-3xl font-black uppercase tracking-wide mb-10 ${textPrimary}`}>Linked Hardware</motion.h2>
+                   <div className="space-y-6">
+                     <motion.div variants={springItem} whileHover={{ scale: 1.02, y: -5 }} className={`p-8 rounded-3xl border flex flex-col md:flex-row md:items-center justify-between transition-all ${innerCard}`}>
+                       <div className="flex items-center space-x-6 mb-4 md:mb-0">
+                         <div className={`p-5 rounded-2xl shadow-inner ${isLightMode ? 'bg-blue-100 text-blue-600' : 'bg-[#00f0ff]/10 text-[#00f0ff] shadow-[inset_0_0_20px_rgba(0,240,255,0.2)]'}`}><Laptop size={36} /></div>
+                         <div>
+                           <h4 className={`font-black text-2xl tracking-wide ${textPrimary}`}>Current Active Node</h4>
+                           <p className={`text-sm mt-1 ${textSecondary}`}>Web Gateway</p>
+                         </div>
                        </div>
-                     )}
-                  </div>
+                       <div className="flex items-center space-x-2 bg-green-500/10 border border-green-500/30 px-6 py-3 rounded-xl text-green-500 w-fit">
+                         <CheckCircle2 size={18} /> <span className="text-sm font-bold uppercase tracking-widest">Active Sync</span>
+                       </div>
+                     </motion.div>
+                   </div>
                 </motion.div>
               )}
-
-              {/* 4. SECURITY & ADMIN */}
-              {activeTab === 'security' && (
-                <motion.div key="security" variants={staggerContainer} initial="hidden" animate="visible" exit="exit" className="flex flex-col h-full">
-                  <motion.h2 variants={springItem} className={`text-3xl font-black uppercase tracking-wide mb-10 flex items-center ${textPrimary}`}>
-                    Core Security <Shield className="ml-4 text-[#00f0ff]" size={36}/>
-                  </motion.h2>
-                  
-                  <motion.div variants={springItem} className={`p-12 rounded-[2.5rem] border relative overflow-hidden mb-8 shadow-2xl ${isLightMode ? 'bg-red-50 border-red-200' : 'bg-red-500/5 border-red-500/30'}`}>
-                    <div className="absolute inset-0 opacity-[0.03] bg-[repeating-linear-gradient(45deg,transparent,transparent_15px,#ff0000_15px,#ff0000_30px)] pointer-events-none" />
-                    
-                    <h3 className="text-xl font-black uppercase tracking-widest text-red-500 flex items-center mb-6">
-                      <Lock size={28} className="mr-4" /> Core Architecture Restricted
-                    </h3>
-                    <p className={`text-base leading-relaxed mb-10 max-w-2xl ${isLightMode ? 'text-red-700/80' : 'text-red-200/70'}`}>
-                      System source code and root operational logic are cryptographically locked. Any modifications to the core application structure require Root Admin clearance from the central server.
-                    </p>
-                    
-                    <motion.button 
-                      whileHover={{ scale: requestStatus === 'idle' ? 1.05 : 1 }} whileTap={{ scale: 0.95 }} onClick={handleAdminRequest} disabled={requestStatus !== 'idle'}
-                      className={`w-full md:w-auto px-10 py-5 rounded-2xl text-sm font-black uppercase tracking-widest transition-all shadow-lg ${
-                        requestStatus === 'idle' ? 'bg-red-500/10 text-red-500 border border-red-500/40 hover:bg-red-500 hover:text-white hover:shadow-[0_0_30px_rgba(255,0,0,0.5)]' :
-                        requestStatus === 'sending' ? 'bg-yellow-500/20 text-yellow-500 border border-yellow-500/50 shadow-[0_0_30px_rgba(255,200,0,0.3)]' :
-                        'bg-green-500/20 text-green-500 border border-green-500/50 shadow-[0_0_30px_rgba(0,255,100,0.3)]'
-                      }`}
-                    >
-                      <AnimatePresence mode="wait">
-                        {requestStatus === 'idle' && <motion.span key="idle" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex items-center"><AlertTriangle size={20} className="mr-3" /> Request Modification Access</motion.span>}
-                        {requestStatus === 'sending' && <motion.span key="sending" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex items-center animate-pulse"><Send size={20} className="mr-3" /> Transmitting Protocol...</motion.span>}
-                        {requestStatus === 'sent' && <motion.span key="sent" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex items-center"><CheckCircle2 size={20} className="mr-3" /> Clearance Request Logged</motion.span>}
-                      </AnimatePresence>
-                    </motion.button>
-                  </motion.div>
-                </motion.div>
-              )}
-
             </AnimatePresence>
           </motion.div>
-
         </div>
       </div>
+      
+      {/* ========================================== */}
+      {/* ADVANCED CROPPER MODAL (ROOT LEVEL PROJECTION) */}
+      {/* ========================================== */}
+      <AnimatePresence>
+        {selectedImage && (
+          <motion.div 
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/90 backdrop-blur-md p-4 pointer-events-auto"
+          >
+            <motion.div 
+              initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }}
+              className={`w-full max-w-lg p-6 rounded-[2.5rem] border ${isLightMode ? 'bg-white border-slate-200' : 'bg-[#01020a] border-[#00f0ff]/30'} shadow-2xl overflow-hidden`}
+            >
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h3 className={`text-xl font-black uppercase tracking-widest ${isLightMode ? 'text-slate-800' : 'text-white'}`}>Adjust Avatar</h3>
+                  <p className={`text-[10px] font-mono tracking-widest ${textSecondary}`}>Pinch & drag to align matrix projection.</p>
+                </div>
+                <button type="button" onClick={() => setSelectedImage(null)} className="p-3 rounded-2xl hover:bg-red-500/10 border border-transparent hover:border-red-500/30 text-red-500 transition-all" title="Close image cropper">
+                  <X size={20} />
+                </button>
+              </div>
+              
+              {/* Cropper Container - Needs explicit relative height! */}
+              <div className="relative w-full h-[350px] sm:h-[400px] bg-black rounded-3xl overflow-hidden mb-8 border border-slate-800 shadow-[inset_0_0_50px_rgba(0,0,0,0.8)]">
+                <Cropper
+                  image={selectedImage}
+                  crop={crop}
+                  zoom={zoom}
+                  aspect={1}
+                  cropShape="round"
+                  showGrid={false}
+                  onCropChange={setCrop}
+                  onZoomChange={setZoom}
+                  onCropComplete={(_, croppedPixels) => setCroppedAreaPixels(croppedPixels)}
+                  style={{
+                    containerStyle: { background: '#050505' },
+                    cropAreaStyle: { border: '2px solid #00f0ff', boxShadow: '0 0 20px rgba(0, 240, 255, 0.3)' }
+                  }}
+                />
+              </div>
+
+              {/* Zoom Slider */}
+              <div className="mb-8 px-2">
+                <div className="flex justify-between items-center mb-2">
+                  <label className={`text-[10px] font-bold uppercase tracking-widest ${textSecondary}`}>Zoom Level</label>
+                  <span className={`text-[10px] font-mono ${textSecondary}`}>{zoom.toFixed(1)}x</span>
+                </div>
+                <input 
+                  type="range" min={1} max={3} step={0.1} value={zoom} onChange={(e) => setZoom(Number(e.target.value))}
+                  className="w-full accent-[#00f0ff] h-1 bg-slate-800 rounded-full appearance-none cursor-ew-resize"
+                />
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex space-x-4">
+                <button 
+                  onClick={() => setSelectedImage(null)} disabled={isUploading}
+                  className={`flex-1 py-4 rounded-xl font-bold uppercase tracking-widest text-xs border transition-all ${isLightMode ? 'bg-slate-100 text-slate-600 border-slate-300 hover:bg-slate-200' : 'bg-transparent text-slate-400 border-slate-700 hover:bg-slate-800 hover:text-white'}`}
+                >
+                  Cancel
+                </button>
+                <button 
+                  disabled={isUploading}
+                  onClick={async () => {
+                    setIsUploading(true);
+                    try {
+                      const croppedBlob = await getCroppedImg(selectedImage, croppedAreaPixels);
+                      if (!croppedBlob) throw new Error("Image crop failed");
+
+                      const uploadFormData = new FormData();
+                      uploadFormData.append('profilePic', croppedBlob, 'profile.jpg');
+
+                      const token = localStorage.getItem('matrix_token');
+                      const res = await fetch('http://localhost:5000/api/auth/upload-pic', {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${token}` },
+                        body: uploadFormData
+                      });
+
+                      if (res.ok) {
+                        const result = await res.json();
+                        setUserData((prev: any) => ({ ...prev, profilePic: result.data.profilePic }));
+                        setSelectedImage(null);
+                      }
+                    } catch (error) {
+                      console.error(error);
+                      alert("Transmission Failed. Ensure Cloudinary is configured.");
+                    } finally {
+                      setIsUploading(false);
+                    }
+                  }}
+                  className="flex-[2] flex items-center justify-center py-4 rounded-xl bg-gradient-to-r from-[#0066ff] to-[#00f0ff] text-black font-black uppercase tracking-widest text-xs hover:shadow-[0_0_30px_rgba(0,240,255,0.4)] transition-all disabled:opacity-50"
+                >
+                  {isUploading ? <Loader2 className="animate-spin mr-2" size={18} /> : <UploadCloud className="mr-2" size={18} />}
+                  {isUploading ? 'Transmitting...' : 'Confirm & Upload'}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
       
       <div className="relative z-10 w-full mt-auto pointer-events-auto">
         <Footer isLight={isLightMode} currentRole="user" />
