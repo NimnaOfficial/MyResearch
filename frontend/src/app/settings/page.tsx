@@ -103,7 +103,7 @@ export default function AdvancedSettingsMatrix() {
           if (postsRes.ok) {
             const postsJson = await postsRes.json();
             const myPosts = (postsJson.data || []).filter((p: any) => p.authorId === data.id);
-            setUserVault(myPosts);
+            setUserVault(data.savedPosts || []);
           }
         } else {
           router.push('/auth');

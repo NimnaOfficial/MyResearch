@@ -76,14 +76,14 @@ export const toggleSavePost = async (req: Request, res: Response) => {
       // Disconnect (Unsave)
       await prisma.user.update({
         where: { id: userId },
-        data: { savedPosts: { disconnect: { id: postId } } }
+        data: { savedPosts: { disconnect: { id: req.params.id as string } } }
       });
       return res.json({ saved: false });
     } else {
       // Connect (Save)
       await prisma.user.update({
         where: { id: userId },
-        data: { savedPosts: { connect: { id: postId } } }
+        data: { savedPosts: { connect: { id: req.params.id as string } } }
       });
       return res.json({ saved: true });
     }

@@ -91,6 +91,7 @@ export const loginUser = catchAsync(async (req: Request, res: Response) => {
   const user = await prisma.user.findUnique({ 
     where: { username: secretCode },
     select: { id: true, username: true, passwordHash: true, isVerified: true }
+    
   });
 
   if (!user) return res.status(401).json({ message: 'Access Denied: Invalid cipher code.' });
@@ -118,7 +119,9 @@ export const loginUser = catchAsync(async (req: Request, res: Response) => {
 // ==========================================
 
 export const getMe = catchAsync(async (req: Request, res: Response) => {
-  const userId = req.user?.id; 
+  const userId = req.user?.id;const user = await prisma.user.findUnique({
+      where: { id: req.user?.id },
+      include: { savedPosts: true } 
 
   if (!userId) return res.status(401).json({ message: 'Unauthorized: No active session.' });
 
@@ -135,7 +138,9 @@ export const getMe = catchAsync(async (req: Request, res: Response) => {
       profilePic: true, 
       isVerified: true,
       createdAt: true,
-    }
+      savedPosts: true,
+    },
+
   });
 
   if (!user) return res.status(404).json({ message: 'Identity not found in the matrix.' });

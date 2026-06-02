@@ -3,7 +3,7 @@ import { createPost, getPosts, toggleSavePost } from '../controllers/post.contro
 import { requireAuth } from '../middleware/requireAuth';
 import prisma from '../config/prisma';
 import { generateResearchPDF } from '../controllers/pdf.controller';
-import { protect } from '../middlewares/auth.middleware';
+import { protect } from '../middleware/auth.middleware';
 
 
 const router = Router();
@@ -25,6 +25,6 @@ router.post('/', requireAuth, createPost);
 
 router.get('/:id/pdf', generateResearchPDF);
 
-router.post('/:id/save', authMiddleware, toggleSavePost);
+router.post('/:id/save', protect, toggleSavePost);
 
 export default router;

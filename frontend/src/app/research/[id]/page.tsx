@@ -49,8 +49,12 @@ const FALLBACK_DATA = {
 };
 
 function ActiveDataBackground({ isLight }: { isLight: boolean }) {
-  const [nodes, setNodes] = useState<number[]>([]);
-  useEffect(() => setNodes(Array.from({ length: 20 })), []);
+  const [nodes, setNodes] = useState<any[]>([]);
+useEffect(() => {
+  setNodes(Array.from({ length: 20 }).map((_, i) => ({
+    id: i, left: Math.random() * 100, top: Math.random() * 100, size: Math.random() * 30 + 10
+  })));
+}, []);
   
   const gridColor = isLight ? 'rgba(0,255,102,0.1)' : 'rgba(0,255,102,0.03)';
   const gridColor2 = isLight ? 'rgba(0,240,255,0.1)' : 'rgba(0,240,255,0.03)';
@@ -63,12 +67,11 @@ function ActiveDataBackground({ isLight }: { isLight: boolean }) {
         className="absolute inset-0 [mask-image:radial-gradient(ellipse_at_center,black_20%,transparent_80%)]" 
         style={{ backgroundImage: `linear-gradient(${gridColor} 1px, transparent 1px), linear-gradient(90deg, ${gridColor2} 1px, transparent 1px)`, backgroundSize: '80px 80px' }}
       />
-      {nodes.map((_, i) => {
-        const size = Math.random() * 30 + 10;
+      {nodes.map((node, i) => {
         const isCyan = i % 2 === 0;
         return (
-          <motion.div key={i} className={`absolute flex items-center justify-center opacity-30 ${isCyan ? 'text-[#00f0ff]' : 'text-[#00ff66]'}`} style={{ left: `${Math.random() * 100}vw`, top: `${Math.random() * 100}vh` }} animate={{ y: [0, Math.random() * -150 - 50, 0], x: [0, Math.random() * 50 - 25, 0], rotateZ: [0, Math.random() * 180, 360], rotateX: [0, 180, 360], scale: [1, Math.random() * 0.5 + 1, 1], opacity: [0.1, 0.5, 0.1] }} transition={{ duration: Math.random() * 25 + 15, repeat: Infinity, ease: "linear" }}>
-            <Hexagon size={size} strokeWidth={1.5} />
+          <motion.div key={node.id} className={`absolute flex items-center justify-center opacity-30 ${isCyan ? 'text-[#00f0ff]' : 'text-[#00ff66]'}`} style={{ left: `${node.left}vw`, top: `${node.top}vh` }} animate={{ y: [0, Math.random() * -150 - 50, 0], x: [0, Math.random() * 50 - 25, 0], rotateZ: [0, Math.random() * 180, 360], rotateX: [0, 180, 360], scale: [1, Math.random() * 0.5 + 1, 1], opacity: [0.1, 0.5, 0.1] }} transition={{ duration: Math.random() * 25 + 15, repeat: Infinity, ease: "linear" }}>
+            <Hexagon size={node.size} strokeWidth={1.5} />
           </motion.div>
         );
       })}
@@ -85,7 +88,7 @@ function CitationNodeGraph({ isLight, topics, title }: { isLight: boolean, topic
 
   useEffect(() => {
     // Generate nodes based on real topics + some decorative nodes to fill the network
-    const labels = [title, ...topics, "Data Layer", "Analysis", "Validation"];
+    const labels = [JSON.stringify(topics), title, "Data Layer", "Analysis", "Validation"];
     const generatedNodes = Array.from({ length: Math.max(25, labels.length * 2) }).map((_, i) => ({ 
       id: i, 
       cx: 15 + Math.random() * 70, 
@@ -294,7 +297,7 @@ export default function ResearchDetailPage() {
             setUserData(userJson.data);
             
             // Check if this specific research is in the user's saved list
-            if (userJson.data?.savedResearch?.includes(researchId)) {
+            if (userJson.data?.savedPosts?.some((post: any) => post.id === researchId)) {
                setIsSaved(true);
             }
           }
@@ -359,7 +362,7 @@ export default function ResearchDetailPage() {
       
       for (let i = navItems.length - 1; i >= 0; i--) {
         const section = document.getElementById(navItems[i].id);
-        if (section && section.offsetTop <= scrollPosition) {
+        if (section && (section.getBoundingClientRect().top + window.scrollY) <= scrollPosition) {
           setActiveTab(navItems[i].name);
           break;
         }
@@ -380,22 +383,30 @@ export default function ResearchDetailPage() {
     }
   };
 
-  // UPGRADED: Save Functionality via API
+  // UPGRADED: Save Functionality via API (With Mock DB Bypass)
   const handleToggleSave = async () => {
     if (!isAuthenticated) {
-      // Optional: Add a toast notification here informing them to login
       console.warn("Operator must be authenticated to save findings.");
       return;
     }
     
     setIsSavingInProgress(true);
+
+    // 🔥 BULLETPROOF MOCK BYPASS: Catch the literal "[id]" URL string
+    if (researchId === 'v2.4.0' || researchId === '[id]' || rawId === '%5Bid%5D') {
+      setTimeout(() => {
+        setIsSaved(!isSaved);
+        setIsSavingInProgress(false);
+      }, 600); // Simulate network delay
+      return;
+    }
+
     try {
       const token = localStorage.getItem('matrix_token');
-      // Assuming standard REST pattern: POST to save, DELETE to unsave
-      const method = isSaved ? 'DELETE' : 'POST'; 
       
-      const res = await fetch(`http://localhost:5000/api/users/bookmarks/${researchId}`, {
-        method,
+      // We lock this to POST, as the backend toggle controller expects it
+      const res = await fetch(`http://localhost:5000/api/posts/${researchId}/save`, {
+        method: 'POST', 
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -405,7 +416,7 @@ export default function ResearchDetailPage() {
       if (res.ok) {
         setIsSaved(!isSaved);
       } else {
-        console.warn("Failed to synchronize save status with mainframe.");
+        console.warn("Failed to synchronize save status with mainframe. Check backend logs.");
       }
     } catch (e) {
       console.error(e);
@@ -745,7 +756,7 @@ export default function ResearchDetailPage() {
                   <p className="mb-2"><span className="text-[#00f0ff]">"Contributors"</span>: [</p>
                   <div className="pl-4 sm:pl-8">
                     {data.metadata?.contributors?.map((c: string, i: number) => (
-                      <p key={i} className="text-[#00ff66] break-words md:whitespace-nowrap">"{c}"{i !== data.metadata.contributors.length - 1 ? ',' : ''}</p>
+                      <p key={i} className="text-[#00ff66] break-words md:whitespace-nowrap">"{c}"{c}"{i !== (data.metadata?.contributors?.length || 0) - 1 ? ',' : ''}</p>
                     ))}
                   </div>
                   <p className="mb-2">],</p>
@@ -760,7 +771,7 @@ export default function ResearchDetailPage() {
                   <p className="mb-2"><span className="text-[#00f0ff]">"Topics"</span>: [</p>
                   <div className="pl-4 sm:pl-8 flex flex-col md:flex-row md:flex-wrap gap-x-2 gap-y-1">
                     {data.metadata?.topics?.map((t: string, i: number) => (
-                      <span key={i} className="text-[#00ff66]">"{t}"{i !== data.metadata.topics.length - 1 ? ',' : ''}</span>
+                      <span key={i} className="text-[#00ff66]">"{t}"{t}"{i !== (data.metadata?.topics?.length || 0) - 1 ? ',' : ''}</span>
                     ))}
                   </div>
                   <p className="mb-2">]</p>
