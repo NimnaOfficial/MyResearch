@@ -49,7 +49,9 @@ const FALLBACK_DATA = {
 };
 
 function ActiveDataBackground({ isLight }: { isLight: boolean }) {
-  const nodes = Array.from({ length: 20 });
+  const [nodes, setNodes] = useState<number[]>([]);
+  useEffect(() => setNodes(Array.from({ length: 20 })), []);
+  
   const gridColor = isLight ? 'rgba(0,255,102,0.1)' : 'rgba(0,255,102,0.03)';
   const gridColor2 = isLight ? 'rgba(0,240,255,0.1)' : 'rgba(0,240,255,0.03)';
   const bgColor = isLight ? 'bg-slate-50' : 'bg-[#010205]';
@@ -76,13 +78,32 @@ function ActiveDataBackground({ isLight }: { isLight: boolean }) {
   );
 }
 
-function CitationNodeGraph({ isLight }: { isLight: boolean }) {
-  const [nodes, setNodes] = useState<{ id: number; cx: number; cy: number; connections: number[] }[]>([]);
+// UPGRADED: Semantic Citation Graph mapping to real topics/data
+function CitationNodeGraph({ isLight, topics, title }: { isLight: boolean, topics: string[], title: string }) {
+  const [nodes, setNodes] = useState<{ id: number; cx: number; cy: number; connections: number[], label: string }[]>([]);
+  const [hoveredNode, setHoveredNode] = useState<string | null>(null);
+
   useEffect(() => {
-    const generatedNodes = Array.from({ length: 35 }).map((_, i) => ({ id: i, cx: 10 + Math.random() * 80, cy: 10 + Math.random() * 80, connections: [] as number[] }));
-    generatedNodes.forEach(node1 => { generatedNodes.forEach(node2 => { if (node1.id !== node2.id) { const dist = Math.hypot(node1.cx - node2.cx, node1.cy - node2.cy); if (dist < 22 && Math.random() > 0.6) node1.connections.push(node2.id); } }); });
+    // Generate nodes based on real topics + some decorative nodes to fill the network
+    const labels = [title, ...topics, "Data Layer", "Analysis", "Validation"];
+    const generatedNodes = Array.from({ length: Math.max(25, labels.length * 2) }).map((_, i) => ({ 
+      id: i, 
+      cx: 15 + Math.random() * 70, 
+      cy: 15 + Math.random() * 70, 
+      connections: [] as number[],
+      label: labels[i] || "" // Assign real labels to first few nodes
+    }));
+
+    generatedNodes.forEach(node1 => { 
+      generatedNodes.forEach(node2 => { 
+        if (node1.id !== node2.id) { 
+          const dist = Math.hypot(node1.cx - node2.cx, node1.cy - node2.cy); 
+          if (dist < 25 && Math.random() > 0.5) node1.connections.push(node2.id); 
+        } 
+      }); 
+    });
     setNodes(generatedNodes);
-  }, []);
+  }, [topics, title]);
 
   return (
     <motion.div 
@@ -92,14 +113,37 @@ function CitationNodeGraph({ isLight }: { isLight: boolean }) {
     >
       <div className="absolute top-6 left-6 flex items-center space-x-2 z-10 bg-black/40 px-3 py-1.5 rounded-lg backdrop-blur-md border border-white/5">
         <Network size={14} className="text-[#00ff66]" />
-        <span className="text-[10px] font-black uppercase tracking-widest text-[#00ff66]">Citation Network</span>
+        <span className="text-[10px] font-black uppercase tracking-widest text-[#00ff66]">Semantic Network</span>
       </div>
+      
+      {hoveredNode && (
+        <div className="absolute bottom-6 right-6 z-20 bg-black/80 text-[#00ff66] px-4 py-2 rounded-lg border border-[#00ff66]/30 backdrop-blur-md font-mono text-xs shadow-lg animate-pulse">
+          Node Active: {hoveredNode}
+        </div>
+      )}
+
       <svg className="absolute inset-0 w-full h-full" style={{ filter: 'drop-shadow(0 0 6px rgba(0,255,102,0.6))' }}>
-        {nodes.map(node => node.connections.map(targetId => { const target = nodes[targetId]; if (!target) return null; return ( <motion.line key={`${node.id}-${targetId}`} x1={`${node.cx}%`} y1={`${node.cy}%`} x2={`${target.cx}%`} y2={`${target.cy}%`} stroke={isLight ? "rgba(0,255,102,0.3)" : "rgba(0,255,102,0.4)"} strokeWidth="1" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 2, ease: "easeInOut" }} /> ); }))}
+        {nodes.map(node => node.connections.map(targetId => { 
+          const target = nodes[targetId]; 
+          if (!target) return null; 
+          return ( 
+            <motion.line key={`${node.id}-${targetId}`} x1={`${node.cx}%`} y1={`${node.cy}%`} x2={`${target.cx}%`} y2={`${target.cy}%`} stroke={isLight ? "rgba(0,255,102,0.3)" : "rgba(0,255,102,0.4)"} strokeWidth="1" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 2, ease: "easeInOut" }} /> 
+          ); 
+        }))}
+        
         {nodes.map(node => {
-          const isMajor = node.connections.length > 2;
+          const isMajor = node.label !== "";
           return (
-            <motion.circle key={node.id} cx={`${node.cx}%`} cy={`${node.cy}%`} initial={{ r: isMajor ? 3 : 1.5, opacity: 0.5 }} animate={{ r: isMajor ? [3, 4.5, 3] : [1.5, 2.5, 1.5], opacity: [0.5, 1, 0.5] }} fill={isMajor ? "#00ff66" : "#fff"} transition={{ duration: 2 + Math.random() * 2, repeat: Infinity }} className="cursor-crosshair hover:fill-white" />
+            <motion.circle 
+              key={node.id} cx={`${node.cx}%`} cy={`${node.cy}%`} 
+              initial={{ r: isMajor ? 4 : 1.5, opacity: 0.5 }} 
+              animate={{ r: isMajor ? [4, 6, 4] : [1.5, 2.5, 1.5], opacity: [0.6, 1, 0.6] }} 
+              fill={isMajor ? "#00ff66" : "#fff"} 
+              transition={{ duration: 2 + Math.random() * 2, repeat: Infinity }} 
+              className="cursor-crosshair hover:fill-[#00f0ff] transition-colors duration-300" 
+              onMouseEnter={() => isMajor && setHoveredNode(node.label)}
+              onMouseLeave={() => isMajor && setHoveredNode(null)}
+            />
           );
         })}
       </svg>
@@ -109,9 +153,10 @@ function CitationNodeGraph({ isLight }: { isLight: boolean }) {
 
 function DataSourcesRepository({ data, isLight }: { data: any, isLight: boolean }) {
   const getIcon = (type: string) => {
-    if(type.includes('JSON')) return FileJson;
-    if(type.includes('CSV') || type.includes('XLS')) return FileSpreadsheet;
-    if(type.includes('ZIP') || type.includes('RAR')) return ArchiveRestore;
+    if(!type) return FileText;
+    if(type.toUpperCase().includes('JSON')) return FileJson;
+    if(type.toUpperCase().includes('CSV') || type.toUpperCase().includes('XLS')) return FileSpreadsheet;
+    if(type.toUpperCase().includes('ZIP') || type.toUpperCase().includes('RAR')) return ArchiveRestore;
     return FileText;
   };
 
@@ -127,26 +172,30 @@ function DataSourcesRepository({ data, isLight }: { data: any, isLight: boolean 
       </div>
 
       <div className="flex flex-col gap-3 md:gap-4">
-        {data.dataSources.map((source: any, index: number) => {
-          const Icon = getIcon(source.type);
-          return (
-            <a href={source.url || '#'} target="_blank" rel="noopener noreferrer" key={index} className="block group">
-              <motion.div whileHover={{ scale: 1.02, x: 5 }} className={`p-3 md:p-4 rounded-2xl border flex items-center justify-between cursor-pointer transition-colors ${isLight ? 'bg-white border-slate-200 hover:border-[#00ff66]' : 'bg-[#010308] border-white/5 hover:border-[#00ff66]/50 hover:bg-[#00ff66]/5'}`}>
-                <div className="flex items-center space-x-3 md:space-x-4 overflow-hidden">
-                  <div className={`p-2.5 rounded-xl shrink-0 ${isLight ? 'bg-slate-100 text-slate-600' : 'bg-white/5 text-[#00ff66]'}`}><Icon size={16} /></div>
-                  <div className="flex flex-col truncate pr-2">
-                    <span className={`text-[10px] md:text-xs font-bold truncate flex items-center ${isLight ? 'text-slate-800' : 'text-white'}`}>
-                      {source.name}
-                      <ExternalLink size={10} className="ml-2 opacity-0 group-hover:opacity-100 transition-opacity text-[#00ff66]" />
-                    </span>
-                    <span className="text-[9px] md:text-[10px] font-mono text-slate-500 tracking-widest mt-1">{source.size || 'External'}</span>
+        {data.dataSources && data.dataSources.length > 0 ? (
+          data.dataSources.map((source: any, index: number) => {
+            const Icon = getIcon(source.type);
+            return (
+              <a href={source.url || '#'} target="_blank" rel="noopener noreferrer" key={index} className="block group">
+                <motion.div whileHover={{ scale: 1.02, x: 5 }} className={`p-3 md:p-4 rounded-2xl border flex items-center justify-between cursor-pointer transition-colors ${isLight ? 'bg-white border-slate-200 hover:border-[#00ff66]' : 'bg-[#010308] border-white/5 hover:border-[#00ff66]/50 hover:bg-[#00ff66]/5'}`}>
+                  <div className="flex items-center space-x-3 md:space-x-4 overflow-hidden">
+                    <div className={`p-2.5 rounded-xl shrink-0 ${isLight ? 'bg-slate-100 text-slate-600' : 'bg-white/5 text-[#00ff66]'}`}><Icon size={16} /></div>
+                    <div className="flex flex-col truncate pr-2">
+                      <span className={`text-[10px] md:text-xs font-bold truncate flex items-center ${isLight ? 'text-slate-800' : 'text-white'}`}>
+                        {source.name}
+                        <ExternalLink size={10} className="ml-2 opacity-0 group-hover:opacity-100 transition-opacity text-[#00ff66]" />
+                      </span>
+                      <span className="text-[9px] md:text-[10px] font-mono text-slate-500 tracking-widest mt-1">{source.size || 'External Link'}</span>
+                    </div>
                   </div>
-                </div>
-                <div className={`px-2 py-1 rounded-md text-[9px] md:text-[10px] font-black tracking-widest shrink-0 ${isLight ? 'bg-slate-200 text-slate-600' : 'bg-[#00ff66]/10 text-[#00ff66] border border-[#00ff66]/20'}`}>{source.type}</div>
-              </motion.div>
-            </a>
-          );
-        })}
+                  <div className={`px-2 py-1 rounded-md text-[9px] md:text-[10px] font-black tracking-widest shrink-0 ${isLight ? 'bg-slate-200 text-slate-600' : 'bg-[#00ff66]/10 text-[#00ff66] border border-[#00ff66]/20'}`}>{source.type || 'LINK'}</div>
+                </motion.div>
+              </a>
+            );
+          })
+        ) : (
+          <p className="text-xs font-mono text-slate-500 text-center py-4">No external datasets attached.</p>
+        )}
       </div>
       <div className="mt-6 md:mt-8 pt-4 md:pt-6 border-t border-white/10">
          <p className="text-[9px] md:text-[10px] font-mono text-slate-500 leading-relaxed uppercase tracking-widest text-center">External datasets are stored in secure cloud vaults.</p>
@@ -157,6 +206,8 @@ function DataSourcesRepository({ data, isLight }: { data: any, isLight: boolean 
 
 function FigureAccordion({ figures, isLight }: { figures: any[], isLight: boolean }) {
   const [activeIndex, setActiveIndex] = useState(0);
+
+  if (!figures || figures.length === 0) return null;
 
   return (
     <div className="w-full flex flex-col md:flex-row gap-4 min-h-[400px] h-[50vh] max-h-[600px]">
@@ -204,21 +255,31 @@ export default function ResearchDetailPage() {
   if (rawId === '%5Bid%5D' || !rawId) rawId = 'v2.4.0'; 
   const researchId = decodeURIComponent(rawId);
   
-  const [data, setData] = useState<any>(FALLBACK_DATA);
+  const [data, setData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   
-  // 🔥 SYNCHRONOUS DOWNLOAD LOCK STATE 🔥
   const [isDownloading, setIsDownloading] = useState(false);
   const isDownloadingRef = useRef(false);
 
   const [userData, setUserData] = useState<any>(null);
   const [isLightMode, setIsLightMode] = useState(false);
   const [timeState, setTimeState] = useState({ time: "", date: "" });
+  
   const [activeTab, setActiveTab] = useState('Abstract');
   const [isProfileHovered, setIsProfileHovered] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
+  const [isSavingInProgress, setIsSavingInProgress] = useState(false);
+  
   const [currentUserRole, setCurrentUserRole] = useState<'guest' | 'user' | 'admin'>('guest');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  // Scroll Tracking & Navigation Array
+  const navItems = [
+    { name: 'Abstract', id: 'abstract-section' },
+    { name: 'Methodology', id: 'methodology-section' },
+    { name: 'Visual Schematics', id: 'visuals-section' },
+    { name: 'Conclusion', id: 'conclusion-section' }
+  ];
 
   useEffect(() => {
     const initMatrix = async () => {
@@ -228,7 +289,15 @@ export default function ResearchDetailPage() {
         setCurrentUserRole('user');
         try {
           const res = await fetch('http://localhost:5000/api/auth/me', { headers: { 'Authorization': `Bearer ${token}` } });
-          if (res.ok) setUserData((await res.json()).data);
+          if (res.ok) {
+            const userJson = await res.json();
+            setUserData(userJson.data);
+            
+            // Check if this specific research is in the user's saved list
+            if (userJson.data?.savedResearch?.includes(researchId)) {
+               setIsSaved(true);
+            }
+          }
         } catch (e) { console.error(e); }
       }
     };
@@ -239,7 +308,7 @@ export default function ResearchDetailPage() {
       setTimeState({ time: now.toLocaleTimeString('en-US', { hour12: false }), date: now.toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) });
     }, 1000);
     return () => clearInterval(timer);
-  }, []);
+  }, [researchId]);
 
   useEffect(() => {
     const fetchResearch = async () => {
@@ -249,26 +318,31 @@ export default function ResearchDetailPage() {
         if (res.ok) {
           const json = await res.json();
           const dbData = json.data;
+          
           let parsedAdvanced = {};
           try { if (dbData.advancedData) parsedAdvanced = JSON.parse(dbData.advancedData); } catch(e){}
 
+          // Safely map DB data, fallback ONLY if empty
           setData({
             title: dbData.title || FALLBACK_DATA.title,
             field: dbData.type || "Research",
             status: dbData.published ? "PUBLISHED" : "DRAFT",
-            date: new Date(dbData.createdAt).toLocaleDateString() || "Unknown",
-            heroImg: dbData.heroImg || "from-[#00ff66]/20 to-transparent",
+            date: dbData.createdAt ? new Date(dbData.createdAt).toLocaleDateString() : FALLBACK_DATA.date,
+            heroImg: dbData.heroImg || FALLBACK_DATA.heroImg, // Can be a URL or tailwind gradient
             abstract: dbData.content || FALLBACK_DATA.abstract,
             methodology: dbData.methodology || (parsedAdvanced as any).methodology || FALLBACK_DATA.methodology,
             conclusion: dbData.conclusion || (parsedAdvanced as any).conclusion || FALLBACK_DATA.conclusion,
-            metrics: dbData.metrics || (parsedAdvanced as any).metrics || FALLBACK_DATA.metrics,
-            figures: dbData.figures || (parsedAdvanced as any).figures || FALLBACK_DATA.figures,
-            dataSources: dbData.dataSources || (parsedAdvanced as any).dataSources || FALLBACK_DATA.dataSources,
+            metrics: dbData.metrics?.length > 0 ? dbData.metrics : (parsedAdvanced as any).metrics || FALLBACK_DATA.metrics,
+            figures: dbData.figures?.length > 0 ? dbData.figures : (parsedAdvanced as any).figures || FALLBACK_DATA.figures,
+            dataSources: dbData.dataSources?.length > 0 ? dbData.dataSources : (parsedAdvanced as any).dataSources || FALLBACK_DATA.dataSources,
             metadata: dbData.metadata || (parsedAdvanced as any).metadata || FALLBACK_DATA.metadata,
           });
+        } else {
+          setData(FALLBACK_DATA);
         }
       } catch (err) {
         console.error("Failed to fetch:", err);
+        setData(FALLBACK_DATA);
       } finally {
         setIsLoading(false);
       }
@@ -276,7 +350,70 @@ export default function ResearchDetailPage() {
     fetchResearch();
   }, [researchId]);
 
-  // 🔥 THE FIX: SILENT, GRACEFUL DEGRADATION FOR DOUBLE-CLICKS 🔥
+  // UPGRADED: Dynamic Scroll Spy for Navigation Pill
+  useEffect(() => {
+    if (isLoading) return;
+
+    const handleScroll = () => {
+      const scrollPosition = window.scrollY + window.innerHeight / 3; // Offset trigger point
+      
+      for (let i = navItems.length - 1; i >= 0; i--) {
+        const section = document.getElementById(navItems[i].id);
+        if (section && section.offsetTop <= scrollPosition) {
+          setActiveTab(navItems[i].name);
+          break;
+        }
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [isLoading]);
+
+  // UPGRADED: Click-to-Scroll Function
+  const handleNavClick = (id: string, name: string) => {
+    setActiveTab(name);
+    const element = document.getElementById(id);
+    if (element) {
+      const y = element.getBoundingClientRect().top + window.scrollY - 180; // Offset for sticky header
+      window.scrollTo({ top: y, behavior: 'smooth' });
+    }
+  };
+
+  // UPGRADED: Save Functionality via API
+  const handleToggleSave = async () => {
+    if (!isAuthenticated) {
+      // Optional: Add a toast notification here informing them to login
+      console.warn("Operator must be authenticated to save findings.");
+      return;
+    }
+    
+    setIsSavingInProgress(true);
+    try {
+      const token = localStorage.getItem('matrix_token');
+      // Assuming standard REST pattern: POST to save, DELETE to unsave
+      const method = isSaved ? 'DELETE' : 'POST'; 
+      
+      const res = await fetch(`http://localhost:5000/api/users/bookmarks/${researchId}`, {
+        method,
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (res.ok) {
+        setIsSaved(!isSaved);
+      } else {
+        console.warn("Failed to synchronize save status with mainframe.");
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsSavingInProgress(false);
+    }
+  };
+
   const handleDownloadPDF = async (e?: React.MouseEvent) => {
     if (e) e.preventDefault();
     if (isDownloadingRef.current) return;
@@ -300,15 +437,10 @@ export default function ResearchDetailPage() {
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
-        
-        // Delayed cleanup gives the browser plenty of time to save the file without panicking
         setTimeout(() => window.URL.revokeObjectURL(url), 2000); 
-      } else {
-        console.warn("PDF Engine returned a non-200 status. Ensure backend is running.");
       }
     } catch (error) {
-      // Replaced aggressive native alert with a silent console warning
-      console.warn("PDF Download gracefully interrupted. Check your network or wait for React fast-refresh to finish.", error);
+      console.warn("PDF Download gracefully interrupted. Check your network.", error);
     } finally {
       isDownloadingRef.current = false;
       setIsDownloading(false);
@@ -321,20 +453,22 @@ export default function ResearchDetailPage() {
     window.location.href = '/auth';
   };
 
-  const textPrimary = isLightMode ? "text-slate-900" : "text-white";
-  const textSecondary = isLightMode ? "text-slate-600" : "text-slate-400";
-  const borderCol = isLightMode ? "border-slate-300" : "border-[#00ff66]/10";
-
-  const containerVariants = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.1 } } };
-  const itemVariants = { hidden: { opacity: 0, y: 30, scale: 0.95 }, show: { opacity: 1, y: 0, scale: 1, transition: { type: "spring" as const, stiffness: 100, damping: 20 } } };
-
-  if (isLoading) {
+  if (isLoading || !data) {
     return (
       <div className={`min-h-screen flex items-center justify-center font-mono ${isLightMode ? 'bg-slate-50 text-slate-800' : 'bg-[#010205] text-[#00ff66]'}`}>
         <Loader2 className="animate-spin mr-3" size={24} /> ACCESSING DEEP MATRIX ARCHIVES...
       </div>
     );
   }
+
+  const textPrimary = isLightMode ? "text-slate-900" : "text-white";
+  const textSecondary = isLightMode ? "text-slate-600" : "text-slate-400";
+  const borderCol = isLightMode ? "border-slate-300" : "border-[#00ff66]/10";
+  
+  const isImageURL = data.heroImg && (data.heroImg.startsWith('http') || data.heroImg.startsWith('/'));
+
+  const containerVariants = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.1 } } };
+  const itemVariants = { hidden: { opacity: 0, y: 30, scale: 0.95 }, show: { opacity: 1, y: 0, scale: 1, transition: { type: "spring" as const, stiffness: 100, damping: 20 } } };
 
   return (
     <main className={`relative min-h-screen font-sans cursor-none flex flex-col transition-colors duration-1000 w-full overflow-x-hidden ${isLightMode ? 'text-slate-900 bg-slate-50' : 'text-white bg-[#010205]'}`}>
@@ -393,9 +527,9 @@ export default function ResearchDetailPage() {
                       <Link href="/settings" className={`flex items-center px-4 py-3 text-xs font-bold uppercase tracking-widest rounded-2xl transition-all ${isLightMode ? 'text-slate-700 hover:bg-slate-100' : 'text-slate-300 hover:bg-white/5'}`}>
                         <Settings size={14} className="mr-3 text-[#00ff66]" /> Settings
                       </Link>
-                      <button type="button" className={`flex items-center px-4 py-3 text-xs font-bold uppercase tracking-widest text-[#00ff66] rounded-2xl transition-all group ${isLightMode ? 'hover:bg-green-50' : 'hover:bg-[#00ff66]/10'}`}>
+                      <Link href="/settings?tab=saved" className={`flex items-center px-4 py-3 text-xs font-bold uppercase tracking-widest text-[#00ff66] rounded-2xl transition-all group ${isLightMode ? 'hover:bg-green-50' : 'hover:bg-[#00ff66]/10'}`}>
                         <Bookmark size={14} className="mr-3 text-[#00ff66] group-hover:drop-shadow-[0_0_8px_rgba(0,255,102,0.8)]" /> Saved Research
-                      </button>
+                      </Link>
                       <div className={`h-px w-full my-1 ${isLightMode ? 'bg-slate-200' : 'bg-slate-800/50'}`} />
                       <button type="button" onClick={handleLogout} className={`flex items-center px-4 py-3 text-xs font-bold uppercase tracking-widest text-red-500 rounded-2xl transition-all group ${isLightMode ? 'hover:bg-red-50' : 'hover:bg-red-500/10'}`}>
                         <LogOut size={14} className="mr-3 text-red-500 group-hover:drop-shadow-[0_0_8px_rgba(239,68,68,0.8)]" /> Terminate Link
@@ -408,19 +542,20 @@ export default function ResearchDetailPage() {
         </div>
       </header>
 
-      {/* FLOATING NAVIGATION PILL */}
+      {/* FLOATING NAVIGATION PILL - UPGRADED TO SCROLL */}
       <div className="sticky top-28 z-40 w-full flex justify-center px-4 md:px-6 pointer-events-auto mt-32 mb-10">
         <div className={`flex flex-wrap items-center justify-center gap-2 p-1.5 md:p-2 rounded-[2rem] md:rounded-full border shadow-2xl backdrop-blur-xl ${isLightMode ? 'bg-white/80 border-slate-300' : 'bg-black/40 border-[#00ff66]/30'}`}>
-          {['Abstract', 'Methodology', 'Visual Schematics', 'Conclusion'].map(tab => (
+          {navItems.map(tab => (
             <button 
-              key={tab} onClick={() => setActiveTab(tab)}
+              key={tab.name} 
+              onClick={() => handleNavClick(tab.id, tab.name)}
               className={`px-4 md:px-6 py-2 md:py-2.5 rounded-full text-[9px] sm:text-[10px] md:text-xs font-black uppercase tracking-widest transition-all ${
-                activeTab === tab 
+                activeTab === tab.name 
                   ? 'bg-[#00ff66] text-slate-900 shadow-[0_0_15px_rgba(0,255,102,0.4)]' 
                   : `${isLightMode ? 'text-slate-600 hover:bg-slate-200' : 'text-slate-400 hover:bg-white/5'} border border-transparent`
               }`}
             >
-              {tab}
+              {tab.name}
             </button>
           ))}
         </div>
@@ -439,7 +574,13 @@ export default function ResearchDetailPage() {
             whileHover={{ scale: 1.01, y: -5, rotateX: 1, rotateY: -1, zIndex: 50, boxShadow: "0 30px 60px rgba(0,0,0,0.5)" }}
             className={`w-full min-h-[350px] h-auto rounded-[2rem] md:rounded-[3rem] border relative overflow-hidden flex flex-col justify-between p-6 sm:p-8 md:p-14 shadow-2xl group transition-all duration-500 cursor-grab active:cursor-grabbing hover:border-[#00ff66]/50 ${borderCol} ${isLightMode ? 'bg-white/80 backdrop-blur-xl' : 'bg-[#050b14]/60 backdrop-blur-3xl'}`}
           >
-             <div className={`absolute inset-0 bg-gradient-to-br ${data.heroImg} opacity-20 group-hover:opacity-40 transition-opacity duration-700`} />
+             {/* DB Dynamic Image Rendering */}
+             {isImageURL ? (
+                <img src={data.heroImg} alt="Banner" className="absolute inset-0 w-full h-full object-cover opacity-30 group-hover:opacity-50 transition-opacity duration-700" />
+             ) : (
+                <div className={`absolute inset-0 bg-gradient-to-br ${data.heroImg} opacity-20 group-hover:opacity-40 transition-opacity duration-700`} />
+             )}
+             
              <div className={`absolute inset-0 bg-[linear-gradient(to_bottom,transparent_0%,${isLightMode ? 'rgba(255,255,255,0.9)' : 'rgba(5,11,20,0.8)'}_100%)]`} />
              
              <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center w-full gap-4">
@@ -450,13 +591,18 @@ export default function ResearchDetailPage() {
                 
                 <div className="flex items-center space-x-3 pointer-events-auto">
                    <motion.button 
-                     onClick={() => setIsSaved(!isSaved)} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                     onClick={handleToggleSave} 
+                     disabled={isSavingInProgress}
+                     whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
                      className={`flex items-center justify-center w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl border transition-all ${isSaved ? 'bg-[#00ff66]/20 border-[#00ff66] text-[#00ff66]' : `${isLightMode ? 'bg-slate-100 border-slate-300 text-slate-600' : 'bg-black/50 border-white/20 text-slate-300 hover:border-[#00ff66]'}`}`}
                    >
-                     <Bookmark size={18} fill={isSaved ? "#00ff66" : "none"} className={isSaved ? 'text-[#00ff66]' : ''} />
+                     {isSavingInProgress ? (
+                        <Loader2 size={18} className="animate-spin text-[#00ff66]" />
+                     ) : (
+                        <Bookmark size={18} fill={isSaved ? "#00ff66" : "none"} className={isSaved ? 'text-[#00ff66]' : ''} />
+                     )}
                    </motion.button>
 
-                   {/* PUPPETEER DOWNLOAD TRIGGER */}
                    <motion.button 
                      onClick={handleDownloadPDF} disabled={isDownloading}
                      whileHover={{ scale: isDownloading ? 1 : 1.05 }} whileTap={{ scale: isDownloading ? 1 : 0.95 }}
@@ -478,8 +624,8 @@ export default function ResearchDetailPage() {
              </div>
           </motion.div>
 
-          {/* Asymmetrical Abstract & Metrics Grid */}
-          <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 md:gap-8">
+          {/* Abstract Section */}
+          <div id="abstract-section" className="grid grid-cols-1 xl:grid-cols-12 gap-6 md:gap-8 scroll-mt-32">
             <motion.div 
               variants={itemVariants} 
               drag dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }} dragElastic={0.1}
@@ -495,7 +641,7 @@ export default function ResearchDetailPage() {
             </motion.div>
 
             <div className="xl:col-span-5 flex flex-col gap-4">
-              {data.metrics.map((metric: any, i: number) => (
+              {data.metrics && data.metrics.map((metric: any, i: number) => (
                 <motion.div 
                   variants={itemVariants} key={i} 
                   drag dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }} dragElastic={0.1}
@@ -511,22 +657,14 @@ export default function ResearchDetailPage() {
               ))}
             </div>
           </div>
-
-          {/* Visual Schematics Accordion */}
-          <motion.div variants={itemVariants} className="w-full flex flex-col mt-4 mb-4">
-            <div className="flex items-center space-x-3 mb-6 px-4">
-               <ImageIcon size={18} className="text-[#00ff66]" />
-               <h3 className={`text-xs font-black uppercase tracking-[0.2em] ${textSecondary}`}>Visual Schematics & Figures</h3>
-            </div>
-            <FigureAccordion figures={data.figures} isLight={isLightMode} />
-          </motion.div>
-
-          {/* Methodology */}
+          
+          {/* Methodology Section */}
           <motion.div 
+            id="methodology-section"
             variants={itemVariants} 
             drag dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }} dragElastic={0.05}
             whileHover={{ scale: 1.01, y: -5, rotateX: 1, rotateY: 1, zIndex: 50, boxShadow: "0 20px 50px rgba(0,0,0,0.6)", borderColor: '#00ff66' }} 
-            className={`w-full p-6 sm:p-8 md:p-14 rounded-[2rem] md:rounded-[3rem] border transition-colors duration-300 relative overflow-hidden cursor-grab active:cursor-grabbing ${isLightMode ? 'bg-white/80 backdrop-blur-xl border-slate-300 shadow-lg' : 'bg-black/20 backdrop-blur-3xl border-white/10 shadow-[0_10px_30px_rgba(0,0,0,0.5)]'}`}
+            className={`w-full p-6 sm:p-8 md:p-14 rounded-[2rem] md:rounded-[3rem] border transition-colors duration-300 relative overflow-hidden cursor-grab active:cursor-grabbing scroll-mt-32 ${isLightMode ? 'bg-white/80 backdrop-blur-xl border-slate-300 shadow-lg' : 'bg-black/20 backdrop-blur-3xl border-white/10 shadow-[0_10px_30px_rgba(0,0,0,0.5)]'}`}
           >
              <div className="flex items-center space-x-3 mb-6 md:mb-8 relative z-10">
                <Microscope size={22} className="text-[#00ff66]" />
@@ -535,12 +673,22 @@ export default function ResearchDetailPage() {
              <p className={`text-base md:text-lg leading-relaxed font-medium relative z-10 ${textPrimary}`}>{data.methodology}</p>
           </motion.div>
 
-          {/* Conclusion */}
+          {/* Visual Schematics Accordion Section */}
+          <motion.div id="visuals-section" variants={itemVariants} className="w-full flex flex-col mt-4 mb-4 scroll-mt-32">
+            <div className="flex items-center space-x-3 mb-6 px-4">
+               <ImageIcon size={18} className="text-[#00ff66]" />
+               <h3 className={`text-xs font-black uppercase tracking-[0.2em] ${textSecondary}`}>Visual Schematics & Figures</h3>
+            </div>
+            <FigureAccordion figures={data.figures} isLight={isLightMode} />
+          </motion.div>
+
+          {/* Conclusion Section */}
           <motion.div 
+            id="conclusion-section"
             variants={itemVariants} 
             drag dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }} dragElastic={0.05}
             whileHover={{ scale: 1.01, y: -5, rotateX: 1, rotateY: -1, zIndex: 50, boxShadow: "0 20px 50px rgba(0,255,102,0.15)", borderColor: '#00ff66' }} 
-            className={`w-full p-6 sm:p-8 md:p-14 rounded-[2rem] md:rounded-[3rem] border transition-colors duration-300 relative overflow-hidden cursor-grab active:cursor-grabbing ${isLightMode ? 'bg-white/80 backdrop-blur-xl border-slate-300 shadow-lg' : 'bg-black/20 backdrop-blur-3xl border-[#00ff66]/20 shadow-[0_0_40px_rgba(0,255,102,0.1)]'}`}
+            className={`w-full p-6 sm:p-8 md:p-14 rounded-[2rem] md:rounded-[3rem] border transition-colors duration-300 relative overflow-hidden cursor-grab active:cursor-grabbing scroll-mt-32 ${isLightMode ? 'bg-white/80 backdrop-blur-xl border-slate-300 shadow-lg' : 'bg-black/20 backdrop-blur-3xl border-[#00ff66]/20 shadow-[0_0_40px_rgba(0,255,102,0.1)]'}`}
           >
              <div className="absolute -top-20 -left-20 w-48 md:w-64 h-48 md:h-64 bg-[#00ff66]/10 rounded-full blur-[80px]" />
              <div className="flex items-center space-x-3 mb-6 md:mb-8 relative z-10">
@@ -552,7 +700,7 @@ export default function ResearchDetailPage() {
 
         </motion.div>
 
-        {/* RIGHT RAIL: Data Sources & Node Graph */}
+        {/* RIGHT RAIL: Data Sources & Semantic Graph */}
         <motion.div 
           variants={containerVariants} initial="hidden" animate="show" 
           className={`xl:w-[400px] w-full shrink-0 flex flex-col gap-6 md:gap-8 xl:sticky xl:top-32 px-1`}
@@ -561,7 +709,7 @@ export default function ResearchDetailPage() {
              <DataSourcesRepository data={data} isLight={isLightMode} />
            </motion.div>
            <motion.div variants={itemVariants} className="w-full flex-1 min-h-[350px] lg:min-h-[400px]">
-             <CitationNodeGraph isLight={isLightMode} />
+             <CitationNodeGraph isLight={isLightMode} topics={data.metadata?.topics || []} title={data.title} />
            </motion.div>
         </motion.div>
       </div>
@@ -593,10 +741,10 @@ export default function ResearchDetailPage() {
             <div className="pl-3 md:pl-4 border-l border-white/10">
                <div className="text-slate-300">{"{"}</div>
                <div className="pl-4 sm:pl-8">
-                  <p className="mb-2"><span className="text-[#00f0ff]">"Writer"</span>: <span className="text-[#00ff66]">"{data.metadata.writer}"</span>,</p>
+                  <p className="mb-2"><span className="text-[#00f0ff]">"Writer"</span>: <span className="text-[#00ff66]">"{data.metadata?.writer}"</span>,</p>
                   <p className="mb-2"><span className="text-[#00f0ff]">"Contributors"</span>: [</p>
                   <div className="pl-4 sm:pl-8">
-                    {data.metadata.contributors.map((c: string, i: number) => (
+                    {data.metadata?.contributors?.map((c: string, i: number) => (
                       <p key={i} className="text-[#00ff66] break-words md:whitespace-nowrap">"{c}"{i !== data.metadata.contributors.length - 1 ? ',' : ''}</p>
                     ))}
                   </div>
@@ -604,14 +752,14 @@ export default function ResearchDetailPage() {
 
                   <p className="mb-2"><span className="text-[#00f0ff]">"Timeline"</span>: {"{"}</p>
                   <div className="pl-4 sm:pl-8">
-                     <p className="mb-1"><span className="text-yellow-400">"start_date"</span>: <span className="text-[#00ff66]">"{data.metadata.startDate}"</span>,</p>
-                     <p className="mb-1"><span className="text-yellow-400">"end_date"</span>: <span className="text-[#00ff66]">"{data.metadata.endDate}"</span></p>
+                     <p className="mb-1"><span className="text-yellow-400">"start_date"</span>: <span className="text-[#00ff66]">"{data.metadata?.startDate}"</span>,</p>
+                     <p className="mb-1"><span className="text-yellow-400">"end_date"</span>: <span className="text-[#00ff66]">"{data.metadata?.endDate}"</span></p>
                   </div>
                   <p className="mb-2">{"},"}</p>
 
                   <p className="mb-2"><span className="text-[#00f0ff]">"Topics"</span>: [</p>
                   <div className="pl-4 sm:pl-8 flex flex-col md:flex-row md:flex-wrap gap-x-2 gap-y-1">
-                    {data.metadata.topics.map((t: string, i: number) => (
+                    {data.metadata?.topics?.map((t: string, i: number) => (
                       <span key={i} className="text-[#00ff66]">"{t}"{i !== data.metadata.topics.length - 1 ? ',' : ''}</span>
                     ))}
                   </div>
@@ -639,6 +787,7 @@ export default function ResearchDetailPage() {
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0, 255, 102, 0.3); border-radius: 10px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(0, 255, 102, 0.8); }
+        html { scroll-behavior: smooth; } /* Fallback for native smooth scrolling */
       `}</style>
     </main>
   );

@@ -156,9 +156,17 @@ export default function AdvancedSettingsMatrix() {
   };
 
   const [requestStatus, setRequestStatus] = useState<'idle' | 'sending' | 'sent'>('idle');
+  const [adminRequestText, setAdminRequestText] = useState('');
+  
   const handleAdminRequest = () => {
+    if (!adminRequestText.trim()) return;
     setRequestStatus('sending');
-    setTimeout(() => setRequestStatus('sent'), 2500);
+    // Simulate sending network request
+    setTimeout(() => {
+      setRequestStatus('sent');
+      setAdminRequestText('');
+      setTimeout(() => setRequestStatus('idle'), 3000);
+    }, 2500);
   };
 
   useEffect(() => {
@@ -394,7 +402,7 @@ export default function AdvancedSettingsMatrix() {
                 </motion.div>
               )}
 
-              {/* ... (Other Tabs Remain Exactly The Same) ... */}
+              {/* 2. LINKED HARDWARE */}
               {activeTab === 'hardware' && (
                 <motion.div key="hardware" variants={staggerContainer} initial="hidden" animate="visible" exit="exit">
                    <motion.h2 variants={springItem} className={`text-3xl font-black uppercase tracking-wide mb-10 ${textPrimary}`}>Linked Hardware</motion.h2>
@@ -414,6 +422,126 @@ export default function AdvancedSettingsMatrix() {
                    </div>
                 </motion.div>
               )}
+
+              {/* 3. AUTHORED VAULT (SAVED PROJECTS) */}
+              {activeTab === 'saved' && (
+                <motion.div key="saved" variants={staggerContainer} initial="hidden" animate="visible" exit="exit">
+                  <motion.h2 variants={springItem} className={`text-3xl font-black uppercase tracking-wide mb-10 ${textPrimary}`}>Authored Vault</motion.h2>
+                  
+                  {userVault.length === 0 ? (
+                     <motion.div variants={springItem} className={`p-12 text-center rounded-3xl border flex flex-col items-center justify-center ${innerCard}`}>
+                       <ArchiveRestore size={48} className={`mb-4 opacity-50 ${textSecondary}`} />
+                       <p className={`font-mono text-sm tracking-widest uppercase ${textSecondary}`}>Vault is currently empty. No contributions detected.</p>
+                     </motion.div>
+                  ) : (
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                       {userVault.map((item, i) => (
+                         <motion.div 
+                           key={i} variants={springItem} whileHover={{ scale: 1.02 }} 
+                           onClick={() => router.push(`/research/${item.id}`)}
+                           className={`p-6 rounded-3xl border flex flex-col transition-all cursor-pointer ${innerCard}`}
+                         >
+                           <div className="flex justify-between items-start mb-4">
+                             <div className={`px-3 py-1 text-[10px] font-black uppercase tracking-widest rounded-md ${isLightMode ? 'bg-blue-100 text-blue-600' : 'bg-[#00f0ff]/10 text-[#00f0ff]'}`}>
+                               {item.type || 'DOCUMENT'}
+                             </div>
+                             <span className={`text-[10px] font-mono uppercase font-bold tracking-widest ${item.published ? 'text-green-500' : 'text-yellow-500'}`}>
+                               {item.published ? 'VERIFIED' : 'DRAFT'}
+                             </span>
+                           </div>
+                           <h3 className={`text-xl font-bold mb-2 truncate ${textPrimary}`}>{item.title}</h3>
+                           <p className={`text-xs font-mono mb-6 line-clamp-2 leading-relaxed ${textSecondary}`}>{item.content || 'Encrypted payload...'}</p>
+                           <div className="mt-auto pt-4 border-t border-white/10 flex justify-between items-center">
+                             <span className={`text-[10px] font-mono ${textSecondary}`}>
+                               {new Date(item.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                             </span>
+                             <ChevronRight size={14} className={textSecondary} />
+                           </div>
+                         </motion.div>
+                       ))}
+                     </div>
+                  )}
+                </motion.div>
+              )}
+
+              {/* 4. SECURITY & ADMIN REQUEST */}
+              {activeTab === 'security' && (
+                <motion.div key="security" variants={staggerContainer} initial="hidden" animate="visible" exit="exit" className="flex flex-col h-full">
+                  <motion.h2 variants={springItem} className={`text-3xl font-black uppercase tracking-wide mb-10 ${textPrimary}`}>Security & Access</motion.h2>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8 flex-grow">
+                    
+                    {/* Standard Security Toggles (Visual Immersion) */}
+                    <motion.div variants={springItem} className={`p-8 rounded-3xl border flex flex-col ${innerCard}`}>
+                      <div className={`flex items-center mb-6 ${isLightMode ? 'text-blue-600' : 'text-[#00f0ff]'}`}>
+                        <Shield size={24} className="mr-3" />
+                        <h3 className={`text-lg font-bold uppercase tracking-widest ${textPrimary}`}>Encryption Settings</h3>
+                      </div>
+                      <div className="space-y-6 mt-4">
+                        <div className="flex items-center justify-between">
+                          <span className={`text-xs font-bold uppercase tracking-widest ${textSecondary}`}>AES-256 Storage Sync</span>
+                          <div className={`w-10 h-5 rounded-full relative ${isLightMode ? 'bg-blue-500' : 'bg-[#00f0ff]'}`}>
+                            <div className={`absolute right-1 top-1 w-3 h-3 rounded-full ${isLightMode ? 'bg-white' : 'bg-black'}`} />
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className={`text-xs font-bold uppercase tracking-widest ${textSecondary}`}>Biometric Handshake</span>
+                          <div className={`w-10 h-5 rounded-full relative ${isLightMode ? 'bg-slate-300' : 'bg-slate-700'}`}>
+                            <div className={`absolute left-1 top-1 w-3 h-3 rounded-full ${isLightMode ? 'bg-white' : 'bg-slate-400'}`} />
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className={`text-xs font-bold uppercase tracking-widest ${textSecondary}`}>Strict IP Tracking</span>
+                          <div className={`w-10 h-5 rounded-full relative ${isLightMode ? 'bg-blue-500' : 'bg-[#00f0ff]'}`}>
+                            <div className={`absolute right-1 top-1 w-3 h-3 rounded-full ${isLightMode ? 'bg-white' : 'bg-black'}`} />
+                          </div>
+                        </div>
+                      </div>
+                      <div className="mt-auto pt-6 border-t border-white/5">
+                        <p className={`text-[10px] font-mono leading-relaxed ${textSecondary}`}>
+                          System protocols are strictly managed by CSxPEDIA automated security policies.
+                        </p>
+                      </div>
+                    </motion.div>
+
+                    {/* Admin Urgent Request Pipeline */}
+                    <motion.div variants={springItem} className={`p-8 rounded-3xl border relative overflow-hidden flex flex-col ${isLightMode ? 'bg-red-50 border-red-200' : 'bg-[#1a0505] border-red-500/30'}`}>
+                      <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/10 rounded-bl-full pointer-events-none" />
+                      <div className="flex items-center mb-4 text-red-500 relative z-10">
+                        <AlertTriangle size={24} className="mr-3" />
+                        <h3 className={`text-lg font-bold uppercase tracking-widest ${isLightMode ? 'text-red-700' : 'text-red-400'}`}>Urgent Admin Request</h3>
+                      </div>
+                      <p className={`text-xs mb-6 font-mono leading-relaxed relative z-10 ${isLightMode ? 'text-slate-600' : 'text-red-300/70'}`}>
+                        Initiate a direct, encrypted priority request to the System Administrator. Use only for critical access overrides, secure data retrieval, or immediate system escalations.
+                      </p>
+                      <div className="mt-auto relative z-10">
+                        <textarea 
+                          value={adminRequestText}
+                          onChange={(e) => setAdminRequestText(e.target.value)}
+                          className={`w-full p-4 rounded-2xl text-xs font-mono border resize-none mb-4 outline-none transition-colors shadow-inner ${isLightMode ? 'bg-white border-red-200 text-slate-800 focus:border-red-400' : 'bg-black/60 border-red-500/20 text-red-100 focus:border-red-500/50'} placeholder-red-500/30`} 
+                          rows={3} 
+                          placeholder="Type your encrypted transmission here..."
+                        ></textarea>
+                        <button 
+                          onClick={handleAdminRequest}
+                          disabled={requestStatus !== 'idle' || !adminRequestText.trim()}
+                          className={`w-full py-4 rounded-xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center transition-all disabled:opacity-50 cursor-pointer ${
+                            requestStatus === 'sent' ? 'bg-green-500 text-white' : 
+                            requestStatus === 'sending' ? 'bg-red-500/50 text-white cursor-wait' : 
+                            'bg-red-500 hover:bg-red-600 text-white shadow-[0_0_20px_rgba(239,68,68,0.4)]'
+                          }`}
+                        >
+                          {requestStatus === 'idle' && <><Send size={14} className="mr-2" /> Transmit Priority Request</>}
+                          {requestStatus === 'sending' && <><Loader2 size={14} className="mr-2 animate-spin" /> Establishing Secure Link...</>}
+                          {requestStatus === 'sent' && <><CheckCircle2 size={14} className="mr-2" /> Transmission Verified</>}
+                        </button>
+                      </div>
+                    </motion.div>
+
+                  </div>
+                </motion.div>
+              )}
+
             </AnimatePresence>
           </motion.div>
         </div>

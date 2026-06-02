@@ -4,7 +4,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  // The 'url' property is removed here for Prisma 7 compatibility
 }
 
 model User {
@@ -18,11 +18,13 @@ model User {
   isVerified   Boolean    @default(false)
   passwordHash String
   createdAt    DateTime   @default(now())
-  posts        Post[]   
-  feedbacks    Feedback[] // <-- 🔥 ADD THIS LINE TO USER
+  feedbacks    Feedback[] 
+  
+  // Explicitly named relations so Prisma knows the difference
+  posts        Post[]     @relation("AuthoredPosts") 
+  savedPosts   Post[]     @relation("SavedPosts")
 }
 
-// 🔥 ADD THIS ENTIRE NEW MODEL TO THE BOTTOM OF THE FILE:
 model Feedback {
   id          String   @id @default(uuid())
   userId      String?  
@@ -54,11 +56,13 @@ model Post {
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
   
-  // Relations
-  authorId   String
-  author     User      @relation(fields: [authorId], references: [id])
   categoryId String?
   Category   Category? @relation(fields: [categoryId], references: [id])
+
+  // Explicitly matching the named relations from the User model
+  authorId   String
+  author     User      @relation("AuthoredPosts", fields: [authorId], references: [id])
+  savedBy    User[]    @relation("SavedPosts")
 }
 
 model Release {

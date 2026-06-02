@@ -58,3 +58,37 @@ export const getPosts = catchAsync(async (req: Request, res: Response) => {
     data: posts,
   });
 });
+
+// Add this function to your post.controller.ts
+export const toggleSavePost = async (req: Request, res: Response) => {
+  const postId = req.params.id;
+  const userId = (req as any).user.id; // Assuming your auth middleware attaches the user
+
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: { savedPosts: { select: { id: true } } }
+    });
+
+    const isAlreadySaved = user?.savedPosts.some((p: any) => p.id === postId);
+
+    if (isAlreadySaved) {
+      // Disconnect (Unsave)
+      await prisma.user.update({
+        where: { id: userId },
+        data: { savedPosts: { disconnect: { id: postId } } }
+      });
+      return res.json({ saved: false });
+    } else {
+      // Connect (Save)
+      await prisma.user.update({
+        where: { id: userId },
+        data: { savedPosts: { connect: { id: postId } } }
+      });
+      return res.json({ saved: true });
+    }
+  } catch (error) {
+    console.error("Save Toggle Error:", error);
+    res.status(500).json({ message: "Failed to toggle save status." });
+  }
+};
