@@ -119,12 +119,14 @@ export const loginUser = catchAsync(async (req: Request, res: Response) => {
 // ==========================================
 
 export const getMe = catchAsync(async (req: Request, res: Response) => {
-  const userId = req.user?.id;const user = await prisma.user.findUnique({
-      where: { id: req.user?.id },
-      include: { savedPosts: true } 
+  const userId = req.user?.id;
 
-  if (!userId) return res.status(401).json({ message: 'Unauthorized: No active session.' });
+  // 1. Verify the session exists first
+  if (!userId) {
+    return res.status(401).json({ message: 'Unauthorized: No active session.' });
+  }
 
+  // 2. Fetch the user with explicitly selected fields and relations
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: {
@@ -134,17 +136,19 @@ export const getMe = catchAsync(async (req: Request, res: Response) => {
       fullName: true,
       age: true,
       phone: true,
-      // 🔥 THE FIX: Tell Prisma to grab the Profile Picture URL!
-      profilePic: true, 
+      profilePic: true, // Successfully grabbing the Cloudinary URL
       isVerified: true,
       createdAt: true,
-      savedPosts: true,
+      savedPosts: true, // Perfectly joins the saved posts to the profile!
     },
-
   });
 
-  if (!user) return res.status(404).json({ message: 'Identity not found in the matrix.' });
+  // 3. Handle ghost sessions
+  if (!user) {
+    return res.status(404).json({ message: 'Identity not found in the matrix.' });
+  }
 
+  // 4. Return the payload
   res.status(200).json({ status: 'success', data: user });
 });
 

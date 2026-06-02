@@ -25,6 +25,7 @@ router.post('/', requireAuth, createPost);
 
 router.get('/:id/pdf', generateResearchPDF);
 
+// Make sure it looks exactly like this!
 router.post('/:id/save', protect, toggleSavePost);
 
 export default router;

@@ -18,9 +18,9 @@ import ThemeToggle from '@/components/ThemeToggle';
 import Footer from '@/components/Footer';
 
 // ==========================================
-// FALLBACK DUMMY DATA (Used during loading/empty states)
+// FALLBACK DUMMY DATA
 // ==========================================
-const FALLBACK_RESEARCH = [{ id: 101, title: "Synchronizing...", label: "SYSTEM", desc: "Establishing secure link to database..." }];
+const FALLBACK_RESEARCH = [{ id: "101", title: "Synchronizing...", label: "SYSTEM", desc: "Establishing secure link to database..." }];
 const FILTERS = [
   { id: "all", label: "All Resources", icon: Library },
   { id: "docs", label: "Documentation", icon: FileText },
@@ -45,13 +45,27 @@ const staggerContainer = {
 const ultraSmoothSpring = { type: "spring" as const, stiffness: 120, damping: 20, mass: 0.8 };
 
 // ==========================================
-// BACKGROUND: ACTIVE THEME-AWARE NODES
+// BACKGROUND: ACTIVE THEME-AWARE NODES (HYDRATION FIXED)
 // ==========================================
 function ActiveDataBackground({ isLight }: { isLight: boolean }) {
-  const nodes = Array.from({ length: 20 });
+  const [nodes, setNodes] = useState<any[]>([]);
   const gridColor = isLight ? 'rgba(0,255,102,0.1)' : 'rgba(0,255,102,0.03)';
   const gridColor2 = isLight ? 'rgba(0,240,255,0.1)' : 'rgba(0,240,255,0.03)';
   const bgColor = isLight ? 'bg-slate-50' : 'bg-[#010205]';
+
+  useEffect(() => {
+    setNodes(Array.from({ length: 20 }).map((_, i) => ({
+      id: i, 
+      left: Math.random() * 100, 
+      top: Math.random() * 100, 
+      size: Math.random() * 30 + 10,
+      yAnim: Math.random() * -150 - 50,
+      xAnim: Math.random() * 50 - 25,
+      rAnim: Math.random() * 180,
+      scaleMax: Math.random() * 0.5 + 1,
+      dur: Math.random() * 25 + 15
+    })));
+  }, []);
 
   return (
     <div className={`fixed inset-0 z-0 pointer-events-none overflow-hidden transition-colors duration-1000 ${bgColor}`}>
@@ -60,17 +74,16 @@ function ActiveDataBackground({ isLight }: { isLight: boolean }) {
         className="absolute inset-0 [mask-image:radial-gradient(ellipse_at_center,black_20%,transparent_80%)]" 
         style={{ backgroundImage: `linear-gradient(${gridColor} 1px, transparent 1px), linear-gradient(90deg, ${gridColor2} 1px, transparent 1px)`, backgroundSize: '80px 80px' }}
       />
-      {nodes.map((_, i) => {
-        const size = Math.random() * 30 + 10;
+      {nodes.map((node, i) => {
         const isCyan = i % 2 === 0;
         return (
           <motion.div
-            key={i} className={`absolute flex items-center justify-center opacity-30 ${isCyan ? 'text-[#00f0ff]' : 'text-[#00ff66]'}`}
-            style={{ left: `${Math.random() * 100}vw`, top: `${Math.random() * 100}vh` }}
-            animate={{ y: [0, Math.random() * -150 - 50, 0], x: [0, Math.random() * 50 - 25, 0], rotateZ: [0, Math.random() * 180, 360], rotateX: [0, 180, 360], scale: [1, Math.random() * 0.5 + 1, 1], opacity: [0.1, 0.5, 0.1] }}
-            transition={{ duration: Math.random() * 25 + 15, repeat: Infinity, ease: "linear" }}
+            key={node.id} className={`absolute flex items-center justify-center opacity-30 ${isCyan ? 'text-[#00f0ff]' : 'text-[#00ff66]'}`}
+            style={{ left: `${node.left}vw`, top: `${node.top}vh` }}
+            animate={{ y: [0, node.yAnim, 0], x: [0, node.xAnim, 0], rotateZ: [0, node.rAnim, 360], rotateX: [0, 180, 360], scale: [1, node.scaleMax, 1], opacity: [0.1, 0.5, 0.1] }}
+            transition={{ duration: node.dur, repeat: Infinity, ease: "linear" }}
           >
-            <Hexagon size={size} strokeWidth={1.5} />
+            <Hexagon size={node.size} strokeWidth={1.5} />
           </motion.div>
         );
       })}
@@ -160,7 +173,6 @@ export default function MasterResearchVault() {
       }
 
       try {
-        // 1. Fetch Secure User Identity
         const authRes = await fetch('http://localhost:5000/api/auth/me', {
           headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -172,7 +184,6 @@ export default function MasterResearchVault() {
           return;
         }
 
-        // 2. Fetch Live Database Cores
         const [postsRes, releasesRes] = await Promise.all([
           fetch('http://localhost:5000/api/posts'),
           fetch('http://localhost:5000/api/releases')
@@ -183,11 +194,9 @@ export default function MasterResearchVault() {
         const posts = postsData.data || [];
         const releases = releasesData.data || [];
 
-        // Separation Rules
         const publishedPosts = posts.filter((p: any) => p.published === true);
         const draftPosts = posts.filter((p: any) => p.published === false);
 
-        // RULE 1: Recent Insights (Latest 5 Fully Finished Uploads)
         const mappedRecent = publishedPosts.slice(0, 5).map((p: any) => ({
           id: p.id,
           title: p.title,
@@ -197,7 +206,6 @@ export default function MasterResearchVault() {
         setRecentResearch(mappedRecent.length > 0 ? mappedRecent : []);
         if (mappedRecent.length > 0) setActiveRecent(mappedRecent[0].id);
 
-        // RULE 2: Upcoming Topics (Drafts / Not Out Yet)
         const mappedUpcoming = draftPosts.slice(0, 4).map((r: any, i: number, arr: any[]) => ({
           id: r.id,
           title: r.title,
@@ -206,7 +214,6 @@ export default function MasterResearchVault() {
         }));
         setUpcomingTopics(mappedUpcoming.length > 0 ? mappedUpcoming : [{ id: 'empty', title: "NO UPCOMING DATA", tech: "STANDBY", angle: 0 }]);
 
-        // RULE 3: Interface Prototypes (Currently Uploading / Releases)
         const mappedRadial = releases.slice(0, 5).map((m: any) => ({
           id: `V${m.version}`,
           letter: m.projectName.charAt(0).toUpperCase(),
@@ -215,7 +222,6 @@ export default function MasterResearchVault() {
         }));
         setRadialConcepts(mappedRadial.length > 0 ? mappedRadial : [{ id: "R1", letter: "O", title: "AWAITING PROTOTYPES", subtitle: "SYSTEM IDLE" }]);
 
-        // RULE 4: Research Directory (All Fully Finished / Stable)
         const mappedAll = publishedPosts.map((m: any) => ({
           id: m.id,
           title: m.title,
@@ -367,7 +373,6 @@ export default function MasterResearchVault() {
               <div className={`w-px h-4 hidden sm:block ${isLightMode ? 'bg-slate-300' : 'bg-slate-800'}`}></div>
               <div className="flex items-center space-x-3 group">
                 
-                {/* UPGRADED PROFILE PICTURE DISPLAY */}
                 <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-[#00ff66] to-[#00f0ff] p-[1.5px] shrink-0 overflow-hidden">
                   <div className={`w-full h-full rounded-full flex items-center justify-center overflow-hidden ${isLightMode ? 'bg-white' : 'bg-[#010205]'}`}>
                     {userData?.profilePic ? (
@@ -378,7 +383,6 @@ export default function MasterResearchVault() {
                   </div>
                 </div>
                 
-                {/* UPGRADED FULL NAME DISPLAY */}
                 <span className={`text-xs font-black uppercase tracking-widest transition-colors ${textPrimary} group-hover:text-[#00f0ff]`}>
                   {userData ? (userData.fullName || 'OPERATOR') : 'GUEST'}
                 </span>
@@ -462,7 +466,12 @@ export default function MasterResearchVault() {
                             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }} transition={{ delay: 0.1, ...ultraSmoothSpring }}>
                               <span className="text-xs font-mono text-[#00f0ff] mb-4 block tracking-widest uppercase">{item.label}</span>
                               <p className={`text-base mb-8 max-w-lg leading-relaxed font-light ${textSecondary}`}>{item.desc}</p>
-                              <button className={`flex items-center text-xs font-bold uppercase tracking-widest transition-all px-6 py-3 rounded-lg group ${isLightMode ? 'bg-[#00ff66]/20 text-[#00a843] hover:bg-[#00ff66] hover:text-black' : 'bg-transparent border border-[#00ff66]/50 text-[#00ff66] hover:bg-[#00ff66] hover:text-black'}`}>
+                              
+                              {/* 🔥 THE FIX: Attached Router to "Recent Insights" button */}
+                              <button 
+                                onClick={() => router.push(`/research/${item.id}`)} 
+                                className={`flex items-center text-xs font-bold uppercase tracking-widest transition-all px-6 py-3 rounded-lg group cursor-pointer ${isLightMode ? 'bg-[#00ff66]/20 text-[#00a843] hover:bg-[#00ff66] hover:text-black' : 'bg-transparent border border-[#00ff66]/50 text-[#00ff66] hover:bg-[#00ff66] hover:text-black'}`}
+                              >
                                 Access Resource <ArrowRight size={16} className="ml-3 group-hover:translate-x-1 transition-transform" />
                               </button>
                             </motion.div>
@@ -549,7 +558,14 @@ export default function MasterResearchVault() {
 
             <div className="flex flex-col space-y-4">
               {filteredResources.length > 0 ? filteredResources.map((res) => (
-                <motion.div key={res.id} variants={spatialReveal} className={`group relative w-full h-28 rounded-2xl overflow-hidden border transition-colors duration-500 cursor-pointer ${cardBg} hover:border-[#00ff66]/50`}>
+                
+                // 🔥 THE FIX: Attached Router to the entire Directory Card
+                <motion.div 
+                  key={res.id} 
+                  onClick={() => router.push(`/research/${res.id}`)} 
+                  variants={spatialReveal} 
+                  className={`group relative w-full h-28 rounded-2xl overflow-hidden border transition-colors duration-500 cursor-pointer ${cardBg} hover:border-[#00ff66]/50`}
+                >
                   <div className="absolute inset-0 flex items-center justify-between px-6 lg:px-10 transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:-translate-x-full">
                     <h3 className={`text-xl md:text-2xl font-black tracking-widest uppercase whitespace-nowrap ${textSecondary}`}>{res.title}</h3>
                     <div className="hidden md:flex">
@@ -573,6 +589,7 @@ export default function MasterResearchVault() {
                     </div>
                   </div>
                 </motion.div>
+                
               )) : (
                 <div className={`w-full py-16 flex items-center justify-center rounded-3xl border border-dashed ${isLightMode ? 'border-slate-300' : 'border-slate-800'}`}>
                   <p className={`font-mono text-sm tracking-widest uppercase ${textSecondary}`}>NO RESOURCES MATCH YOUR QUERY.</p>

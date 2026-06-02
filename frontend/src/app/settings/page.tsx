@@ -48,7 +48,7 @@ const springItem = { hidden: { opacity: 0, y: 30, scale: 0.95, filter: 'blur(10p
 const SETTINGS_TABS = [
   { id: 'account', label: 'Account Data', icon: User, desc: 'Profile & Registration' },
   { id: 'hardware', label: 'Linked Nodes', icon: Laptop, desc: 'Hardware & Devices' },
-  { id: 'saved', label: 'Authored Vault', icon: Bookmark, desc: 'Your Contributions' },
+  { id: 'saved', label: 'Authored Vault', icon: Bookmark, desc: 'Your Saved Research' },
   { id: 'security', label: 'Security', icon: Shield, desc: 'Admin & Encryption' },
 ];
 
@@ -99,12 +99,9 @@ export default function AdvancedSettingsMatrix() {
             phone: data.phone || ""
           }));
           
-          const postsRes = await fetch('http://localhost:5000/api/posts');
-          if (postsRes.ok) {
-            const postsJson = await postsRes.json();
-            const myPosts = (postsJson.data || []).filter((p: any) => p.authorId === data.id);
-            setUserVault(data.savedPosts || []);
-          }
+          // 🔥 THE FIX: Directly load the joined savedPosts array from the backend
+          setUserVault(data.savedPosts || []);
+          
         } else {
           router.push('/auth');
         }

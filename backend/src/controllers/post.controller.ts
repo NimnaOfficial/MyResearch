@@ -59,36 +59,45 @@ export const getPosts = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-// Add this function to your post.controller.ts
-export const toggleSavePost = async (req: Request, res: Response) => {
-  const postId = req.params.id;
-  const userId = (req as any).user.id; // Assuming your auth middleware attaches the user
+export const toggleSavePost = catchAsync(async (req: Request, res: Response) => {
+  // Force strict string typing to satisfy Prisma's security requirements
+  const postId = req.params.id as string;
+  const userId = req.user?.id;
 
-  try {
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      include: { savedPosts: { select: { id: true } } }
-    });
-
-    const isAlreadySaved = user?.savedPosts.some((p: any) => p.id === postId);
-
-    if (isAlreadySaved) {
-      // Disconnect (Unsave)
-      await prisma.user.update({
-        where: { id: userId },
-        data: { savedPosts: { disconnect: { id: req.params.id as string } } }
-      });
-      return res.json({ saved: false });
-    } else {
-      // Connect (Save)
-      await prisma.user.update({
-        where: { id: userId },
-        data: { savedPosts: { connect: { id: req.params.id as string } } }
-      });
-      return res.json({ saved: true });
-    }
-  } catch (error) {
-    console.error("Save Toggle Error:", error);
-    res.status(500).json({ message: "Failed to toggle save status." });
+  if (!userId) {
+    return res.status(401).json({ message: 'Unauthorized access.' });
   }
-};
+
+  // 1. Ask Prisma if this specific user has this specific post in their saved list
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { 
+      savedPosts: { 
+        where: { id: postId } 
+      } 
+    }
+  });
+
+  if (!user) {
+    return res.status(404).json({ message: 'User not found in the matrix.' });
+  }
+
+  const isAlreadySaved = user.savedPosts.length > 0;
+
+  // 2. Toggle the Relational Connection
+  if (isAlreadySaved) {
+    // If it's saved, disconnect it (Unsave)
+    await prisma.user.update({
+      where: { id: userId },
+      data: { savedPosts: { disconnect: { id: postId } } }
+    });
+    return res.status(200).json({ status: 'success', message: 'Removed from Vault' });
+  } else {
+    // If it's not saved, connect it (Save)
+    await prisma.user.update({
+      where: { id: userId },
+      data: { savedPosts: { connect: { id: postId } } }
+    });
+    return res.status(200).json({ status: 'success', message: 'Added to Vault' });
+  }
+});
