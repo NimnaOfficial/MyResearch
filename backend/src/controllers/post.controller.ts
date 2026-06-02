@@ -60,7 +60,6 @@ export const getPosts = catchAsync(async (req: Request, res: Response) => {
 });
 
 export const toggleSavePost = catchAsync(async (req: Request, res: Response) => {
-  // Force strict string typing to satisfy Prisma's security requirements
   const postId = req.params.id as string;
   const userId = req.user?.id;
 
@@ -68,32 +67,27 @@ export const toggleSavePost = catchAsync(async (req: Request, res: Response) => 
     return res.status(401).json({ message: 'Unauthorized access.' });
   }
 
-  // 1. Ask Prisma if this specific user has this specific post in their saved list
+  // 1. Universally safe Prisma query (No nested 'where' clauses inside 'select')
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { 
-      savedPosts: { 
-        where: { id: postId } 
-      } 
-    }
+    include: { savedPosts: true }
   });
 
   if (!user) {
     return res.status(404).json({ message: 'User not found in the matrix.' });
   }
 
-  const isAlreadySaved = user.savedPosts.length > 0;
+  // 2. Manually check if the post exists in their vault
+  const isAlreadySaved = user.savedPosts.some((post: any) => post.id === postId);
 
-  // 2. Toggle the Relational Connection
+  // 3. Toggle the Relational Connection
   if (isAlreadySaved) {
-    // If it's saved, disconnect it (Unsave)
     await prisma.user.update({
       where: { id: userId },
       data: { savedPosts: { disconnect: { id: postId } } }
     });
     return res.status(200).json({ status: 'success', message: 'Removed from Vault' });
   } else {
-    // If it's not saved, connect it (Save)
     await prisma.user.update({
       where: { id: userId },
       data: { savedPosts: { connect: { id: postId } } }

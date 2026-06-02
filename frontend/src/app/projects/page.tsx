@@ -1,12 +1,14 @@
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence, useScroll, useTransform, useMotionValue, useAnimationFrame } from 'framer-motion';
+import { useRouter } from 'next/navigation';
+import { motion, AnimatePresence, useTransform, useMotionValue, useAnimationFrame } from 'framer-motion';
 import Link from 'next/link';
 import { 
-  Search, User, Settings, Star, LogOut, GitCommit, 
-  Terminal, ShieldAlert, Zap, Cpu, Layers, ArchiveRestore, Focus,
-  Plus, Minus, ChevronDown, Rocket, Code2, Database, Box, PlayCircle, FolderOpen
+  User, Settings, Star, LogOut, GitCommit, 
+  Terminal, ShieldAlert, Zap, Cpu, Layers, ArchiveRestore,
+  Plus, Minus, ChevronDown, Rocket, Code2, Database, Box, PlayCircle, FolderOpen,
+  X, Video, Image as ImageIcon
 } from 'lucide-react';
 
 import CustomCursor from '@/components/CustomCursor';
@@ -15,29 +17,10 @@ import ThemeToggle from '@/components/ThemeToggle';
 import Footer from '@/components/Footer';
 
 // ==========================================
-// MOCK DATABASES (Orange Theme)
+// DB UI ASSETS & CONFIG
 // ==========================================
-const RECENT_PROJECTS = [
-  { id: "v2.4.0", date: "MAY 2026", title: "Quantum UI Framework", type: "Frontend Core", color: "from-orange-500 to-amber-400", icon: Layers, changes: ["Engineered 3D Spatial Cascading Stacks.", "Re-architected the Authentication HUD.", "Optimized Framer Motion physics springs."] },
-  { id: "v2.3.5", date: "MAY 2026", title: "Lanka Washing System", type: "Fullstack App", color: "from-orange-600 to-red-500", icon: Terminal, changes: ["30-class Object-Oriented Architecture.", "Java Swing desktop component integration.", "PHP-based central administration panel."] },
-  { id: "v2.2.0", date: "APR 2026", title: "AutoHub Platform", type: "Web Platform", color: "from-amber-400 to-orange-500", icon: Database, changes: ["Optimized MySQL database query latency.", "Integrated Stripe payment gateway APIs.", "Secured server routing protocols."] },
-  { id: "v2.1.0", date: "MAR 2026", title: "Telemetry Analytics", type: "Data Matrix", color: "from-red-500 to-orange-600", icon: Zap, changes: ["Live web-socket data streaming.", "AJAX payload encryption routing.", "Interactive 3D Hologram deployment."] },
-  { id: "v2.0.0", date: "FEB 2026", title: "Security Matrix", type: "Core Patch", color: "from-orange-500 to-pink-500", icon: ShieldAlert, changes: ["Strictly typed session roles.", "Patched vulnerabilities in Contact Matrix.", "Role-aware navigation headers."] }
-];
-
-const INCOMINGS = [
-  { title: "AI Neural Network", desc: "Connecting local models.", icon: Cpu },
-  { title: "Crypto Gateway", desc: "Web3 wallet endpoints.", icon: ShieldAlert },
-  { title: "Telemetry Dashboard", desc: "Live web-socket streaming.", icon: Zap },
-  { title: "SSR Optimization", desc: "Next.js core upgrades.", icon: Code2 },
-  { title: "Quantum Crypto API", desc: "Next-gen encryption.", icon: Terminal }
-];
-
-const ALL_PROJECTS = [
-  "Integrated Resource Management System", "Lanka Washing System", "AutoHub E-Commerce", 
-  "Cyber-Defend Framework", "Quantum UI Components", "AI Image Processor", 
-  "Stripe Checkout Portal", "MySQL Database Architect"
-];
+const COLORS = ["from-orange-500 to-amber-400", "from-orange-600 to-red-500", "from-amber-400 to-orange-500", "from-red-500 to-orange-600", "from-orange-500 to-pink-500"];
+const ICONS = [Layers, Terminal, Database, Zap, ShieldAlert, Cpu, Code2, Box];
 
 const FAQS = [
   { q: "What is your primary architectural stack?", a: "I specialize in Next.js, React, and Framer Motion for the frontend, coupled with PHP, Node.js, and complex MySQL databases on the backend." },
@@ -48,7 +31,7 @@ const FAQS = [
 ];
 
 // ==========================================
-// FIXED: PURE CSS HONEYCOMB MATRIX BACKGROUND
+// UNIFIED MATRIX BACKGROUND
 // ==========================================
 function UnifiedMatrixBackground({ isLight }: { isLight: boolean }) {
   const bgColor = isLight ? 'bg-slate-50' : 'bg-[#010205]';
@@ -56,7 +39,6 @@ function UnifiedMatrixBackground({ isLight }: { isLight: boolean }) {
 
   return (
     <div className={`fixed inset-0 z-0 pointer-events-none ${bgColor} overflow-hidden`}>
-      {/* Infinite Scrolling Honeycomb Pattern */}
       <motion.div 
         animate={{ backgroundPosition: ["0px 0px", "0px 103.92px"] }} 
         transition={{ duration: 5, ease: "linear", repeat: Infinity }}
@@ -66,7 +48,6 @@ function UnifiedMatrixBackground({ isLight }: { isLight: boolean }) {
           backgroundSize: '60px 103.92px' 
         }} 
       />
-      {/* Ambient Glowing Orbs */}
       <motion.div animate={{ opacity: [0.1, 0.25, 0.1], scale: [1, 1.2, 1] }} transition={{ duration: 12, repeat: Infinity }} className={`absolute top-1/4 left-1/4 w-[40vw] h-[40vw] rounded-full blur-[150px] ${isLight ? 'bg-orange-500/20' : 'bg-orange-600/20'}`} />
       <motion.div animate={{ opacity: [0.1, 0.2, 0.1], scale: [1, 1.1, 1] }} transition={{ duration: 15, repeat: Infinity, delay: 2 }} className={`absolute bottom-1/4 right-1/4 w-[50vw] h-[50vw] rounded-full blur-[180px] ${isLight ? 'bg-amber-500/20' : 'bg-orange-700/20'}`} />
     </div>
@@ -76,33 +57,49 @@ function UnifiedMatrixBackground({ isLight }: { isLight: boolean }) {
 const ultraSmoothSpring = { type: "spring" as const, stiffness: 100, damping: 20, mass: 1 };
 const slowExpandSpring = { type: "spring" as const, stiffness: 50, damping: 25, mass: 1.5 };
 
+// Extract potential URLs from a string (Helper)
+const extractUrl = (text: string) => {
+  if (!text) return null;
+  const match = text.match(/(https?:\/\/[^\s]+)/g);
+  return match ? match[0] : null;
+};
+
 // ==========================================
 // MAIN MATRIX PAGE
 // ==========================================
 export default function ProjectMatrix() {
+  const router = useRouter();
   const [isLightMode, setIsLightMode] = useState(false);
   const [timeState, setTimeState] = useState({ time: "", date: "" });
   const [isProfileHovered, setIsProfileHovered] = useState(false);
+  const [userData, setUserData] = useState<any>(null);
   
-  // Section 1: "Standing File Drawer" State
+  // LIVE DATABASE STATES
+  const [recentProjects, setRecentProjects] = useState<any[]>([]);
+  const [incomings, setIncomings] = useState<any[]>([]);
+  const [allProjects, setAllProjects] = useState<any[]>([]);
+
+  // Section 1: "Standing File Drawer"
   const [activeStackIndex, setActiveStackIndex] = useState(0);
   const [isHoveringStack, setIsHoveringStack] = useState(false);
 
-  // Section 2: Incoming Arc Carousel State 
+  // Section 2: Incoming Arc Carousel
   const [incomingIndex, setIncomingIndex] = useState(0);
   const [isHoveringIncomings, setIsHoveringIncomings] = useState(false);
 
-  // Section 3: Combobox & Filter
+  // Section 3: Combobox Filter
   const [filterType, setFilterType] = useState('All Systems');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
-  // Section 4: 3D Hologram Carousel Cursor Tracking
+  // Section 4: Hologram Video Carousel
   const holoMouseX = useMotionValue(0);
   const holoRotY = useMotionValue(0);
   const [isCarouselHovered, setIsCarouselHovered] = useState(false);
+  const [activeVideoNode, setActiveVideoNode] = useState<any>(null); // Controls Video Pop-up
 
   useAnimationFrame(() => {
-    if (!isCarouselHovered) {
+    // Only spin if not hovering AND no video is currently active!
+    if (!isCarouselHovered && !activeVideoNode) {
       holoRotY.set(holoRotY.get() + 0.03 + (holoMouseX.get() * 0.15)); 
     }
   });
@@ -120,6 +117,96 @@ export default function ProjectMatrix() {
   const [currentUserRole, setCurrentUserRole] = useState<'guest' | 'user' | 'admin'>('guest');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
+  // ==========================================
+  // SCROLL LOCK ENGINE
+  // ==========================================
+  useEffect(() => {
+    if (activeVideoNode) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => { document.body.style.overflow = 'unset'; };
+  }, [activeVideoNode]);
+
+  // ==========================================
+  // PURE DATABASE HYDRATION ENGINE
+  // ==========================================
+  useEffect(() => {
+    const hydrateMatrix = async () => {
+      try {
+        const [releasesRes, postsRes] = await Promise.all([
+          fetch('http://localhost:5000/api/releases').catch(() => null),
+          fetch('http://localhost:5000/api/posts').catch(() => null)
+        ]);
+
+        let releases = releasesRes?.ok ? (await releasesRes.json()).data || [] : [];
+        let posts = postsRes?.ok ? (await postsRes.json()).data || [] : [];
+
+        // 1. Gather ALL "Completed" Projects (Releases + Published Posts)
+        const publishedPosts = posts.filter((p: any) => p.published !== false);
+        const allCompleted = [
+          ...releases.map((r: any) => ({ ...r, isRelease: true, dateObj: new Date(r.publishedAt || r.createdAt || 0) })),
+          ...publishedPosts.map((p: any) => ({ ...p, isPost: true, dateObj: new Date(p.createdAt || 0) }))
+        ].sort((a, b) => b.dateObj.getTime() - a.dateObj.getTime()); // Newest First!
+
+        // 2. Map Top 5 Recent Projects
+        if (allCompleted.length > 0) {
+          const mappedRecent = allCompleted.slice(0, 5).map((item: any, i: number) => {
+            const rawNotes = item.isRelease ? item.releaseNotes : item.content;
+            const changes = (rawNotes || '').split('\n').filter((c: string) => c.trim() !== '').slice(0, 3);
+            
+            return {
+              id: item.isRelease ? (item.version || `v${i+1}.0.0`) : (item.type || 'SYSTEM'),
+              rawId: item.id,
+              date: item.dateObj.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }).toUpperCase(),
+              title: item.isRelease ? item.projectName : item.title,
+              type: item.isRelease ? "Release Core" : "Verified Post",
+              color: COLORS[i % COLORS.length],
+              icon: ICONS[i % ICONS.length],
+              changes: changes.length > 0 ? changes : ["System architecture finalized.", "Database relationships active.", "UI parameters locked."],
+              url: item.downloadUrl || null
+            };
+          });
+          setRecentProjects(mappedRecent);
+        }
+
+        // 3. Map Incomings (Drafts ONLY)
+        const draftPosts = posts.filter((p: any) => p.published === false);
+        if (draftPosts.length > 0) {
+          const mappedIncomings = draftPosts.slice(0, 5).map((post: any, i: number) => ({
+            id: post.id,
+            title: post.title || 'Unknown Draft',
+            desc: (post.type || 'Development').toUpperCase(),
+            icon: ICONS[(i + 3) % ICONS.length]
+          }));
+          setIncomings(mappedIncomings);
+        }
+
+        // 4. Map All Completed Projects for Marquee (With Admin Video Search!)
+        if (allCompleted.length > 0) {
+          const mappedAll = allCompleted.map((item: any) => {
+            // Attempt to extract an admin-provided video link from the DB string
+            const potentialVideo = item.videoUrl || extractUrl(item.isRelease ? item.releaseNotes : item.content);
+            return { 
+              id: item.id, 
+              title: item.isRelease ? item.projectName : item.title,
+              type: item.isRelease ? 'Release' : item.type,
+              videoUrl: potentialVideo // Will be null if none found
+            };
+          }).filter(p => p.title);
+          
+          setAllProjects(mappedAll);
+        }
+
+      } catch (error) {
+        console.error("Matrix Hydration Failed:", error);
+      }
+    };
+
+    hydrateMatrix();
+  }, []);
+
   // Auto-Cycle Timers
   useEffect(() => {
     const faqTimer = setInterval(() => {
@@ -127,22 +214,27 @@ export default function ProjectMatrix() {
     }, 5000); 
 
     const stackTimer = setInterval(() => {
-      if (!isHoveringStack) setActiveStackIndex((prev) => (prev + 1) % RECENT_PROJECTS.length);
+      if (!isHoveringStack && recentProjects.length > 0) setActiveStackIndex((prev) => (prev + 1) % recentProjects.length);
     }, 3000);
 
     const incomingTimer = setInterval(() => {
-      if (!isHoveringIncomings) setIncomingIndex((prev) => (prev + 1) % INCOMINGS.length);
+      if (!isHoveringIncomings && incomings.length > 0) setIncomingIndex((prev) => (prev + 1) % incomings.length);
     }, 3500);
 
     return () => { clearInterval(faqTimer); clearInterval(stackTimer); clearInterval(incomingTimer); };
-  }, [isFaqHovered, isHoveringStack, isHoveringIncomings]);
+  }, [isFaqHovered, isHoveringStack, isHoveringIncomings, recentProjects.length, incomings.length]);
 
+  // Auth & Clock Init
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const storedRole = localStorage.getItem('userRole');
-      if (storedRole) {
-        setCurrentUserRole(storedRole as 'guest' | 'user' | 'admin');
-        setIsAuthenticated(storedRole === 'user' || storedRole === 'admin');
+      const token = localStorage.getItem('matrix_token');
+      if (token) {
+        setIsAuthenticated(true);
+        setCurrentUserRole('user');
+        fetch('http://localhost:5000/api/auth/me', { headers: { 'Authorization': `Bearer ${token}` } })
+          .then(res => res.json())
+          .then(json => { if (json.data) setUserData(json.data); })
+          .catch(() => {});
       } else {
         const isInternalRoute = document.referrer.includes(window.location.host);
         if (isInternalRoute) { setCurrentUserRole('user'); setIsAuthenticated(true); } 
@@ -164,15 +256,32 @@ export default function ProjectMatrix() {
   };
 
   const handleStackMouseMove = (e: React.MouseEvent) => {
+    if (recentProjects.length === 0) return;
     setIsHoveringStack(true);
     const rect = e.currentTarget.getBoundingClientRect();
     const relativeX = e.clientX - rect.left;
     const percentage = Math.max(0, Math.min(1, relativeX / rect.width));
-    const newIndex = Math.floor(percentage * RECENT_PROJECTS.length);
-    if (newIndex < RECENT_PROJECTS.length && newIndex !== activeStackIndex) {
+    const newIndex = Math.floor(percentage * recentProjects.length);
+    if (newIndex < recentProjects.length && newIndex !== activeStackIndex) {
       setActiveStackIndex(newIndex);
     }
   };
+
+  const handleLogout = () => {
+    localStorage.removeItem('userRole');
+    localStorage.removeItem('matrix_token');
+    router.push('/auth');
+  };
+
+  // 🔥 FILTER LOGIC FOR MARQUEE
+  const filteredAllProjects = allProjects.filter(proj => {
+    if (filterType === 'All Systems') return true;
+    const searchStr = `${proj.title} ${proj.type}`.toLowerCase();
+    if (filterType === 'Frontend') return searchStr.match(/frontend|ui|web|app|react|next/i);
+    if (filterType === 'Backend') return searchStr.match(/backend|server|api|database|sql|php|node/i);
+    if (filterType === 'AI Models') return searchStr.match(/ai|model|llm|neural|gemini|vision/i);
+    return true; // Fallback
+  });
 
   const textPrimary = isLightMode ? "text-slate-900" : "text-white";
   const textSecondary = isLightMode ? "text-slate-600" : "text-slate-400";
@@ -182,17 +291,13 @@ export default function ProjectMatrix() {
   return (
     <main className={`relative min-h-screen font-sans cursor-none overflow-x-hidden flex flex-col transition-colors duration-1000 ${isLightMode ? 'text-slate-900' : 'text-white'}`}>
       <CustomCursor />
-      
-      {/* PERFECT UNIFIED BACKGROUND */}
       <UnifiedMatrixBackground isLight={isLightMode} />
 
       <div className="fixed top-24 left-6 lg:left-12 z-[100] pointer-events-auto">
         <ThemeToggle isLight={isLightMode} toggleTheme={() => setIsLightMode(!isLightMode)} />
       </div>
 
-      {/* ==========================================
-          HEADER 
-          ========================================== */}
+      {/* HEADER */}
       <div className="fixed top-0 left-0 right-0 z-50 pt-6 px-6 lg:px-12 flex justify-between items-start pointer-events-none">
         <div className="flex items-center space-x-3 pointer-events-auto mt-20">
           <div className="w-10 h-10 shrink-0 bg-gradient-to-br from-orange-500 to-amber-400 rounded-lg flex items-center justify-center text-black shadow-[0_0_20px_rgba(249,115,22,0.3)]">
@@ -213,26 +318,32 @@ export default function ProjectMatrix() {
                 </span>
                 <div className={`w-px h-4 hidden sm:block ${isLightMode ? 'bg-slate-300' : 'bg-slate-800'}`} />
                 <div className="flex items-center space-x-3 group">
-                  <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-orange-500 to-amber-400 p-[1.5px] transition-all duration-500">
-                    <div className={`w-full h-full rounded-full flex items-center justify-center ${isLightMode ? 'bg-white' : 'bg-[#010205]'}`}>
-                      <User size={12} className={textPrimary} />
+                  <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-orange-500 to-amber-400 p-[1.5px] transition-all duration-500 overflow-hidden">
+                    <div className={`w-full h-full rounded-full flex items-center justify-center overflow-hidden ${isLightMode ? 'bg-white' : 'bg-[#010205]'}`}>
+                      {userData?.profilePic ? (
+                        <img src={userData.profilePic} alt="Profile" className="w-full h-full object-cover" />
+                      ) : (
+                        <User size={12} className={textPrimary} />
+                      )}
                     </div>
                   </div>
-                  <span className={`text-xs font-black uppercase tracking-widest transition-colors ${textPrimary}`} style={{ color: isProfileHovered ? accentHex : undefined }}>Nima</span>
+                  <span className={`text-xs font-black uppercase tracking-widest transition-colors ${textPrimary}`} style={{ color: isProfileHovered ? accentHex : undefined }}>
+                    {userData ? (userData.fullName || 'OPERATOR') : 'GUEST'}
+                  </span>
                 </div>
               </div>
 
               <AnimatePresence>
                 {isProfileHovered && (
                   <motion.div initial={{ opacity: 0, y: 15, scale: 0.9, rotateX: -20 }} animate={{ opacity: 1, y: 0, scale: 1, rotateX: 0 }} exit={{ opacity: 0, y: 15, scale: 0.9, rotateX: -20 }} transition={ultraSmoothSpring} className={`absolute right-0 mt-3 w-56 rounded-2xl backdrop-blur-2xl p-2 flex flex-col transform-gpu shadow-2xl ${glassBg}`}>
-                    <Link href="/settings" className={`flex items-center px-4 py-3 text-xs font-bold uppercase tracking-widest rounded-xl transition-all ${isLightMode ? 'text-slate-700 hover:bg-slate-100' : 'text-slate-300 hover:bg-white/5'}`}>
+                    <button type="button" onClick={() => router.push('/settings')} className={`flex items-center px-4 py-3 text-xs font-bold uppercase tracking-widest rounded-xl transition-all ${isLightMode ? 'text-slate-700 hover:bg-slate-100' : 'text-slate-300 hover:bg-white/5'}`}>
                       <Settings size={14} className="mr-3 text-orange-500" /> Settings
-                    </Link>
-                    <button type="button" className={`flex items-center px-4 py-3 text-xs font-bold uppercase tracking-widest text-cyan-500 rounded-xl transition-all group ${isLightMode ? 'hover:bg-cyan-50' : 'hover:bg-cyan-500/10'}`}>
+                    </button>
+                    <button type="button" onClick={() => router.push('/settings?tab=saved')} className={`flex items-center px-4 py-3 text-xs font-bold uppercase tracking-widest text-cyan-500 rounded-xl transition-all group ${isLightMode ? 'hover:bg-cyan-50' : 'hover:bg-cyan-500/10'}`}>
                       <Star size={14} className="mr-3 text-orange-400 group-hover:drop-shadow-[0_0_8px_rgba(249,115,22,0.8)]" /> Saved Links
                     </button>
                     <div className={`h-px w-full my-1 ${isLightMode ? 'bg-slate-200' : 'bg-slate-800/50'}`} />
-                    <button type="button" className={`flex items-center px-4 py-3 text-xs font-bold uppercase tracking-widest text-red-500 rounded-xl transition-all group ${isLightMode ? 'hover:bg-red-50' : 'hover:bg-red-500/10'}`}>
+                    <button type="button" onClick={handleLogout} className={`flex items-center px-4 py-3 text-xs font-bold uppercase tracking-widest text-red-500 rounded-xl transition-all group ${isLightMode ? 'hover:bg-red-50' : 'hover:bg-red-500/10'}`}>
                       <LogOut size={14} className="mr-3 text-red-500 group-hover:drop-shadow-[0_0_8px_rgba(239,68,68,0.8)]" /> Terminate Link
                     </button>
                   </motion.div>
@@ -255,7 +366,7 @@ export default function ProjectMatrix() {
                 Recent <br/>
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-amber-400">Projects</span>
               </h2>
-              <p className={`text-sm md:text-base font-mono tracking-widest uppercase mt-4 ${textSecondary}`}>Architecture Deck. Click or Drag files to cycle.</p>
+              <p className={`text-sm md:text-base font-mono tracking-widest uppercase mt-4 ${textSecondary}`}>Architecture Deck. Click front node to enter Matrix.</p>
             </motion.div>
           </div>
 
@@ -264,79 +375,93 @@ export default function ProjectMatrix() {
             onMouseMove={handleStackMouseMove}
             onMouseLeave={() => setIsHoveringStack(false)}
           >
-            {RECENT_PROJECTS.map((project, i) => {
-              const total = RECENT_PROJECTS.length;
-              const offset = (i - activeStackIndex + total) % total;
-              
-              const isFront = offset === 0;
-              const isLeaving = offset === total - 1; 
-              const isVisible = offset >= 0 && offset < 4; 
+            {recentProjects.length === 0 ? (
+              <div className={`w-full max-w-4xl h-[420px] flex flex-col items-center justify-center rounded-3xl border-2 border-dashed transition-colors ${isLightMode ? 'border-slate-300 bg-white/50' : 'border-orange-500/20 bg-black/40'}`}>
+                 <ArchiveRestore size={48} className={isLightMode ? 'text-slate-300 mb-4' : 'text-orange-500/30 mb-4'} />
+                 <p className={`font-mono tracking-widest uppercase text-sm ${textSecondary}`}>No core projects detected in matrix.</p>
+              </div>
+            ) : (
+              recentProjects.map((project, i) => {
+                const total = recentProjects.length;
+                const offset = (i - activeStackIndex + total) % total;
+                
+                const isFront = offset === 0;
+                const isLeaving = offset === total - 1; 
+                const isVisible = offset >= 0 && offset < 4; 
 
-              let yPos = 0; let zPos = 0; let rotX = 0; let opacity = 1; let scale = 1;
+                let yPos = 0; let zPos = 0; let rotX = 0; let opacity = 1; let scale = 1;
 
-              if (isFront) {
-                 yPos = 0; zPos = 0; rotX = 0; opacity = 1; scale = 1;
-              } else if (isLeaving) {
-                 yPos = 300; zPos = 100; rotX = -20; opacity = 0; scale = 1.1; 
-              } else {
-                 yPos = -offset * 75;  
-                 zPos = -offset * 120;  
-                 rotX = offset * 4;    
-                 opacity = 1 - (offset * 0.15);
-                 scale = 1 - (offset * 0.04);
-              }
+                if (isFront) {
+                   yPos = 0; zPos = 0; rotX = 0; opacity = 1; scale = 1;
+                } else if (isLeaving) {
+                   yPos = 300; zPos = 100; rotX = -20; opacity = 0; scale = 1.1; 
+                } else {
+                   yPos = -offset * 75;  
+                   zPos = -offset * 120;  
+                   rotX = offset * 4;    
+                   opacity = 1 - (offset * 0.15);
+                   scale = 1 - (offset * 0.04);
+                }
 
-              return (
-                <motion.div
-                  key={project.id}
-                  onClick={() => setActiveStackIndex(i)} 
-                  drag="y" 
-                  dragConstraints={{ top: 0, bottom: 0 }}
-                  dragElastic={0.2}
-                  onDragEnd={(e, { offset, velocity }) => {
-                    if (offset.y < -50 || velocity.y < -500) setActiveStackIndex((prev) => (prev + 1) % total);
-                    else if (offset.y > 50 || velocity.y > 500) setActiveStackIndex((prev) => (prev - 1 + total) % total);
-                  }}
-                  animate={{ y: yPos, z: zPos, rotateX: rotX, scale: scale, opacity: isVisible || isLeaving ? opacity : 0, zIndex: total - offset }}
-                  whileHover={{ scale: isFront ? 1 : scale + 0.02, cursor: isFront ? "grab" : "pointer" }}
-                  transition={{ type: "spring", stiffness: 120, damping: 20 }}
-                  className="absolute bottom-0 w-full max-w-4xl h-[380px] md:h-[420px] active:cursor-grabbing"
-                  style={{ transformOrigin: "bottom center" }}
-                >
-                  <div className={`absolute -top-10 left-8 px-6 py-2.5 rounded-t-xl border-t border-l border-r flex items-center gap-3 shadow-lg z-20 transition-colors ${isFront ? 'bg-orange-600 border-orange-400' : 'bg-orange-900 border-orange-700/50'}`}>
-                     <FolderOpen size={16} className={isFront ? "text-black" : "text-orange-400"} />
-                     <span className={`font-black uppercase text-xs tracking-widest ${isFront ? "text-black" : "text-orange-400"}`}>{project.id}</span>
-                  </div>
-
-                  <div className={`absolute top-0 bottom-0 left-0 right-0 rounded-3xl border overflow-hidden flex flex-col justify-between p-8 md:p-10 transition-colors duration-500 shadow-2xl ${isLightMode ? 'bg-white/95 border-slate-300' : 'bg-[#050b14]/95 border-orange-500/30 backdrop-blur-xl'} ${isFront ? 'border-orange-500 shadow-[0_0_50px_rgba(249,115,22,0.2)]' : 'hover:border-orange-400'}`}>
-                    <div className={`absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r ${project.color}`} />
-                    <div>
-                      <div className="flex justify-between items-start mb-6 mt-2">
-                         <h3 className={`text-3xl md:text-5xl font-black tracking-tight uppercase ${textPrimary}`}>{project.title}</h3>
-                         <div className={`w-14 h-14 rounded-2xl flex items-center justify-center bg-gradient-to-br ${project.color} text-black shrink-0`}>
-                           <project.icon size={24} />
-                         </div>
-                      </div>
-                      <div className="inline-flex px-4 py-2 bg-orange-500/10 text-orange-500 font-black text-[10px] tracking-[0.2em] uppercase rounded-lg border border-orange-500/30 mb-8">
-                         {project.type}
-                      </div>
-                      <ul className="space-y-4">
-                         {project.changes.map((change, idx) => (
-                           <li key={idx} className="flex items-start">
-                              <GitCommit size={18} className="mr-4 mt-0.5 shrink-0 text-orange-500" />
-                              <span className={`text-sm md:text-base font-medium leading-relaxed ${textPrimary}`}>{change}</span>
-                           </li>
-                         ))}
-                      </ul>
+                return (
+                  <motion.div
+                    key={project.rawId || i}
+                    onClick={() => {
+                      if (isFront) {
+                        router.push(`/projects/${project.rawId}`);
+                      } else {
+                        setActiveStackIndex(i);
+                      }
+                    }} 
+                    drag="y" 
+                    dragConstraints={{ top: 0, bottom: 0 }}
+                    dragElastic={0.2}
+                    onDragEnd={(e, { offset, velocity }) => {
+                      if (offset.y < -50 || velocity.y < -500) setActiveStackIndex((prev) => (prev + 1) % total);
+                      else if (offset.y > 50 || velocity.y > 500) setActiveStackIndex((prev) => (prev - 1 + total) % total);
+                    }}
+                    animate={{ y: yPos, z: zPos, rotateX: rotX, scale: scale, opacity: isVisible || isLeaving ? opacity : 0, zIndex: total - offset }}
+                    whileHover={{ scale: isFront ? 1 : scale + 0.02, cursor: "pointer" }}
+                    transition={{ type: "spring", stiffness: 120, damping: 20 }}
+                    className="absolute bottom-0 w-full max-w-4xl h-[380px] md:h-[420px] active:cursor-grabbing"
+                    style={{ transformOrigin: "bottom center" }}
+                    title={isFront ? "Click to Enter Project Matrix" : undefined}
+                  >
+                    <div className={`absolute -top-10 left-8 px-6 py-2.5 rounded-t-xl border-t border-l border-r flex items-center gap-3 shadow-lg z-20 transition-colors ${isFront ? 'bg-orange-600 border-orange-400' : 'bg-orange-900 border-orange-700/50'}`}>
+                       <FolderOpen size={16} className={isFront ? "text-black" : "text-orange-400"} />
+                       <span className={`font-black uppercase text-xs tracking-widest ${isFront ? "text-black" : "text-orange-400"}`}>{project.id}</span>
                     </div>
-                    <div className="w-full border-t border-white/10 pt-5 flex justify-between items-center text-orange-500/60 font-mono text-[10px] uppercase tracking-widest">
-                       <span>DEPLOYED: {project.date}</span>
-                       <span>[ SYSTEM MATRIX ]</span>
+
+                    <div className={`absolute top-0 bottom-0 left-0 right-0 rounded-3xl border overflow-hidden flex flex-col justify-between p-8 md:p-10 transition-colors duration-500 shadow-2xl ${isLightMode ? 'bg-white/95 border-slate-300' : 'bg-[#050b14]/95 border-orange-500/30 backdrop-blur-xl'} ${isFront ? 'border-orange-500 shadow-[0_0_50px_rgba(249,115,22,0.2)]' : 'hover:border-orange-400'}`}>
+                      <div className={`absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r ${project.color}`} />
+                      <div>
+                        <div className="flex justify-between items-start mb-6 mt-2">
+                           <h3 className={`text-3xl md:text-5xl font-black tracking-tight uppercase ${textPrimary} truncate pr-4`}>{project.title}</h3>
+                           <div className={`w-14 h-14 rounded-2xl flex items-center justify-center bg-gradient-to-br ${project.color} text-black shrink-0 ${isFront ? 'animate-pulse' : ''}`}>
+                             <project.icon size={24} />
+                           </div>
+                        </div>
+                        <div className="inline-flex px-4 py-2 bg-orange-500/10 text-orange-500 font-black text-[10px] tracking-[0.2em] uppercase rounded-lg border border-orange-500/30 mb-8">
+                           {project.type}
+                        </div>
+                        <ul className="space-y-4 max-h-32 overflow-hidden">
+                           {project.changes.map((change: string, idx: number) => (
+                             <li key={idx} className="flex items-start">
+                                <GitCommit size={18} className="mr-4 mt-0.5 shrink-0 text-orange-500" />
+                                <span className={`text-sm md:text-base font-medium leading-relaxed truncate ${textPrimary}`}>{change}</span>
+                             </li>
+                           ))}
+                        </ul>
+                      </div>
+                      <div className="w-full border-t border-white/10 pt-5 flex justify-between items-center text-orange-500/60 font-mono text-[10px] uppercase tracking-widest">
+                         <span>DEPLOYED: {project.date}</span>
+                         <span>[ ENTER MATRIX ]</span>
+                      </div>
                     </div>
-                  </div>
-                </motion.div>
-              );
-            })}
+                  </motion.div>
+                );
+              })
+            )}
           </div>
         </div>
 
@@ -361,56 +486,63 @@ export default function ProjectMatrix() {
             onMouseEnter={() => setIsHoveringIncomings(true)}
             onMouseLeave={() => setIsHoveringIncomings(false)}
           >
-            {INCOMINGS.map((item, i) => {
-               const total = INCOMINGS.length;
-               let offset = (i - incomingIndex) % total;
-               if (offset > Math.floor(total / 2)) offset -= total;
-               if (offset < -Math.floor(total / 2)) offset += total;
+            {incomings.length === 0 ? (
+              <div className={`w-[320px] h-[420px] flex flex-col items-center justify-center rounded-3xl border-2 border-dashed transition-colors ${isLightMode ? 'border-slate-300 bg-white/50' : 'border-orange-500/20 bg-black/40'}`}>
+                 <Code2 size={48} className={isLightMode ? 'text-slate-300 mb-4' : 'text-orange-500/30 mb-4'} />
+                 <p className={`font-mono tracking-widest uppercase text-xs text-center px-4 ${textSecondary}`}>No incoming drafts found.</p>
+              </div>
+            ) : (
+              incomings.map((item, i) => {
+                 const total = incomings.length;
+                 let offset = (i - incomingIndex) % total;
+                 if (offset > Math.floor(total / 2)) offset -= total;
+                 if (offset < -Math.floor(total / 2)) offset += total;
 
-               const absOffset = Math.abs(offset);
-               const isCenter = offset === 0;
+                 const absOffset = Math.abs(offset);
+                 const isCenter = offset === 0;
 
-               const xPos = offset * 280; 
-               const zPos = isCenter ? 50 : absOffset * -200; 
-               const rotY = isCenter ? 0 : offset > 0 ? -35 : 35;
-               const scale = isCenter ? 1.05 : 1 - (absOffset * 0.1);
-               const opacity = isCenter ? 1 : Math.max(0, 1 - (absOffset * 0.4));
-               const zIndex = 100 - absOffset;
+                 const xPos = offset * 280; 
+                 const zPos = isCenter ? 50 : absOffset * -200; 
+                 const rotY = isCenter ? 0 : offset > 0 ? -35 : 35;
+                 const scale = isCenter ? 1.05 : 1 - (absOffset * 0.1);
+                 const opacity = isCenter ? 1 : Math.max(0, 1 - (absOffset * 0.4));
+                 const zIndex = 100 - absOffset;
 
-               return (
-                  <motion.div
-                     key={i}
-                     onClick={() => setIncomingIndex(i)}
-                     drag="x"
-                     dragConstraints={{ left: 0, right: 0 }}
-                     dragElastic={0.2}
-                     onDragEnd={(e, { offset: dragOffset, velocity }) => {
-                       if (dragOffset.x < -50 || velocity.x < -500) {
-                         setIncomingIndex((prev) => (prev + 1 + total) % total);
-                       } else if (dragOffset.x > 50 || velocity.x > 500) {
-                         setIncomingIndex((prev) => (prev - 1 + total) % total);
-                       }
-                     }}
-                     animate={{ x: xPos, z: zPos, rotateY: rotY, scale: scale, opacity: opacity }}
-                     whileHover={{ scale: isCenter ? 1.05 : scale + 0.05, cursor: isCenter ? "grab" : "pointer" }}
-                     transition={{ type: "spring", stiffness: 120, damping: 20 }}
-                     style={{ zIndex, transformOrigin: 'center center' }}
-                     className={`absolute w-[320px] h-[420px] p-8 flex flex-col justify-between border-2 rounded-3xl active:cursor-grabbing transition-colors duration-500 ${
-                        isLightMode 
-                          ? 'bg-white/90 shadow-xl border-slate-200 backdrop-blur-md' 
-                          : 'bg-[#050b14]/90 backdrop-blur-xl border-white/10 shadow-[0_0_30px_rgba(0,0,0,0.5)]'
-                     } ${isCenter ? 'border-orange-500 shadow-[0_0_40px_rgba(249,115,22,0.3)]' : 'hover:border-orange-400/50'}`}
-                  >
-                     <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-6 transition-colors duration-500 ${isCenter ? 'bg-orange-500 text-black shadow-[0_0_20px_rgba(249,115,22,0.6)]' : 'bg-white/5 text-orange-400'}`}>
-                        <item.icon size={32} />
-                     </div>
-                     <div className="relative z-10">
-                        <h4 className={`text-3xl font-black tracking-tight mb-4 leading-snug ${textPrimary}`}>{item.title}</h4>
-                        <p className={`text-xs font-mono font-bold uppercase ${textSecondary}`}>{item.desc}</p>
-                     </div>
-                  </motion.div>
-               )
-            })}
+                 return (
+                    <motion.div
+                       key={item.id || i}
+                       onClick={() => setIncomingIndex(i)}
+                       drag="x"
+                       dragConstraints={{ left: 0, right: 0 }}
+                       dragElastic={0.2}
+                       onDragEnd={(e, { offset: dragOffset, velocity }) => {
+                         if (dragOffset.x < -50 || velocity.x < -500) {
+                           setIncomingIndex((prev) => (prev + 1 + total) % total);
+                         } else if (dragOffset.x > 50 || velocity.x > 500) {
+                           setIncomingIndex((prev) => (prev - 1 + total) % total);
+                         }
+                       }}
+                       animate={{ x: xPos, z: zPos, rotateY: rotY, scale: scale, opacity: opacity }}
+                       whileHover={{ scale: isCenter ? 1.05 : scale + 0.05, cursor: "pointer" }}
+                       transition={{ type: "spring", stiffness: 120, damping: 20 }}
+                       style={{ zIndex, transformOrigin: 'center center' }}
+                       className={`absolute w-[320px] h-[420px] p-8 flex flex-col justify-between border-2 rounded-3xl active:cursor-grabbing transition-colors duration-500 ${
+                          isLightMode 
+                            ? 'bg-white/90 shadow-xl border-slate-200 backdrop-blur-md' 
+                            : 'bg-[#050b14]/90 backdrop-blur-xl border-white/10 shadow-[0_0_30px_rgba(0,0,0,0.5)]'
+                       } ${isCenter ? 'border-orange-500 shadow-[0_0_40px_rgba(249,115,22,0.3)]' : 'hover:border-orange-400/50'}`}
+                    >
+                       <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-6 transition-colors duration-500 ${isCenter ? 'bg-orange-500 text-black shadow-[0_0_20px_rgba(249,115,22,0.6)]' : 'bg-white/5 text-orange-400'}`}>
+                          <item.icon size={32} />
+                       </div>
+                       <div className="relative z-10">
+                          <h4 className={`text-3xl font-black tracking-tight mb-4 leading-snug break-words ${textPrimary}`}>{item.title}</h4>
+                          <p className={`text-xs font-mono font-bold uppercase ${textSecondary}`}>{item.desc}</p>
+                       </div>
+                    </motion.div>
+                 )
+              })
+            )}
           </div>
         </div>
 
@@ -426,7 +558,7 @@ export default function ProjectMatrix() {
               </button>
               <AnimatePresence>
                 {isFilterOpen && (
-                  <motion.div initial={{ opacity: 0, y: -10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -10, scale: 0.95 }} className="absolute top-full right-0 mt-2 w-48 bg-[#050b14] border border-white/20 rounded-xl shadow-2xl overflow-hidden">
+                  <motion.div initial={{ opacity: 0, y: -10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -10, scale: 0.95 }} className="absolute top-full right-0 mt-2 w-48 bg-[#050b14] border border-white/20 rounded-xl shadow-2xl overflow-hidden z-50">
                     {['All Systems', 'Frontend', 'Backend', 'AI Models'].map(type => (
                       <button key={type} aria-label={`Filter by ${type}`} onClick={() => { setFilterType(type); setIsFilterOpen(false); }} className="w-full text-left px-5 py-3 text-xs font-bold uppercase tracking-widest text-white hover:bg-orange-500 hover:text-black transition-colors">
                         {type}
@@ -438,36 +570,55 @@ export default function ProjectMatrix() {
             </div>
           </div>
 
-          <div className="flex w-fit whitespace-nowrap mb-6 group cursor-none">
-            <motion.div animate={{ x: ["0%", "-50%"] }} transition={{ ease: "linear", duration: 30, repeat: Infinity }} className="flex gap-4 px-2">
-              {[...ALL_PROJECTS, ...ALL_PROJECTS].map((proj, idx) => (
-                 <motion.div key={idx} whileHover={{ scale: 1.05, backgroundColor: '#f97316', borderColor: '#f97316' }} className="inline-flex items-center px-8 py-6 mx-2 border border-white/10 rounded-2xl bg-[#03060d]/80 backdrop-blur-md transition-colors group-hover:[&:not(:hover)]:opacity-50">
-                   <Box size={20} className="mr-4 text-white" />
-                   <span className="text-xl font-black uppercase text-white">{proj}</span>
-                 </motion.div>
-              ))}
-            </motion.div>
-          </div>
+          {filteredAllProjects.length === 0 ? (
+            <div className="w-full py-10 flex justify-center">
+              <p className={`font-mono uppercase tracking-widest text-sm ${textSecondary}`}>No matrix data matches this filter.</p>
+            </div>
+          ) : (
+            <>
+              <div className="flex w-fit whitespace-nowrap mb-6 group cursor-none">
+                <motion.div animate={{ x: ["0%", "-50%"] }} transition={{ ease: "linear", duration: 30, repeat: Infinity }} className="flex gap-4 px-2">
+                  {[...filteredAllProjects, ...filteredAllProjects, ...filteredAllProjects, ...filteredAllProjects].map((proj, idx) => (
+                    <motion.div 
+                      key={idx} 
+                      onClick={() => router.push(`/projects/${proj.id}`)}
+                      whileHover={{ scale: 1.05, backgroundColor: '#f97316', borderColor: '#f97316' }} 
+                      className="inline-flex items-center px-8 py-6 mx-2 border border-white/10 rounded-2xl bg-[#03060d]/80 backdrop-blur-md transition-colors group-hover:[&:not(:hover)]:opacity-50 cursor-pointer shadow-lg"
+                    >
+                      <Box size={20} className="mr-4 text-white" />
+                      <span className="text-xl font-black uppercase text-white">{proj.title}</span>
+                    </motion.div>
+                  ))}
+                </motion.div>
+              </div>
 
-          <div className="flex w-fit whitespace-nowrap group cursor-none ml-[-1000px]">
-            <motion.div animate={{ x: ["-50%", "0%"] }} transition={{ ease: "linear", duration: 30, repeat: Infinity }} className="flex gap-4 px-2">
-              {[...ALL_PROJECTS].reverse().concat([...ALL_PROJECTS].reverse()).map((proj, idx) => (
-                 <motion.div key={idx} whileHover={{ scale: 1.05, backgroundColor: '#000', borderColor: '#f97316', color: '#f97316' }} className="inline-flex items-center px-8 py-6 mx-2 border border-orange-500 rounded-2xl bg-orange-600 transition-colors group-hover:[&:not(:hover)]:opacity-50">
-                   <Rocket size={20} className="mr-4 text-black" />
-                   <span className="text-xl font-black uppercase text-black">{proj}</span>
-                 </motion.div>
-              ))}
-            </motion.div>
-          </div>
+              <div className="flex w-fit whitespace-nowrap group cursor-none ml-[-1000px]">
+                <motion.div animate={{ x: ["-50%", "0%"] }} transition={{ ease: "linear", duration: 30, repeat: Infinity }} className="flex gap-4 px-2">
+                  {[...filteredAllProjects].reverse().concat([...filteredAllProjects].reverse(), [...filteredAllProjects].reverse(), [...filteredAllProjects].reverse()).map((proj, idx) => (
+                    <motion.div 
+                      key={idx} 
+                      onClick={() => router.push(`/projects/${proj.id}`)}
+                      whileHover={{ scale: 1.05, backgroundColor: '#000', borderColor: '#f97316', color: '#f97316' }} 
+                      className="inline-flex items-center px-8 py-6 mx-2 border border-orange-500 rounded-2xl bg-orange-600 transition-colors group-hover:[&:not(:hover)]:opacity-50 cursor-pointer shadow-lg"
+                    >
+                      <Rocket size={20} className="mr-4 text-black" />
+                      <span className="text-xl font-black uppercase text-black">{proj.title}</span>
+                    </motion.div>
+                  ))}
+                </motion.div>
+              </div>
+            </>
+          )}
         </div>
 
         {/* ==========================================
-            SKILL 4: SLOW CURSOR-TRACKING HOLOGRAPHIC CAROUSEL
+            SKILL 4: HOLOGRAM CAROUSEL -> SMART VIDEO PLAYER
             ========================================== */}
         <div 
           id="hologram" 
           className="w-full py-40 flex flex-col items-center justify-center overflow-hidden relative z-10"
           onMouseMove={(e) => {
+            if (activeVideoNode) return; 
             const rect = e.currentTarget.getBoundingClientRect();
             const x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
             holoMouseX.set(x);
@@ -476,7 +627,8 @@ export default function ProjectMatrix() {
         >
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(249,115,22,0.15)_0%,transparent_60%)] pointer-events-none" />
 
-          <div className="relative bg-black w-72 h-80 flex flex-col items-center justify-center p-8 shadow-2xl group z-20">
+          {/* Title Header */}
+          <div className={`relative bg-black w-72 h-80 flex flex-col items-center justify-center p-8 shadow-2xl group z-20 transition-opacity duration-500`}>
             <div className="absolute -top-2 -left-2 w-4 h-4 border-t-4 border-l-4 border-cyan-400 transition-transform group-hover:-translate-x-2 group-hover:-translate-y-2" />
             <div className="absolute -top-2 -right-2 w-4 h-4 border-t-4 border-r-4 border-orange-500 transition-transform group-hover:translate-x-2 group-hover:-translate-y-2" />
             <div className="absolute -bottom-2 -left-2 w-4 h-4 border-b-4 border-l-4 border-pink-500 transition-transform group-hover:-translate-x-2 group-hover:translate-y-2" />
@@ -488,21 +640,30 @@ export default function ProjectMatrix() {
             <p className="text-white/50 text-[10px] font-mono mt-6 uppercase tracking-[0.2em] animate-pulse">Move Cursor to Spin Orbit</p>
           </div>
 
+          {/* 3D Spinning Nodes */}
           <div className="relative w-full h-32 mt-20 flex justify-center [perspective:1200px]">
             <motion.div style={{ rotateY: holoRotY }} className="absolute w-[300px] h-[200px] [transform-style:preserve-3d] flex items-center justify-center">
-              {[1, 2, 3, 4, 5].map((item, i) => (
-                <Link 
-                  href="/feedback" key={i} aria-label={`Provide feedback for Project ${item}`}
-                  onMouseEnter={() => setIsCarouselHovered(true)} 
-                  onMouseLeave={() => setIsCarouselHovered(false)}
-                  className="absolute inset-0 w-full h-full flex flex-col items-center justify-center rounded-2xl border border-orange-500/50 bg-black/80 backdrop-blur-md hover:border-orange-400 hover:bg-orange-950/80 hover:scale-110 hover:shadow-[0_0_50px_rgba(249,115,22,0.6)] transition-all duration-300"
-                  style={{ transform: `rotateY(${i * (360 / 5)}deg) translateZ(350px)` }}
-                >
-                  <PlayCircle size={32} className="text-orange-500 mb-4 animate-pulse" />
-                  <span className="text-white font-black uppercase tracking-widest text-sm">Project Node {item}</span>
-                  <span className="text-orange-500/80 text-[10px] font-mono mt-2 uppercase">Route to Feedback</span>
-                </Link>
-              ))}
+              {allProjects.slice(0, 5).map((node: any, i: number) => {
+                const isVideo = !!node.videoUrl;
+                return (
+                  <button 
+                    key={i} aria-label={`View Video for ${node.title}`}
+                    onMouseEnter={() => setIsCarouselHovered(true)} 
+                    onMouseLeave={() => setIsCarouselHovered(false)}
+                    onClick={() => setActiveVideoNode(node)}
+                    className={`absolute inset-0 w-full h-full flex flex-col items-center justify-center rounded-2xl border bg-black/80 backdrop-blur-md hover:scale-110 transition-all duration-500 cursor-pointer ${
+                      activeVideoNode?.id === node.id ? 'opacity-0 pointer-events-none' : 'opacity-100 pointer-events-auto'
+                    } ${isVideo ? 'border-orange-500/50 hover:border-orange-400 hover:bg-orange-950/80 hover:shadow-[0_0_50px_rgba(249,115,22,0.6)]' : 'border-slate-700/50 hover:border-slate-500 hover:bg-slate-900/80 hover:shadow-[0_0_50px_rgba(255,255,255,0.1)]'}`}
+                    style={{ transform: `rotateY(${i * (360 / 5)}deg) translateZ(350px)` }}
+                  >
+                    {isVideo ? <Video size={32} className="text-orange-500 mb-4 animate-pulse" /> : <ImageIcon size={32} className="text-slate-500 mb-4" />}
+                    <span className="text-white font-black uppercase tracking-widest text-sm text-center px-4 leading-tight">{node.title.substring(0,25)}</span>
+                    <span className={`text-[10px] font-mono mt-3 uppercase tracking-widest px-3 py-1 rounded border ${isVideo ? 'text-orange-400 bg-orange-500/10 border-orange-500/30' : 'text-slate-400 bg-slate-800 border-slate-700'}`}>
+                      {isVideo ? '[ PLAY FEED ]' : '[ NO FEED ]'}
+                    </span>
+                  </button>
+                );
+              })}
             </motion.div>
           </div>
         </div>
@@ -588,6 +749,53 @@ export default function ProjectMatrix() {
       </div>
       
       <BottomNav currentRole={currentUserRole as any} />
+
+      {/* 🔥 THE FIXED CINEMATIC VIDEO MODAL (Rendered at Root Level for Z-Index Safety) */}
+      <AnimatePresence>
+        {activeVideoNode && (
+          <motion.div 
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/90 backdrop-blur-md p-4 pointer-events-auto cursor-default"
+            onClick={() => setActiveVideoNode(null)} // Click outside closes modal
+          >
+            <motion.div 
+              initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }}
+              transition={{ type: "spring", stiffness: 150, damping: 20 }}
+              onClick={(e) => e.stopPropagation()} // Prevent clicking modal from closing it
+              className="w-full max-w-3xl bg-[#050b14] border border-orange-500/50 rounded-[2.5rem] p-6 md:p-8 shadow-[0_0_80px_rgba(249,115,22,0.2)] flex flex-col relative"
+            >
+              <div className="flex justify-between items-center mb-6">
+                <div className="flex items-center space-x-4">
+                  <div className="w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center animate-pulse shrink-0"><PlayCircle size={20} className="text-black" /></div>
+                  <div>
+                    <h3 className="text-xl md:text-2xl font-black text-white uppercase tracking-widest break-words leading-tight">{activeVideoNode.title}</h3>
+                    <p className="text-[10px] md:text-xs text-orange-500 font-mono tracking-widest uppercase mt-1">Live Database Feed Stream</p>
+                  </div>
+                </div>
+                <button onClick={() => setActiveVideoNode(null)} title="Close video modal" className="w-10 h-10 rounded-full border border-white/20 flex items-center justify-center text-slate-400 hover:text-white hover:bg-red-500 hover:border-red-500 transition-all shrink-0">
+                  <X size={18} />
+                </button>
+              </div>
+              
+              <div className="w-full aspect-video bg-black rounded-2xl overflow-hidden border border-white/10 relative flex items-center justify-center">
+                {activeVideoNode.videoUrl ? (
+                   activeVideoNode.videoUrl.includes('youtube') || activeVideoNode.videoUrl.includes('vimeo') ? (
+                      <iframe className="w-full h-full" src={activeVideoNode.videoUrl} title="Cloud Video Feed" frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
+                   ) : (
+                      <video className="w-full h-full object-cover" src={activeVideoNode.videoUrl} controls autoPlay muted loop />
+                   )
+                ) : (
+                  <div className="flex flex-col items-center justify-center text-center p-6">
+                    <ShieldAlert size={48} className="text-slate-700 mb-4" />
+                    <h4 className="text-lg font-black text-slate-400 uppercase tracking-widest mb-2">Video Feed Encrypted</h4>
+                    <p className="text-xs text-slate-600 font-mono max-w-sm">No cloud video URL has been provided by the admin for this matrix node.</p>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </main>
   );
 }

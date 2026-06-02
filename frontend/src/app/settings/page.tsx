@@ -220,9 +220,9 @@ export default function AdvancedSettingsMatrix() {
         
         <motion.div initial={{ opacity: 0, y: -30, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ type: "spring", stiffness: 80 }} className="w-full max-w-7xl mb-12 flex flex-col items-start pointer-events-auto">
           
-          {/* SECURE BACK BUTTON NAVIGATION */}
+          {/* SECURE BACK BUTTON NAVIGATION - DYNAMIC HISTORY ROUTING */}
           <button 
-            onClick={() => router.push('/research')} 
+            onClick={() => router.back()} 
             className={`group flex items-center space-x-3 px-5 py-2.5 mb-6 rounded-full border font-mono text-[10px] uppercase tracking-widest backdrop-blur-md transition-all cursor-pointer ${isLightMode ? 'bg-white/60 border-slate-300 text-slate-700 hover:bg-white hover:shadow-md' : 'bg-[#01030b]/60 border-[#00f0ff]/30 text-[#00f0ff] hover:bg-[#00f0ff]/10 hover:shadow-[0_0_20px_rgba(0,240,255,0.2)]'}`}
           >
             <ArrowLeft size={14} className="group-hover:-translate-x-1 transition-transform" />

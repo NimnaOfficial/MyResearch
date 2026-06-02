@@ -7,104 +7,14 @@ import Link from 'next/link';
 import { 
   ArrowLeft, Search, User, Settings, LogOut, 
   ArchiveRestore, Link as LinkIcon, CheckCircle, PlusCircle, 
-  RefreshCw, Wrench, Activity, Rss, Network, ListTree, 
-  Terminal as TerminalIcon, DownloadCloud, FileArchive, FileCode, Monitor, FileText, Bookmark
+  RefreshCw, Wrench, Network, ListTree, 
+  DownloadCloud, FileArchive, Bookmark, Loader2, Database
 } from 'lucide-react';
 
 import CustomCursor from '@/components/CustomCursor';
 import ThemeToggle from '@/components/ThemeToggle';
 import BottomNav from '@/components/BottomNav';
 import Footer from '@/components/Footer';
-
-// ==========================================
-// MOCK RELEASES DATABASE 
-// ==========================================
-const RELEASES_DB: Record<string, any> = {
-  "v2.4.0": {
-    id: "v2.4.0",
-    version: "2.4.0",
-    title: "Spatial API & Generative Models",
-    date: "May 27, 2026",
-    tag: "Major Core Update",
-    summary: "This release fundamentally rewrites the core generative pipeline. We have successfully bridged the Gemini API and local LLMs directly into the active production environment. The spatial animation engine has been decoupled from the React render cycle to eliminate layout thrashing, ensuring strict 144fps locks across the ecosystem.",
-    impact: "Users querying the AI models or engaging with video/photo generation tools will experience an 84% reduction in inference latency. Hardware acceleration is mandatory.",
-    added: [
-      "Gemini API generative endpoints",
-      "Framer Motion physics engine integration",
-      "Automated video editing render pipeline"
-    ],
-    changed: [
-      "Node.js server routing protocols via FNM",
-      "Optimized MySQL query payloads"
-    ],
-    fixed: [
-      "Memory leak during spatial component unmounting",
-      "Stripe payment gateway webhook drops"
-    ],
-    breaking: [
-      "[SYSTEM] Analyzing deprecated nodes...",
-      "> Legacy DOM nodes strictly recycled.",
-      "> Deprecated legacy PHP 7 endpoints.",
-      "> Ensure WebGL2 context is enabled.",
-      "[SUCCESS] Matrix synchronized."
-    ],
-    assets: [
-      { name: "Source Code (zip)", size: "14.2 MB", type: "Archive", icon: FileArchive },
-      { name: "Windows Installer (exe)", size: "89.5 MB", type: "Executable", icon: Monitor },
-      { name: "Linux Build (tar.gz)", size: "76.1 MB", type: "Executable", icon: TerminalIcon },
-      { name: "Release Notes (md)", size: "12 KB", type: "Readme", icon: FileText }
-    ],
-    contributors: ["Nima", "AI Matrix Core"],
-    commits: 42
-  },
-  "v2.3.5": {
-    id: "v2.3.5",
-    version: "2.3.5",
-    title: "Lanka Washing System Sync",
-    date: "May 15, 2026",
-    tag: "Fullstack Patch",
-    summary: "Stabilization patch for the Lanka Washing System architecture. Optimized the data handshake between the Java Swing desktop client and the central PHP administration panel to eliminate synchronization deadlocks.",
-    impact: "Administrative users will notice instantaneous status updates across the web dashboard without manual refreshing, streamlining operational resource management.",
-    added: [
-      "30-class Object-Oriented Architecture docs",
-      "Apache Tomcat 9.0.96 deployment scripts"
-    ],
-    changed: [
-      "Refactored Java Swing controllers",
-      "Updated UI/UX paradigms for admin panel"
-    ],
-    fixed: [
-      "Resolved cross-origin resource sharing (CORS)",
-      "Fixed sequence diagram role assignments"
-    ],
-    breaking: [
-      "[SYSTEM] Commencing framework shift...",
-      "> Migrated to PHP 8.2 strict typing.",
-      "> Legacy JDBC driver unsupported.",
-      "[SUCCESS] Environment patched."
-    ],
-    assets: [
-      { name: "Source Code (zip)", size: "8.4 MB", type: "Archive", icon: FileArchive },
-      { name: "Database Schema (sql)", size: "1.2 MB", type: "Database", icon: FileCode },
-      { name: "Patch Notes (md)", size: "8 KB", type: "Readme", icon: FileText }
-    ],
-    contributors: ["Nima"],
-    commits: 18
-  },
-  "default": {
-    id: "unknown",
-    version: "0.0.0",
-    title: "Classified Node",
-    date: "UNKNOWN",
-    tag: "Encrypted",
-    summary: "The requested release log requires elevated clearance. Telemetry data has been sanitized.",
-    impact: "System access is restricted.",
-    added: ["Classified"], changed: ["Classified"], fixed: ["Classified"],
-    breaking: ["> ACCESS DENIED.", "> Terminating connection."],
-    assets: [],
-    contributors: ["Unknown"], commits: 0
-  }
-};
 
 // ==========================================
 // BACKGROUND: HIGH-VISIBILITY CARBON COMB
@@ -118,8 +28,6 @@ function ActiveDataBackground({ isLight }: { isLight: boolean }) {
     <div className={`fixed inset-0 z-0 pointer-events-none overflow-hidden transition-colors duration-1000 ${bgColor}`}>
       <motion.div animate={{ x: [0, -100, 0], y: [0, -100, 0] }} transition={{ duration: 20, ease: "linear", repeat: Infinity }} className="absolute inset-0 w-[200%] h-[200%] opacity-80" style={{ backgroundImage: `repeating-linear-gradient(45deg, ${fiberColor} 25%, transparent 25%, transparent 75%, ${fiberColor} 75%, ${fiberColor}), repeating-linear-gradient(45deg, ${fiberColor} 25%, transparent 25%, transparent 75%, ${fiberColor} 75%, ${fiberColor})`, backgroundPosition: '0 0, 10px 10px', backgroundSize: '20px 20px' }} />
       <motion.div animate={{ y: [0, -103.92, 0] }} transition={{ duration: 30, ease: "linear", repeat: Infinity }} className="absolute inset-0 w-full h-[200%] opacity-100 mix-blend-screen" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='103.92304845413264' viewBox='0 0 60 103.92304845413264' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 103.92304845413264L60 86.60254037844386L60 51.96152422706632L30 34.64101615137754L0 51.96152422706632L0 86.60254037844386Z' fill='transparent' stroke='${encodeURIComponent(combColor)}' stroke-width='1.5'/%3E%3C/svg%3E")`, backgroundSize: '60px 103.92px' }} />
-      
-      {/* Intense Glowing Orbs */}
       <motion.div animate={{ opacity: [0.3, 0.6, 0.3], scale: [1, 1.2, 1] }} transition={{ duration: 10, repeat: Infinity }} className={`absolute -top-[10%] -left-[5%] w-[40vw] h-[40vw] rounded-full blur-[150px] ${isLight ? 'bg-orange-500/30' : 'bg-orange-600/20'}`} />
       <motion.div animate={{ opacity: [0.2, 0.5, 0.2], scale: [1, 1.3, 1] }} transition={{ duration: 12, repeat: Infinity }} className={`absolute top-[40%] -right-[10%] w-[50vw] h-[50vw] rounded-full blur-[180px] ${isLight ? 'bg-amber-500/20' : 'bg-orange-500/10'}`} />
     </div>
@@ -171,25 +79,190 @@ export default function ReleaseDetailIDE() {
   const router = useRouter();
   const params = useParams();
   
-  let rawId = params?.id as string;
-  if (rawId === '%5Bid%5D' || !rawId) rawId = 'v2.4.0'; 
+  let rawId = Array.isArray(params?.id) ? params.id[0] : params?.id as string;
+  if (rawId === '%5Bid%5D' || rawId === '[id]' || !rawId) rawId = ''; 
   const releaseId = decodeURIComponent(rawId);
-  const activeData = RELEASES_DB[releaseId] || RELEASES_DB["default"];
 
+  // Core UI States
   const [isLightMode, setIsLightMode] = useState(false);
   const [timeState, setTimeState] = useState({ time: "", date: "" });
   const [isProfileHovered, setIsProfileHovered] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
+  const [isSavingInProgress, setIsSavingInProgress] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   
+  // LIVE DATABASE PIPELINE STATES
+  const [userData, setUserData] = useState<any>(null);
+  const [releasesDirectory, setReleasesDirectory] = useState<any[]>([]);
+  const [activeData, setActiveData] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Authorization Session Mapping
   const [currentUserRole, setCurrentUserRole] = useState<'guest' | 'user' | 'admin'>('guest');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
+  // ==========================================
+  // 100% PURE DATABASE HYDRATION ENGINE
+  // ==========================================
+  useEffect(() => {
+    const hydrateReleaseData = async () => {
+      if (!releaseId || releaseId === '[id]') return;
+      setIsLoading(true);
+
+      try {
+        const token = localStorage.getItem('matrix_token');
+        const headers: any = {};
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+
+        // 1. Fetch Global Data for Sidebar
+        const [dirRes, postsRes] = await Promise.all([
+          fetch('http://localhost:5000/api/releases', { headers }).catch(() => null),
+          fetch('http://localhost:5000/api/posts', { headers }).catch(() => null)
+        ]);
+
+        let combinedDir: any[] = [];
+        let globalPosts: any[] = [];
+        let globalReleases: any[] = [];
+
+        if (dirRes && dirRes.ok) {
+          const json = await dirRes.json();
+          globalReleases = json.data || [];
+          combinedDir = [...combinedDir, ...globalReleases.map((r: any) => ({ ...r, isRelease: true }))];
+        }
+        if (postsRes && postsRes.ok) {
+          const json = await postsRes.json();
+          globalPosts = json.data || [];
+          combinedDir = [...combinedDir, ...globalPosts.map((p: any) => ({ ...p, isPost: true }))];
+        }
+        setReleasesDirectory(combinedDir);
+
+        // 2. Fetch Specific Database Record
+        const cleanId = releaseId.replace(/['"]+/g, '');
+        let dbData = null;
+        let isPostSource = false;
+
+        const relSingle = await fetch(`http://localhost:5000/api/releases/${cleanId}`, { headers }).catch(() => null);
+        if (relSingle && relSingle.ok) {
+          const json = await relSingle.json();
+          dbData = json.data;
+        }
+
+        if (!dbData) {
+          const postSingle = await fetch(`http://localhost:5000/api/posts/${cleanId}`, { headers }).catch(() => null);
+          if (postSingle && postSingle.ok) {
+            const json = await postSingle.json();
+            dbData = json.data;
+            isPostSource = true;
+          }
+        }
+
+        // Global Array Fallback (Bypasses backend hiding unpublished posts)
+        if (!dbData) {
+          const foundPost = globalPosts.find((p: any) => p.id === cleanId);
+          if (foundPost) { dbData = foundPost; isPostSource = true; }
+        }
+        if (!dbData) {
+          const foundRel = globalReleases.find((r: any) => r.id === cleanId);
+          if (foundRel) { dbData = foundRel; }
+        }
+
+        // 3. STRICT DB MAPPING (No Dummy Data)
+        if (dbData) {
+          const rawContent = isPostSource ? (dbData.content || '') : (dbData.releaseNotes || '');
+          
+          let finalSummary = "No summary provided in database.";
+          let finalImpact = "No impact metrics recorded.";
+          let finalAdded: string[] = [];
+          let finalChanged: string[] = [];
+          let finalFixed: string[] = [];
+          let finalBreaking: string[] = [];
+          let finalAssets: any[] = [];
+
+          // INTELLIGENT PARSER: JSON or Plain Text
+          try {
+            const parsed = JSON.parse(rawContent);
+            finalSummary = parsed.summary || finalSummary;
+            finalImpact = parsed.impact || finalImpact;
+            finalAdded = Array.isArray(parsed.added) ? parsed.added : [];
+            finalChanged = Array.isArray(parsed.changed) ? parsed.changed : [];
+            finalFixed = Array.isArray(parsed.fixed) ? parsed.fixed : [];
+            finalBreaking = Array.isArray(parsed.breaking) ? parsed.breaking : [];
+            finalAssets = Array.isArray(parsed.assets) ? parsed.assets : [];
+          } catch (e) {
+            // It's plain text. Dynamically sort lines based on keywords.
+            const lines = rawContent.split('\n').filter((l: string) => l.trim().length > 0);
+            if (lines.length > 0) {
+              finalSummary = lines[0];
+              lines.slice(1).forEach((line: string) => {
+                const lower = line.toLowerCase();
+                if (lower.startsWith('add')) finalAdded.push(line.replace(/added:?/i, '').trim());
+                else if (lower.startsWith('fix')) finalFixed.push(line.replace(/fixed:?/i, '').trim());
+                else if (lower.startsWith('break')) finalBreaking.push(line.replace(/breaking:?/i, '').trim());
+                else finalChanged.push(line);
+              });
+            }
+          }
+
+          // Inject Official Download URL if provided by Admin
+          if (!isPostSource && dbData.downloadUrl) {
+            finalAssets.push({
+              name: `${dbData.projectName} Source Package`,
+              size: "Cloud Link",
+              type: "Download",
+              url: dbData.downloadUrl
+            });
+          }
+
+          const targetTimestamp = dbData.publishedAt || dbData.createdAt;
+          const validDateString = targetTimestamp && !isNaN(Date.parse(targetTimestamp))
+            ? new Date(targetTimestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+            : "Unknown Date";
+
+          setActiveData({
+            id: dbData.id,
+            version: isPostSource ? (dbData.type || "TRACK") : (dbData.version || "0.0.0"),
+            title: isPostSource ? (dbData.title || "Untitled Tracking Node") : (dbData.projectName || "Untitled Project"),
+            date: validDateString,
+            tag: isPostSource ? "Staging Track" : "System Deployment",
+            summary: finalSummary,
+            impact: finalImpact,
+            added: finalAdded,
+            changed: finalChanged,
+            fixed: finalFixed,
+            breaking: finalBreaking,
+            assets: finalAssets
+          });
+        } else {
+          setActiveData(null); // Triggers genuine Node Not Found
+        }
+      } catch (error) {
+        console.error("⛔ [Frontend Matrix Crash Intercepted]:", error);
+        setActiveData(null);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    hydrateReleaseData();
+  }, [releaseId]);
+
+  // Session Validation
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const storedRole = localStorage.getItem('userRole');
-      if (storedRole) {
-        setCurrentUserRole(storedRole as 'guest' | 'user' | 'admin');
-        setIsAuthenticated(storedRole === 'user' || storedRole === 'admin');
+      const token = localStorage.getItem('matrix_token');
+      if (token) {
+        setIsAuthenticated(true);
+        setCurrentUserRole('user');
+        fetch('http://localhost:5000/api/auth/me', { headers: { 'Authorization': `Bearer ${token}` } })
+          .then(res => res.json())
+          .then(json => { 
+            if (json.data) {
+              setUserData(json.data);
+              const currentlySaved = json.data?.savedPosts?.some((post: any) => post.id === releaseId);
+              setIsSaved(!!currentlySaved);
+            }
+          })
+          .catch(() => {});
       } else {
         const isInternalRoute = document.referrer.includes(window.location.host);
         if (isInternalRoute) { setCurrentUserRole('user'); setIsAuthenticated(true); } 
@@ -203,17 +276,80 @@ export default function ReleaseDetailIDE() {
     updateClock();
     const timer = setInterval(updateClock, 1000);
     return () => clearInterval(timer);
-  }, []);
+  }, [releaseId]);
+
+  // Operational Database Relational Save Handshake
+  const handleToggleSave = async () => {
+    const token = localStorage.getItem('matrix_token');
+    if (!isAuthenticated || !token) {
+      alert("Matrix Security: Valid active session token required to write to Vault logs.");
+      return;
+    }
+
+    setIsSavingInProgress(true);
+    try {
+      const res = await fetch(`http://localhost:5000/api/posts/${releaseId}/save`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (res.ok) {
+        setIsSaved(!isSaved);
+      } else {
+        const err = await res.json();
+        alert(`Matrix Sync Aborted: ${err.message || 'Server rejected relational synchronization'}`);
+      }
+    } catch (e) {
+      console.error(e);
+      alert("Matrix Sync Error: Communication with server failed.");
+    } finally {
+      setIsSavingInProgress(false);
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('userRole');
+    localStorage.removeItem('matrix_token');
+    window.location.href = '/auth';
+  };
+
+  const filteredDirectory = releasesDirectory.filter(rel => {
+    const title = rel.isPost ? rel.title : rel.projectName;
+    const version = rel.isPost ? rel.type : rel.version;
+    return (version && version.toLowerCase().includes(searchQuery.toLowerCase())) || 
+           (title && title.toLowerCase().includes(searchQuery.toLowerCase()));
+  });
 
   const textPrimary = isLightMode ? "text-slate-900" : "text-white";
   const textSecondary = isLightMode ? "text-slate-600" : "text-slate-400";
   const glassPanel = isLightMode ? "bg-white/60 backdrop-blur-3xl border-slate-300 shadow-xl" : "bg-black/20 backdrop-blur-3xl border-white/10 shadow-2xl";
 
-  // Framer Motion Scroll-Reveal Variants
   const scrollReveal = { 
     hidden: { opacity: 0, y: 50, scale: 0.95, rotateX: 10 }, 
     show: { opacity: 1, y: 0, scale: 1, rotateX: 0, transition: { type: "spring" as const, stiffness: 100, damping: 20 } } 
   };
+
+  if (isLoading) {
+    return (
+      <div className={`min-h-screen flex items-center justify-center font-mono uppercase tracking-widest ${isLightMode ? 'bg-slate-50 text-slate-800' : 'bg-[#010205] text-orange-500'}`}>
+        <Loader2 className="animate-spin mr-3" size={24} /> Scanning Database Blocks...
+      </div>
+    );
+  }
+
+  if (!activeData) {
+    return (
+      <div className={`min-h-screen flex flex-col items-center justify-center font-mono uppercase tracking-widest ${isLightMode ? 'bg-slate-50 text-slate-800' : 'bg-[#010205] text-white'}`}>
+        <ArchiveRestore className="text-orange-500 mb-6" size={64} />
+        <h2 className="text-2xl font-black mb-4">Node Not Found</h2>
+        <p className="text-slate-500 mb-8">The requested matrix architecture does not exist inside local data blocks.</p>
+        <button onClick={() => router.push('/projects')} className="px-6 py-3 border border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-black rounded-xl transition-all">Return to Matrix</button>
+      </div>
+    );
+  }
 
   return (
     <main className="relative min-h-screen w-full flex flex-col font-sans overflow-x-hidden transition-colors duration-1000">
@@ -221,18 +357,17 @@ export default function ReleaseDetailIDE() {
       <ActiveDataBackground isLight={isLightMode} />
 
       {/* ==========================================
-          HEADER BAR (Completely Transparent, Zero Background)
+          HEADER BAR
           ========================================== */}
       <header className="fixed top-0 left-0 right-0 h-24 w-full flex items-center justify-between px-6 lg:px-12 z-50 pointer-events-none bg-transparent border-none">
         
-        {/* Left Side: Theme, Back, Title */}
         <div className="flex items-center space-x-4 md:space-x-6 pointer-events-auto h-full">
           <div className="relative flex items-center justify-center bg-transparent">
              <ThemeToggle isLight={isLightMode} toggleTheme={() => setIsLightMode(!isLightMode)} />
           </div>
           <motion.button 
             whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-            aria-label="Back to Releases" onClick={() => router.push('/releases')} 
+            aria-label="Back to Releases" onClick={() => router.push('/projects')} 
             className={`flex items-center justify-center w-12 h-12 rounded-2xl border transition-all hover:bg-orange-500 hover:text-black hover:border-orange-500 shadow-sm shrink-0 ${isLightMode ? 'border-slate-300 text-slate-700 bg-white/80 backdrop-blur-md' : 'border-white/20 text-slate-300 bg-white/5 backdrop-blur-md'}`}
           >
             <ArrowLeft size={20} />
@@ -246,7 +381,6 @@ export default function ReleaseDetailIDE() {
           </div>
         </div>
 
-        {/* Right Side: Profile HUD */}
         <div className="flex items-center space-x-4 pointer-events-auto h-full shrink-0">
            {isAuthenticated && (
               <div className="relative" onMouseEnter={() => setIsProfileHovered(true)} onMouseLeave={() => setIsProfileHovered(false)}>
@@ -256,29 +390,32 @@ export default function ReleaseDetailIDE() {
                   </span>
                   <div className={`w-px h-4 hidden lg:block ${isLightMode ? 'bg-slate-300' : 'bg-slate-800'}`} />
                   <div className="flex items-center space-x-2 md:space-x-3 group">
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-orange-500 to-amber-400 p-[1.5px] shrink-0">
-                      <div className={`w-full h-full rounded-full flex items-center justify-center ${isLightMode ? 'bg-white' : 'bg-[#010205]'}`}>
-                        <User size={14} className={textPrimary} />
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-orange-500 to-amber-400 p-[1.5px] shrink-0 overflow-hidden">
+                      <div className={`w-full h-full rounded-full flex items-center justify-center overflow-hidden ${isLightMode ? 'bg-white' : 'bg-[#010205]'}`}>
+                        {userData?.profilePic ? (
+                          <img src={userData.profilePic} alt="Profile" className="w-full h-full object-cover" />
+                        ) : (
+                          <User size={14} className={textPrimary} />
+                        )}
                       </div>
                     </div>
-                    <span className={`text-[10px] md:text-xs font-black uppercase tracking-widest transition-colors hidden sm:block ${textPrimary} group-hover:text-orange-500`}>Nima</span>
+                    <span className={`text-[10px] md:text-xs font-black uppercase tracking-widest transition-colors hidden sm:block ${textPrimary} group-hover:text-orange-500`}>
+                      {userData ? (userData.fullName || 'OPERATOR') : 'GUEST'}
+                    </span>
                   </div>
                 </div>
 
                 <AnimatePresence>
                   {isProfileHovered && (
-                    <motion.div initial={{ opacity: 0, y: 15, scale: 0.9 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 15, scale: 0.9 }} className={`absolute right-0 mt-3 w-56 rounded-3xl p-3 flex flex-col transform-gpu shadow-2xl border ${isLightMode ? 'bg-white/90 border-slate-200 backdrop-blur-xl' : 'bg-[#050b14]/95 backdrop-blur-3xl border-white/10'}`}>
+                    <motion.div initial={{ opacity: 0, y: 15, scale: 0.9 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 15, scale: 0.9 }} transition={{ type: "spring", stiffness: 120, damping: 20 }} className={`absolute right-0 mt-3 w-56 rounded-3xl p-3 flex flex-col transform-gpu shadow-2xl border ${isLightMode ? 'bg-white/90 border-slate-200 backdrop-blur-xl' : 'bg-[#050b14]/95 backdrop-blur-3xl border-white/10'}`}>
                       <Link href="/settings" className={`flex items-center px-4 py-3 text-xs font-bold uppercase tracking-widest rounded-2xl transition-all ${isLightMode ? 'text-slate-700 hover:bg-slate-100' : 'text-slate-300 hover:bg-white/5'}`}>
                         <Settings size={14} className="mr-3 text-orange-500" /> Settings
                       </Link>
-                      
-                      {/* ADDED SAVED RELEASES OPTION TO DROPDOWN */}
-                      <button type="button" className={`flex items-center px-4 py-3 text-xs font-bold uppercase tracking-widest text-orange-500 rounded-2xl transition-all group ${isLightMode ? 'hover:bg-orange-50' : 'hover:bg-orange-500/10'}`}>
-                        <Bookmark size={14} className="mr-3 text-orange-500 group-hover:drop-shadow-[0_0_8px_rgba(249,115,22,0.8)]" /> Saved Releases
-                      </button>
-                      
+                      <Link href="/settings?tab=saved" className={`flex items-center px-4 py-3 text-xs font-bold uppercase tracking-widest text-orange-500 rounded-2xl transition-all group ${isLightMode ? 'hover:bg-orange-50' : 'hover:bg-orange-500/10'}`}>
+                        <Bookmark size={14} className="mr-3 text-orange-500 group-hover:drop-shadow-[0_0_8px_rgba(249,115,22,0.8)]" /> Saved Links
+                      </Link>
                       <div className={`h-px w-full my-1 ${isLightMode ? 'bg-slate-200' : 'bg-slate-800/50'}`} />
-                      <button onClick={() => { localStorage.removeItem('userRole'); setCurrentUserRole('guest'); setIsAuthenticated(false); }} className={`flex items-center px-4 py-3 text-xs font-bold uppercase tracking-widest text-red-500 rounded-2xl transition-all hover:bg-red-500/10`}>
+                      <button onClick={handleLogout} className={`flex items-center px-4 py-3 text-xs font-bold uppercase tracking-widest text-red-500 rounded-2xl transition-all hover:bg-red-500/10`}>
                         <LogOut size={14} className="mr-3 text-red-500" /> Disconnect
                       </button>
                     </motion.div>
@@ -290,60 +427,61 @@ export default function ReleaseDetailIDE() {
       </header>
 
       {/* ==========================================
-          3-PANE WORKSPACE (Native Scroll Enabled with items-start)
+          3-PANE WORKSPACE
           ========================================== */}
       <div className="flex-1 w-full max-w-[1700px] mx-auto flex flex-col lg:flex-row items-start relative z-10 pt-32 pb-20 px-4 md:px-8 gap-6 md:gap-8">
         
-        {/* LEFT SIDEBAR: Version Directory (Sticky) */}
+        {/* LEFT SIDEBAR: Version History */}
         <motion.aside 
           drag dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }} dragElastic={0.05}
           className={`hidden lg:flex w-72 shrink-0 flex-col rounded-[2.5rem] border px-6 py-8 sticky top-28 h-[calc(100vh-8rem)] overflow-y-auto custom-scrollbar pointer-events-auto transition-colors cursor-grab active:cursor-grabbing ${glassPanel}`}
         >
           <div className="relative mb-8 shrink-0">
             <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
-            <input type="text" placeholder="Search versions..." className={`w-full border rounded-2xl py-4 pl-12 pr-4 text-xs font-mono focus:outline-none transition-colors shadow-sm ${isLightMode ? 'bg-white/50 border-slate-300 text-slate-800 focus:border-orange-500' : 'bg-black/40 border-white/10 text-white placeholder-slate-600 focus:border-orange-500 focus:bg-black/60'}`} />
+            <input 
+              type="text" placeholder="Search versions..." 
+              value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
+              className={`w-full border rounded-2xl py-4 pl-12 pr-4 text-xs font-mono focus:outline-none transition-colors shadow-sm ${isLightMode ? 'bg-white/50 border-slate-300 text-slate-800 focus:border-orange-500' : 'bg-black/40 border-white/10 text-white placeholder-slate-600 focus:border-orange-500 focus:bg-black/60'}`} 
+            />
           </div>
 
-          <div className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 mb-6 pl-2 shrink-0">Version History</div>
+          <div className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 mb-6 pl-2 shrink-0">Version/Track Directory</div>
           
           <div className="flex-1 relative pl-2">
             <div className={`absolute left-4 top-2 bottom-2 w-px ${isLightMode ? 'bg-slate-300' : 'bg-white/10'}`} />
-            {Object.keys(RELEASES_DB).map((key) => {
-              const rel = RELEASES_DB[key];
-              const isActive = releaseId === rel.id;
-              
+            
+            {filteredDirectory.map((rel) => {
+              const isActive = activeData.id === rel.id;
+              const displayVersion = rel.isPost ? (rel.type || 'TRACK') : (rel.version || 'v.0.0');
+              const displayTitle = rel.isPost ? rel.title : rel.projectName;
+
               return (
-                <button key={rel.id} aria-label={`View Release ${rel.version}`} onClick={() => router.push(`/releases/${rel.id}`)} className="relative z-10 w-full flex flex-col text-left py-3.5 group">
+                <button key={rel.id} aria-label={`View Data Node`} onClick={() => router.push(`/projects/${rel.id}`)} className="relative z-10 w-full flex flex-col text-left py-3.5 group">
                   <div className="flex items-center mb-1">
                     <div className={`w-3.5 h-3.5 rounded-full border-[3px] shrink-0 z-10 transition-colors ${isActive ? 'bg-orange-500 border-orange-200 shadow-[0_0_15px_#f97316]' : (isLightMode ? 'bg-slate-100 border-slate-400 group-hover:border-orange-500' : 'bg-[#010205] border-slate-600 group-hover:border-orange-500')}`} />
-                    <span className={`ml-4 text-sm font-black uppercase tracking-widest transition-colors ${isActive ? (isLightMode ? 'text-slate-900' : 'text-white') : 'text-slate-500 group-hover:text-orange-400'}`}>{rel.version}</span>
+                    <span className={`ml-4 text-sm font-black uppercase tracking-widest transition-colors ${isActive ? (isLightMode ? 'text-slate-900' : 'text-white') : 'text-slate-500 group-hover:text-orange-400'}`}>{displayVersion}</span>
                   </div>
                   <AnimatePresence>
                     {isActive && (
                       <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="pl-8 overflow-hidden">
-                         <div className="text-[10px] font-mono text-orange-500 mt-2 uppercase tracking-widest px-3 py-1 bg-orange-500/10 border border-orange-500/20 rounded-md inline-block">{rel.tag}</div>
+                         <div className="text-[10px] font-mono text-orange-500 mt-2 uppercase tracking-widest px-3 py-1 bg-orange-500/10 border border-orange-500/20 rounded-md inline-block">{displayTitle}</div>
                       </motion.div>
                     )}
                   </AnimatePresence>
                 </button>
               )
             })}
-          </div>
 
-          <motion.button 
-            whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-            aria-label="Subscribe to RSS" 
-            className="mt-6 shrink-0 w-full py-4 px-4 rounded-2xl border border-orange-500/30 bg-orange-500/10 text-orange-500 flex items-center justify-center space-x-2 hover:bg-orange-500 hover:text-black transition-all shadow-lg hover:shadow-[0_0_20px_rgba(249,115,22,0.4)]"
-          >
-            <Rss size={16} />
-            <span className="text-[11px] font-black uppercase tracking-widest">Subscribe RSS</span>
-          </motion.button>
+            {filteredDirectory.length === 0 && (
+              <div className="pl-6 pt-4 text-xs font-mono text-slate-500">No versions match query.</div>
+            )}
+          </div>
         </motion.aside>
 
         {/* CENTER CANVAS: Main Output */}
         <section className="flex-1 flex flex-col pointer-events-auto min-w-0">
            <AnimatePresence mode="wait">
-             <motion.div key={releaseId} className="flex flex-col flex-1">
+             <motion.div key={activeData.id} className="flex flex-col flex-1">
                
                {/* Panoramic Hero */}
                <motion.div 
@@ -365,19 +503,26 @@ export default function ReleaseDetailIDE() {
                    <div className="flex flex-wrap items-center gap-4 mt-8">
                       <span className={`px-5 py-2 text-xs font-black uppercase rounded-xl tracking-widest ${isLightMode ? 'bg-slate-200 text-slate-800' : 'bg-white/10 text-white'}`}>{activeData.version}</span>
                       <span className="text-xs text-orange-500 font-mono uppercase tracking-widest px-5 py-2 bg-orange-500/10 border border-orange-500/20 rounded-xl">{activeData.date}</span>
+                      <span className="text-xs text-orange-400/80 font-mono uppercase tracking-widest px-5 py-2 bg-orange-950/20 border border-orange-500/10 rounded-xl">{activeData.tag}</span>
                    </div>
                  </div>
                  
                  {/* Bookmark & Link Interactions */}
                  <div className="flex items-center space-x-3 shrink-0">
                    <motion.button 
-                     onClick={() => setIsSaved(!isSaved)} whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
+                     onClick={handleToggleSave} disabled={isSavingInProgress}
+                     whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
                      aria-label={isSaved ? "Remove Bookmark" : "Save Release"}
                      className={`flex items-center justify-center w-14 h-14 rounded-2xl border transition-all shadow-md ${isSaved ? 'bg-orange-500/20 border-orange-500 text-orange-500' : `${isLightMode ? 'bg-slate-100 border-slate-300 text-slate-600' : 'bg-white/5 border-white/20 text-slate-300 hover:border-orange-500 hover:text-orange-500'}`}`}
                    >
-                     <Bookmark size={20} fill={isSaved ? "#f97316" : "none"} className={isSaved ? 'text-orange-500' : ''} />
+                     {isSavingInProgress ? (
+                       <Loader2 size={18} className="animate-spin text-orange-500" />
+                     ) : (
+                       <Bookmark size={20} fill={isSaved ? "#f97316" : "none"} className={isSaved ? 'text-orange-500' : ''} />
+                     )}
                    </motion.button>
                    <motion.button 
+                     onClick={() => navigator.clipboard.writeText(window.location.href)}
                      whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
                      aria-label="Copy Release Link" 
                      className={`flex items-center justify-center w-14 h-14 rounded-2xl border transition-all shadow-md ${isLightMode ? 'bg-white border-slate-300 hover:bg-orange-500 hover:border-orange-500 hover:text-black' : 'bg-white/5 border-white/10 hover:bg-orange-500 hover:text-black text-slate-300'}`}
@@ -387,7 +532,7 @@ export default function ReleaseDetailIDE() {
                  </div>
                </motion.div>
 
-               {/* RELEASE ASSETS / SOURCES DOWNLOADS (Elastic Hover) */}
+               {/* REAL CLOUD LINK ASSETS BLOCK */}
                {activeData.assets && activeData.assets.length > 0 && (
                  <motion.div initial="hidden" whileInView="show" viewport={{ once: false, amount: 0.1 }} variants={scrollReveal} className="w-full mb-12">
                    <div className="flex items-center space-x-3 mb-6 px-4">
@@ -397,14 +542,14 @@ export default function ReleaseDetailIDE() {
                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                      {activeData.assets.map((asset: any, i: number) => (
                        <motion.a 
-                         href="#" key={i}
+                         href={asset.url || "#"} target="_blank" rel="noopener noreferrer" key={i}
                          drag dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }} dragElastic={0.15}
                          whileHover={{ scale: 1.03, y: -5, rotateX: 2, rotateY: -2, zIndex: 50, boxShadow: "0 20px 40px rgba(249,115,22,0.15)" }}
                          className={`p-5 md:p-6 rounded-[2rem] border flex items-center justify-between group transition-colors cursor-grab active:cursor-grabbing ${isLightMode ? 'bg-white/80 border-slate-200 hover:border-orange-400 backdrop-blur-xl' : 'bg-black/20 backdrop-blur-3xl border-white/10 hover:border-orange-500 hover:bg-black/40'}`}
                        >
                          <div className="flex items-center space-x-4 overflow-hidden">
                            <div className={`p-3.5 md:p-4 rounded-2xl shrink-0 transition-colors ${isLightMode ? 'bg-slate-100 text-slate-600 group-hover:bg-orange-100 group-hover:text-orange-600' : 'bg-white/5 text-orange-400 group-hover:bg-orange-500/20 group-hover:text-orange-500'}`}>
-                              <asset.icon size={24} />
+                              <FileArchive size={24} />
                            </div>
                            <div className="flex flex-col truncate pr-2">
                              <span className={`text-sm md:text-base font-black truncate transition-colors ${isLightMode ? 'text-slate-800' : 'text-white group-hover:text-orange-50'}`}>{asset.name}</span>
@@ -423,7 +568,7 @@ export default function ReleaseDetailIDE() {
                  </motion.div>
                )}
 
-               {/* 3-Column Bento: CHANGELOG (Elastic Drag) */}
+               {/* 3-Column Bento CHANGELOG */}
                <motion.div initial="hidden" whileInView="show" viewport={{ once: false, amount: 0.1 }} variants={scrollReveal} className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
                  <motion.div drag dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }} dragElastic={0.1} whileHover={{ scale: 1.02, y: -5, rotateX: 2, rotateY: 2, zIndex: 20, boxShadow: "0 20px 40px rgba(34,197,94,0.1)" }} className={`p-8 md:p-10 border rounded-[2.5rem] transition-colors cursor-grab active:cursor-grabbing shadow-lg ${isLightMode ? 'bg-white/80 border-slate-200' : 'bg-black/20 backdrop-blur-3xl border-white/10 hover:border-green-500/50'}`}>
                    <div className="flex items-center space-x-3 mb-8">
@@ -431,7 +576,7 @@ export default function ReleaseDetailIDE() {
                      <span className="text-xs font-black uppercase tracking-widest text-slate-400">Added</span>
                    </div>
                    <ul className="space-y-5">
-                     {activeData.added.map((item: string, i: number) => <li key={i} className={`text-sm md:text-base font-medium leading-relaxed before:content-['—'] before:mr-3 before:text-slate-600 ${textPrimary}`}>{item}</li>)}
+                     {activeData.added.length > 0 ? activeData.added.map((item: string, i: number) => <li key={i} className={`text-sm md:text-base font-medium leading-relaxed before:content-['—'] before:mr-3 before:text-slate-600 ${textPrimary}`}>{item}</li>) : <li className="text-slate-600 italic text-sm font-mono">No data provided.</li>}
                    </ul>
                  </motion.div>
                  <motion.div drag dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }} dragElastic={0.1} whileHover={{ scale: 1.02, y: -5, rotateX: 2, rotateY: 0, zIndex: 20, boxShadow: "0 20px 40px rgba(59,130,246,0.1)" }} className={`p-8 md:p-10 border rounded-[2.5rem] transition-colors cursor-grab active:cursor-grabbing shadow-lg ${isLightMode ? 'bg-white/80 border-slate-200' : 'bg-black/20 backdrop-blur-3xl border-white/10 hover:border-blue-500/50'}`}>
@@ -440,7 +585,7 @@ export default function ReleaseDetailIDE() {
                      <span className="text-xs font-black uppercase tracking-widest text-slate-400">Changed</span>
                    </div>
                    <ul className="space-y-5">
-                     {activeData.changed.map((item: string, i: number) => <li key={i} className={`text-sm md:text-base font-medium leading-relaxed before:content-['—'] before:mr-3 before:text-slate-600 ${textPrimary}`}>{item}</li>)}
+                     {activeData.changed.length > 0 ? activeData.changed.map((item: string, i: number) => <li key={i} className={`text-sm md:text-base font-medium leading-relaxed before:content-['—'] before:mr-3 before:text-slate-600 ${textPrimary}`}>{item}</li>) : <li className="text-slate-600 italic text-sm font-mono">No data provided.</li>}
                    </ul>
                  </motion.div>
                  <motion.div drag dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }} dragElastic={0.1} whileHover={{ scale: 1.02, y: -5, rotateX: 2, rotateY: -2, zIndex: 20, boxShadow: "0 20px 40px rgba(249,115,22,0.1)" }} className={`p-8 md:p-10 border rounded-[2.5rem] transition-colors cursor-grab active:cursor-grabbing shadow-lg ${isLightMode ? 'bg-white/80 border-slate-200' : 'bg-black/20 backdrop-blur-3xl border-white/10 hover:border-orange-500/50'}`}>
@@ -449,12 +594,12 @@ export default function ReleaseDetailIDE() {
                      <span className="text-xs font-black uppercase tracking-widest text-slate-400">Fixed</span>
                    </div>
                    <ul className="space-y-5">
-                     {activeData.fixed.map((item: string, i: number) => <li key={i} className={`text-sm md:text-base font-medium leading-relaxed before:content-['—'] before:mr-3 before:text-slate-600 ${textPrimary}`}>{item}</li>)}
+                     {activeData.fixed.length > 0 ? activeData.fixed.map((item: string, i: number) => <li key={i} className={`text-sm md:text-base font-medium leading-relaxed before:content-['—'] before:mr-3 before:text-slate-600 ${textPrimary}`}>{item}</li>) : <li className="text-slate-600 italic text-sm font-mono">No data provided.</li>}
                    </ul>
                  </motion.div>
                </motion.div>
 
-               {/* 2-Column Bento: SUMMARY & TERMINAL (Elastic Drag) */}
+               {/* 2-Column Bento SUMMARY */}
                <motion.div initial="hidden" whileInView="show" viewport={{ once: false, amount: 0.1 }} variants={scrollReveal} className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-16">
                  <motion.div drag dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }} dragElastic={0.1} whileHover={{ scale: 1.02, y: -5, rotateX: 1, rotateY: 1, zIndex: 20, boxShadow: "0 30px 60px rgba(0,0,0,0.5)" }} className={`p-10 border rounded-[3rem] flex flex-col justify-between shadow-lg cursor-grab active:cursor-grabbing ${isLightMode ? 'bg-white/80 border-slate-200' : 'bg-black/20 backdrop-blur-3xl border-white/10'}`}>
                    <div>
@@ -462,12 +607,12 @@ export default function ReleaseDetailIDE() {
                        <CheckCircle size={22} className="text-blue-500" />
                        <span className="text-sm font-black uppercase tracking-widest text-slate-400">Executive Summary</span>
                      </div>
-                     <p className={`text-base md:text-lg leading-relaxed mb-10 ${isLightMode ? 'text-slate-700' : 'text-slate-300'}`}>{activeData.summary}</p>
+                     <p className={`text-base md:text-lg leading-relaxed mb-10 whitespace-pre-wrap ${isLightMode ? 'text-slate-700' : 'text-slate-300'}`}>{activeData.summary}</p>
                    </div>
                    <p className="text-xs md:text-sm text-orange-400/90 font-mono leading-relaxed bg-orange-500/10 p-6 rounded-2xl border border-orange-500/20">{activeData.impact}</p>
                  </motion.div>
                  
-                 {/* Authentic Linux Terminal */}
+                 {/* Linux Terminal View */}
                  <motion.div drag dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }} dragElastic={0.05} whileHover={{ scale: 1.02, y: -5, rotateX: 1, rotateY: -1, zIndex: 20, boxShadow: "0 30px 60px rgba(0,0,0,0.8)" }} className={`border rounded-[3rem] flex flex-col overflow-hidden shadow-2xl cursor-grab active:cursor-grabbing ${isLightMode ? 'bg-slate-900 border-slate-700' : 'bg-[#02050a]/90 backdrop-blur-3xl border-white/10'}`}>
                    <div className="h-16 bg-black/60 border-b border-orange-500/20 flex items-center px-8 justify-between relative shrink-0">
                      <div className="flex items-center space-x-2.5 relative z-10">
@@ -484,9 +629,9 @@ export default function ReleaseDetailIDE() {
                         <span className="font-bold">nima@matrix</span><span className="text-white">:</span><span className="text-cyan-400">~</span>$ ./execute_migration --v={activeData.version}
                       </div>
                       <div className="pl-4 border-l border-white/10 space-y-4">
-                        {activeData.breaking.map((log: string, i: number) => (
+                        {activeData.breaking.length > 0 ? activeData.breaking.map((log: string, i: number) => (
                           <motion.p initial={{opacity:0}} whileInView={{opacity:1}} viewport={{once:true}} transition={{delay: i*0.2}} key={i} className={`${log.includes('[SUCCESS]') ? 'text-green-400 font-bold' : (log.includes('[SYSTEM]') ? 'text-slate-500' : 'text-orange-400')} whitespace-pre-wrap break-words`}>{log}</motion.p>
-                        ))}
+                        )) : <p className="text-slate-500 italic">No breaking changes logged in matrix.</p>}
                       </div>
                       <div className="mt-10 flex items-center space-x-2 text-orange-500">
                         <span className="font-bold">nima@matrix</span><span className="text-white">:</span><span className="text-cyan-400">~</span>$ 
@@ -500,7 +645,7 @@ export default function ReleaseDetailIDE() {
            </AnimatePresence>
         </section>
 
-        {/* RIGHT SIDEBAR: Telemetry HUD (Sticky) */}
+        {/* RIGHT SIDEBAR: Telemetry HUD */}
         <motion.aside 
           drag dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }} dragElastic={0.05}
           className={`hidden xl:flex w-80 shrink-0 flex-col rounded-[2.5rem] border px-6 py-8 sticky top-28 h-[calc(100vh-8rem)] overflow-y-auto custom-scrollbar pointer-events-auto transition-colors shadow-2xl cursor-grab active:cursor-grabbing ${glassPanel}`}
@@ -532,7 +677,6 @@ export default function ReleaseDetailIDE() {
       <BottomNav currentRole={currentUserRole as any} />
 
       <style jsx global>{`
-        /* Native scrolling enabled */
         .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(249, 115, 22, 0.4); border-radius: 10px; }

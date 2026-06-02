@@ -50,11 +50,11 @@ const FALLBACK_DATA = {
 
 function ActiveDataBackground({ isLight }: { isLight: boolean }) {
   const [nodes, setNodes] = useState<any[]>([]);
-useEffect(() => {
-  setNodes(Array.from({ length: 20 }).map((_, i) => ({
-    id: i, left: Math.random() * 100, top: Math.random() * 100, size: Math.random() * 30 + 10
-  })));
-}, []);
+  useEffect(() => {
+    setNodes(Array.from({ length: 20 }).map((_, i) => ({
+      id: i, left: Math.random() * 100, top: Math.random() * 100, size: Math.random() * 30 + 10
+    })));
+  }, []);
   
   const gridColor = isLight ? 'rgba(0,255,102,0.1)' : 'rgba(0,255,102,0.03)';
   const gridColor2 = isLight ? 'rgba(0,240,255,0.1)' : 'rgba(0,240,255,0.03)';
@@ -67,8 +67,8 @@ useEffect(() => {
         className="absolute inset-0 [mask-image:radial-gradient(ellipse_at_center,black_20%,transparent_80%)]" 
         style={{ backgroundImage: `linear-gradient(${gridColor} 1px, transparent 1px), linear-gradient(90deg, ${gridColor2} 1px, transparent 1px)`, backgroundSize: '80px 80px' }}
       />
-      {nodes.map((node, i) => {
-        const isCyan = i % 2 === 0;
+      {nodes.map((node) => {
+        const isCyan = node.id % 2 === 0;
         return (
           <motion.div key={node.id} className={`absolute flex items-center justify-center opacity-30 ${isCyan ? 'text-[#00f0ff]' : 'text-[#00ff66]'}`} style={{ left: `${node.left}vw`, top: `${node.top}vh` }} animate={{ y: [0, Math.random() * -150 - 50, 0], x: [0, Math.random() * 50 - 25, 0], rotateZ: [0, Math.random() * 180, 360], rotateX: [0, 180, 360], scale: [1, Math.random() * 0.5 + 1, 1], opacity: [0.1, 0.5, 0.1] }} transition={{ duration: Math.random() * 25 + 15, repeat: Infinity, ease: "linear" }}>
             <Hexagon size={node.size} strokeWidth={1.5} />
@@ -81,20 +81,18 @@ useEffect(() => {
   );
 }
 
-// UPGRADED: Semantic Citation Graph mapping to real topics/data
 function CitationNodeGraph({ isLight, topics, title }: { isLight: boolean, topics: string[], title: string }) {
   const [nodes, setNodes] = useState<{ id: number; cx: number; cy: number; connections: number[], label: string }[]>([]);
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
 
   useEffect(() => {
-    // Generate nodes based on real topics + some decorative nodes to fill the network
     const labels = [JSON.stringify(topics), title, "Data Layer", "Analysis", "Validation"];
     const generatedNodes = Array.from({ length: Math.max(25, labels.length * 2) }).map((_, i) => ({ 
       id: i, 
       cx: 15 + Math.random() * 70, 
       cy: 15 + Math.random() * 70, 
       connections: [] as number[],
-      label: labels[i] || "" // Assign real labels to first few nodes
+      label: labels[i] || "" 
     }));
 
     generatedNodes.forEach(node1 => { 
@@ -270,6 +268,7 @@ export default function ResearchDetailPage() {
   
   const [activeTab, setActiveTab] = useState('Abstract');
   const [isProfileHovered, setIsProfileHovered] = useState(false);
+  
   const [isSaved, setIsSaved] = useState(false);
   const [isSavingInProgress, setIsSavingInProgress] = useState(false);
   
@@ -284,6 +283,9 @@ export default function ResearchDetailPage() {
     { name: 'Conclusion', id: 'conclusion-section' }
   ];
 
+  // ========================================================
+  // THE FIX: Strict State Initialization for Navigation Desync
+  // ========================================================
   useEffect(() => {
     const initMatrix = async () => {
       const token = localStorage.getItem('matrix_token');
@@ -296,10 +298,9 @@ export default function ResearchDetailPage() {
             const userJson = await res.json();
             setUserData(userJson.data);
             
-            // Check if this specific research is in the user's saved list
-            if (userJson.data?.savedPosts?.some((post: any) => post.id === researchId)) {
-               setIsSaved(true);
-            }
+            // STRICTLY evaluate boolean state so it resets properly when changing links
+            const currentlySaved = userJson.data?.savedPosts?.some((post: any) => post.id === researchId);
+            setIsSaved(!!currentlySaved);
           }
         } catch (e) { console.error(e); }
       }
@@ -325,13 +326,12 @@ export default function ResearchDetailPage() {
           let parsedAdvanced = {};
           try { if (dbData.advancedData) parsedAdvanced = JSON.parse(dbData.advancedData); } catch(e){}
 
-          // Safely map DB data, fallback ONLY if empty
           setData({
             title: dbData.title || FALLBACK_DATA.title,
             field: dbData.type || "Research",
             status: dbData.published ? "PUBLISHED" : "DRAFT",
             date: dbData.createdAt ? new Date(dbData.createdAt).toLocaleDateString() : FALLBACK_DATA.date,
-            heroImg: dbData.heroImg || FALLBACK_DATA.heroImg, // Can be a URL or tailwind gradient
+            heroImg: dbData.heroImg || FALLBACK_DATA.heroImg, 
             abstract: dbData.content || FALLBACK_DATA.abstract,
             methodology: dbData.methodology || (parsedAdvanced as any).methodology || FALLBACK_DATA.methodology,
             conclusion: dbData.conclusion || (parsedAdvanced as any).conclusion || FALLBACK_DATA.conclusion,
@@ -353,12 +353,11 @@ export default function ResearchDetailPage() {
     fetchResearch();
   }, [researchId]);
 
-  // UPGRADED: Dynamic Scroll Spy for Navigation Pill
   useEffect(() => {
     if (isLoading) return;
 
     const handleScroll = () => {
-      const scrollPosition = window.scrollY + window.innerHeight / 3; // Offset trigger point
+      const scrollPosition = window.scrollY + window.innerHeight / 3; 
       
       for (let i = navItems.length - 1; i >= 0; i--) {
         const section = document.getElementById(navItems[i].id);
@@ -373,38 +372,37 @@ export default function ResearchDetailPage() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [isLoading]);
 
-  // UPGRADED: Click-to-Scroll Function
   const handleNavClick = (id: string, name: string) => {
     setActiveTab(name);
     const element = document.getElementById(id);
     if (element) {
-      const y = element.getBoundingClientRect().top + window.scrollY - 180; // Offset for sticky header
+      const y = element.getBoundingClientRect().top + window.scrollY - 180; 
       window.scrollTo({ top: y, behavior: 'smooth' });
     }
   };
 
-  // UPGRADED: Save Functionality via API (With Mock DB Bypass)
+  // ========================================================
+  // THE FIX: Fully Verified API Saving & Exception Handling
+  // ========================================================
   const handleToggleSave = async () => {
-    if (!isAuthenticated) {
-      console.warn("Operator must be authenticated to save findings.");
+    const token = localStorage.getItem('matrix_token');
+    
+    if (!isAuthenticated || !token) {
+      alert("Matrix Security: You must be authenticated to save research to your Vault.");
       return;
     }
     
     setIsSavingInProgress(true);
 
-    // 🔥 BULLETPROOF MOCK BYPASS: Catch the literal "[id]" URL string
     if (researchId === 'v2.4.0' || researchId === '[id]' || rawId === '%5Bid%5D') {
       setTimeout(() => {
         setIsSaved(!isSaved);
         setIsSavingInProgress(false);
-      }, 600); // Simulate network delay
+      }, 600); 
       return;
     }
 
     try {
-      const token = localStorage.getItem('matrix_token');
-      
-      // We lock this to POST, as the backend toggle controller expects it
       const res = await fetch(`http://localhost:5000/api/posts/${researchId}/save`, {
         method: 'POST', 
         headers: {
@@ -416,10 +414,12 @@ export default function ResearchDetailPage() {
       if (res.ok) {
         setIsSaved(!isSaved);
       } else {
-        console.warn("Failed to synchronize save status with mainframe. Check backend logs.");
+        const err = await res.json();
+        alert(`Matrix Sync Failed: ${err.message || 'Server rejected database connection'}`);
       }
     } catch (e) {
       console.error(e);
+      alert("Matrix Sync Failed: Network connection lost.");
     } finally {
       setIsSavingInProgress(false);
     }
@@ -449,9 +449,12 @@ export default function ResearchDetailPage() {
         a.click();
         document.body.removeChild(a);
         setTimeout(() => window.URL.revokeObjectURL(url), 2000); 
+      } else {
+        alert("PDF Compilation Failed. Ensure backend Puppeteer engine is running.");
       }
     } catch (error) {
       console.warn("PDF Download gracefully interrupted. Check your network.", error);
+      alert("Network Error: Could not establish a stream to the PDF Engine.");
     } finally {
       isDownloadingRef.current = false;
       setIsDownloading(false);
@@ -518,7 +521,7 @@ export default function ResearchDetailPage() {
                   <div className={`w-px h-4 hidden lg:block ${isLightMode ? 'bg-slate-300' : 'bg-slate-800'}`} />
                   <div className="flex items-center space-x-2 md:space-x-3 group">
                     <div className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-gradient-to-tr from-[#00ff66] to-[#00f0ff] p-[1.5px] transition-all duration-500 shrink-0 overflow-hidden">
-                      <div className={`w-full h-full rounded-full flex items-center justify-center ${isLightMode ? 'bg-white' : 'bg-[#010205]'}`}>
+                      <div className={`w-full h-full rounded-full flex items-center justify-center overflow-hidden ${isLightMode ? 'bg-white' : 'bg-[#010205]'}`}>
                         {userData?.profilePic ? (
                           <img src={userData.profilePic} alt="Profile" className="w-full h-full object-cover" />
                         ) : (
@@ -553,7 +556,7 @@ export default function ResearchDetailPage() {
         </div>
       </header>
 
-      {/* FLOATING NAVIGATION PILL - UPGRADED TO SCROLL */}
+      {/* FLOATING NAVIGATION PILL */}
       <div className="sticky top-28 z-40 w-full flex justify-center px-4 md:px-6 pointer-events-auto mt-32 mb-10">
         <div className={`flex flex-wrap items-center justify-center gap-2 p-1.5 md:p-2 rounded-[2rem] md:rounded-full border shadow-2xl backdrop-blur-xl ${isLightMode ? 'bg-white/80 border-slate-300' : 'bg-black/40 border-[#00ff66]/30'}`}>
           {navItems.map(tab => (
@@ -585,7 +588,6 @@ export default function ResearchDetailPage() {
             whileHover={{ scale: 1.01, y: -5, rotateX: 1, rotateY: -1, zIndex: 50, boxShadow: "0 30px 60px rgba(0,0,0,0.5)" }}
             className={`w-full min-h-[350px] h-auto rounded-[2rem] md:rounded-[3rem] border relative overflow-hidden flex flex-col justify-between p-6 sm:p-8 md:p-14 shadow-2xl group transition-all duration-500 cursor-grab active:cursor-grabbing hover:border-[#00ff66]/50 ${borderCol} ${isLightMode ? 'bg-white/80 backdrop-blur-xl' : 'bg-[#050b14]/60 backdrop-blur-3xl'}`}
           >
-             {/* DB Dynamic Image Rendering */}
              {isImageURL ? (
                 <img src={data.heroImg} alt="Banner" className="absolute inset-0 w-full h-full object-cover opacity-30 group-hover:opacity-50 transition-opacity duration-700" />
              ) : (
@@ -725,7 +727,7 @@ export default function ResearchDetailPage() {
         </motion.div>
       </div>
 
-      {/* LINUX TERMINAL METADATA MODULE */}
+      {/* THE FIX: Cleared JSX Terminal Metadata Formatting */}
       <div className="w-full max-w-[1500px] mx-auto px-4 md:px-6 lg:px-12 mb-20 relative z-10 pointer-events-auto">
         <motion.div 
           initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: "-50px" }} transition={{ type: "spring", stiffness: 100 }}
@@ -756,7 +758,7 @@ export default function ResearchDetailPage() {
                   <p className="mb-2"><span className="text-[#00f0ff]">"Contributors"</span>: [</p>
                   <div className="pl-4 sm:pl-8">
                     {data.metadata?.contributors?.map((c: string, i: number) => (
-                      <p key={i} className="text-[#00ff66] break-words md:whitespace-nowrap">"{c}"{c}"{i !== (data.metadata?.contributors?.length || 0) - 1 ? ',' : ''}</p>
+                      <p key={i} className="text-[#00ff66] break-words md:whitespace-nowrap">"{c}"{i !== (data.metadata?.contributors?.length || 0) - 1 ? ',' : ''}</p>
                     ))}
                   </div>
                   <p className="mb-2">],</p>
@@ -771,7 +773,7 @@ export default function ResearchDetailPage() {
                   <p className="mb-2"><span className="text-[#00f0ff]">"Topics"</span>: [</p>
                   <div className="pl-4 sm:pl-8 flex flex-col md:flex-row md:flex-wrap gap-x-2 gap-y-1">
                     {data.metadata?.topics?.map((t: string, i: number) => (
-                      <span key={i} className="text-[#00ff66]">"{t}"{t}"{i !== (data.metadata?.topics?.length || 0) - 1 ? ',' : ''}</span>
+                      <span key={i} className="text-[#00ff66]">"{t}"{i !== (data.metadata?.topics?.length || 0) - 1 ? ',' : ''}</span>
                     ))}
                   </div>
                   <p className="mb-2">]</p>
