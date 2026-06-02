@@ -12,6 +12,8 @@ import path from 'path';
 
 import feedbackRoutes from './src/routes/feedback.routes';
 
+import adminRoutes from './src/routes/admin.routes';
+
 dotenv.config();
 
 const app = express();
@@ -43,7 +45,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/posts', postRoutes);
 app.use('/api/releases', releaseRoutes);
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
-app.use('/api/feedback', feedbackRoutes)
+app.use('/api/feedback', feedbackRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Global Error Handler
 app.use(errorHandler);

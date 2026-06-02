@@ -28,3 +28,11 @@ a, button, input {
 @keyframes shimmer {
   100% { transform: translateX(100%); }
 }
+
+/* ========================================================
+   GLOBAL CURSOR OVERRIDE 
+   Forces the system cursor to remain hidden on all elements
+   ======================================================== */
+* {
+  cursor: none !important;
+}

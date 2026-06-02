@@ -81,17 +81,52 @@ export const verifyEmail = catchAsync(async (req: Request, res: Response) => {
 });
 
 // ==========================================
-// DECRYPT TOKEN (LOGIN)
+// DECRYPT TOKEN (LOGIN) - DUAL PATH
 // ==========================================
 export const loginUser = catchAsync(async (req: Request, res: Response) => {
-  const { secretCode } = req.body;
+  const { secretCode, email, password } = req.body;
 
+  // ---------------------------------------------------------
+  // PATH A: MASTER ADMIN OVERRIDE (Email + Password)
+  // ---------------------------------------------------------
+  if (email && password) {
+    const user = await prisma.user.findUnique({ 
+      where: { email },
+      select: { id: true, username: true, passwordHash: true, isVerified: true, role: true } 
+    });
+
+    if (!user) return res.status(401).json({ message: 'Access Denied: Invalid credentials.' });
+    
+    // Verify the decrypted password hash
+    const isMatch = await bcrypt.compare(password, user.passwordHash);
+    if (!isMatch) return res.status(401).json({ message: 'Access Denied: Invalid credentials.' });
+
+    const token = jwt.sign(
+      { id: user.id, username: user.username, role: user.role },
+      process.env.JWT_SECRET || 'super_secret_matrix_key_override_in_production',
+      { expiresIn: '7d' }
+    );
+
+    return res.status(200).json({
+      status: 'success',
+      message: 'Admin Link Established.',
+      token,
+      data: { 
+        id: user.id, 
+        secretCode: user.username, 
+        user: { role: user.role } // Properly feeds data.data.user.role to the frontend Admin Terminal
+      }
+    });
+  }
+
+  // ---------------------------------------------------------
+  // PATH B: STANDARD GUEST LOGIN (Secret Code Only)
+  // ---------------------------------------------------------
   if (!secretCode) return res.status(400).json({ message: 'Cryptographic code required.' });
 
   const user = await prisma.user.findUnique({ 
     where: { username: secretCode },
-    select: { id: true, username: true, passwordHash: true, isVerified: true }
-    
+    select: { id: true, username: true, passwordHash: true, isVerified: true, role: true }
   });
 
   if (!user) return res.status(401).json({ message: 'Access Denied: Invalid cipher code.' });
@@ -101,7 +136,7 @@ export const loginUser = catchAsync(async (req: Request, res: Response) => {
   }
 
   const token = jwt.sign(
-    { id: user.id, username: user.username },
+    { id: user.id, username: user.username, role: user.role },
     process.env.JWT_SECRET || 'super_secret_matrix_key_override_in_production',
     { expiresIn: '7d' }
   );
@@ -110,14 +145,17 @@ export const loginUser = catchAsync(async (req: Request, res: Response) => {
     status: 'success',
     message: 'Link Established.',
     token,
-    data: { id: user.id, secretCode: user.username }
+    data: { 
+      id: user.id, 
+      secretCode: user.username,
+      user: { role: user.role }
+    }
   });
 });
 
 // ==========================================
 // FETCH PERSONAL IDENTITY (/me)
 // ==========================================
-
 export const getMe = catchAsync(async (req: Request, res: Response) => {
   const userId = req.user?.id;
 
@@ -136,10 +174,11 @@ export const getMe = catchAsync(async (req: Request, res: Response) => {
       fullName: true,
       age: true,
       phone: true,
-      profilePic: true, // Successfully grabbing the Cloudinary URL
+      profilePic: true,
       isVerified: true,
       createdAt: true,
-      savedPosts: true, // Perfectly joins the saved posts to the profile!
+      savedPosts: true, 
+      role: true, // 🔥 ADDED: Required for AdminGuard to verify clearance on page load
     },
   });
 

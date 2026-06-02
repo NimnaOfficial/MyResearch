@@ -23,6 +23,8 @@ model User {
   // Explicitly named relations so Prisma knows the difference
   posts        Post[]     @relation("AuthoredPosts") 
   savedPosts   Post[]     @relation("SavedPosts")
+
+  role       String   @default("user")
 }
 
 model Feedback {

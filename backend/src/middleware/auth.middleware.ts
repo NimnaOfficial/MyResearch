@@ -2,13 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import prisma from '../config/prisma';
 
-declare global {
-  namespace Express {
-    interface Request {
-      user?: { id: string; username: string };
-    }
-  }
-}
+
 
 export const protect = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -45,5 +39,24 @@ export const protect = async (req: Request, res: Response, next: NextFunction) =
     // 🔥 THE FIX: Print the exact cryptographic failure to the backend terminal!
     console.error("🛡️ JWT Security Shield Blocked Request:", error.message);
     return res.status(401).json({ message: 'Matrix Sync Failed: Not authorized. Token invalid or expired.' });
+  }
+};
+
+// Add this right below your existing `protect` middleware function
+
+export const adminGuard = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    // Check if the verified user object exists and has the 'admin' role
+    if (req.user && req.user.role === 'admin') {
+      next(); // Access Granted: Proceed to controller
+    } else {
+      console.warn(`⚠️ [SECURITY] Unauthorized elevated access attempt by User ID: ${req.user?.id}`);
+      return res.status(403).json({ 
+        message: 'Access Denied: Elevated Admin Clearance Required.' 
+      });
+    }
+  } catch (error) {
+    console.error("🛡️ Admin Shield Error:", error);
+    return res.status(500).json({ message: 'Internal Matrix Error during clearance verification.' });
   }
 };

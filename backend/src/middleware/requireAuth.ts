@@ -7,7 +7,8 @@ declare global {
     interface Request {
       user?: {
         id: string;
-        username: string;
+        username: string; // Keep this exactly as it was
+        role: string;     // 🔥 ADD THIS NEW LINE
       };
     }
   }
@@ -27,7 +28,7 @@ export const requireAuth = (req: Request, res: Response, next: NextFunction) => 
   try {
     // 3. Decrypt the token mathematically
     const secret = process.env.JWT_SECRET || 'super_secret_matrix_key_override_in_production';
-    const decoded = jwt.verify(token, secret) as { id: string; username: string };
+    const decoded = jwt.verify(token, secret) as { id: string; username: string; role: string };
 
     // 4. Attach the decrypted identity to the request pipeline
     req.user = decoded;

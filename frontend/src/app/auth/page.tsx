@@ -1,378 +1,173 @@
 "use client";
 
-import { useState, useRef, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { 
-  KeySquare, Fingerprint, ShieldAlert, ShieldCheck, 
-  User, Mail, Phone, Calendar, Lock, ArrowRight, ScanFace, AlertTriangle
-} from 'lucide-react';
-import { Canvas, useFrame } from '@react-three/fiber';
-import { Float, Sphere, MeshTransmissionMaterial, Sparkles, OrbitControls } from '@react-three/drei';
-import { EffectComposer, Bloom, Glitch } from '@react-three/postprocessing';
-import { GlitchMode } from 'postprocessing';
-import * as THREE from 'three';
-
+import { motion, AnimatePresence } from 'framer-motion';
+import { ShieldAlert, Loader2 } from 'lucide-react';
 import CustomCursor from '@/components/CustomCursor';
-import BottomNav from '@/components/BottomNav';
-import ThemeToggle from '@/components/ThemeToggle';
-import Footer from '@/components/Footer';
 
-// ==========================================
-// 1. CINEMATIC 3D VAULT LOGO
-// ==========================================
-function CinematicCore({ authState, isBooting, isLightMode }: { authState: string, isBooting: boolean, isLightMode: boolean }) {
-  const coreRef = useRef<THREE.Group>(null);
-
-  useFrame((state, delta) => {
-    if (coreRef.current) {
-      coreRef.current.rotation.y += delta * (authState === 'scanning' ? 0.8 : 0.1);
-      coreRef.current.rotation.x = Math.sin(state.clock.elapsedTime * 0.3) * 0.1;
-      
-      const targetX = isBooting ? 0 : -3.5;
-      coreRef.current.position.x = THREE.MathUtils.lerp(coreRef.current.position.x, targetX, 0.05);
-    }
-  });
-
-  const getCoreColor = () => {
-    if (authState === 'error') return "#ef4444"; 
-    if (authState === 'success') return "#a855f7"; 
-    return isLightMode ? "#0284c7" : "#00f0ff"; 
-  };
-
-  return (
-    <group ref={coreRef}>
-      <Float speed={2} rotationIntensity={0.5} floatIntensity={1}>
-        <Sphere args={[isBooting ? 2 : 1.5, 64, 64]}>
-          <MeshTransmissionMaterial 
-            backside thickness={0.8} roughness={0.05} ior={1.5}
-            color={getCoreColor()} 
-            distortion={authState === 'scanning' ? 0.8 : 0.1}
-            distortionScale={1}
-            temporalDistortion={0}
-          />
-        </Sphere>
-        {Array.from({ length: 3 }).map((_, i) => (
-          <mesh key={i} position={[Math.sin(i * 2) * 2.5, Math.cos(i * 2) * 2.5, 0]}>
-            <sphereGeometry args={[0.08, 16, 16]} />
-            <meshBasicMaterial color={getCoreColor()} />
-          </mesh>
-        ))}
-      </Float>
-    </group>
-  );
-}
-
-// ==========================================
-// 2. MAIN SECURE GATEWAY COMPONENT
-// ==========================================
-export default function AuthGateway() {
+export default function SecretAdminLogin() {
   const router = useRouter();
-  
-  const [isLightMode, setIsLightMode] = useState(false);
-  const [isBooting, setIsBooting] = useState(true);
-  const [mode, setMode] = useState<'login' | 'register'>('login');
-  const [authState, setAuthState] = useState<'idle' | 'scanning' | 'error' | 'success'>('idle');
-  const [authError, setAuthError] = useState(''); // Stores specific backend error messages
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const [secretCode, setSecretCode] = useState('');
-  const [regData, setRegData] = useState({
-    name: '', email: '', phone: '', age: '', backupPass: '', confirmPass: ''
-  });
-
-  useEffect(() => {
-    const timer = setTimeout(() => setIsBooting(false), 2500);
-    return () => clearTimeout(timer);
-  }, []);
-
-  // ==========================================
-  // LIVE BACKEND: SECURE LOGIN
-  // ==========================================
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleAdminLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setAuthState('scanning');
-    setAuthError('');
+    setIsLoading(true);
+    setError('');
 
     try {
-      const response = await fetch('http://127.0.0.1:5000/api/auth/login', {
+      const res = await fetch('http://localhost:5000/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ secretCode })
+        body: JSON.stringify({ email, password }),
       });
-      const contentType = response.headers.get("content-type");
-      if (!contentType || !contentType.includes("application/json")) {
-        throw new Error(`CRITICAL: Server returned HTML instead of JSON. Status: ${response.status}. Check your fetch URL!`);
-      }
 
-      const data = await response.json();
+      const data = await res.json();
 
-      if (response.ok) {
-        setAuthState('success');
-        localStorage.setItem('matrix_token', data.token);
-        localStorage.setItem('userRole', 'user');
-        setTimeout(() => router.push('/'), 1500);
+      if (res.ok && data.token) {
+        if (data.data.user.role === 'admin') {
+          localStorage.setItem('matrix_token', data.token);
+          localStorage.setItem('userRole', 'admin');
+          router.push('/admin'); // Warp to the Command Core Layout
+        } else {
+          setError('ERR_CLEARANCE_DENIED: ELEVATED PRIVILEGES REQUIRED.');
+        }
       } else {
-        setAuthState('error');
-        setAuthError(data.message || 'Invalid Cryptographic Handshake');
-        setTimeout(() => setAuthState('idle'), 3000);
+        setError(`ERR_AUTH_FAILED: ${data.message || 'SEQUENCE REJECTED'}`);
       }
     } catch (err) {
-      console.error("⚠️ CRITICAL NETWORK ERROR ⚠️:", err);
-      setAuthState('error');
-      setAuthError('Matrix connection failed. Check server status.');
-      setTimeout(() => setAuthState('idle'), 3000);
+      setError('FATAL: MATRIX CONNECTION SEVERED. SERVER UNREACHABLE.');
+    } finally {
+      setIsLoading(false);
     }
   };
-
-  // ==========================================
-  // LIVE BACKEND: IDENTITY INITIALIZATION
-  // ==========================================
-  const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setAuthState('scanning');
-    setAuthError('');
-
-    if (regData.backupPass !== regData.confirmPass) {
-      setAuthState('error');
-      setAuthError('Backup Passwords do not match!');
-      setTimeout(() => setAuthState('idle'), 3000);
-      return;
-    }
-
-    try {
-      const response = await fetch('http://localhost:5000/api/auth/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        email: regData.email, 
-        password: regData.backupPass,
-        // 🔥 THE FIX: Map the frontend 'name' to the backend 'fullName'
-        fullName: regData.name, 
-        age: regData.age,           
-        phone: regData.phone        
-      })
-    });
-      const contentType = response.headers.get("content-type");
-      if (!contentType || !contentType.includes("application/json")) {
-        throw new Error(`CRITICAL: Server returned HTML instead of JSON. Status: ${response.status}. Check your fetch URL!`);
-      }
-
-      const data = await response.json();
-
-      if (response.ok) {
-        setAuthState('success');
-        // Will show the successful registration overlay and await email verification
-      } else {
-        setAuthState('error');
-        setAuthError(data.message || 'Initialization Failed');
-        setTimeout(() => setAuthState('idle'), 3000);
-      }
-    } catch (err) {
-      console.error("⚠️ CRITICAL NETWORK ERROR ⚠️:", err);
-      setAuthState('error');
-      setAuthError('Matrix connection failed. Check server status.');
-      setTimeout(() => setAuthState('idle'), 3000);
-    }
-  };
-
-  const textPrimary = isLightMode ? "text-slate-900" : "text-white";
-  const bgPrimary = isLightMode ? "bg-slate-50" : "bg-[#010309]";
-  const inputStyle = `w-full bg-transparent border-b px-2 py-3 focus:outline-none focus:border-[#a855f7] transition-all font-mono tracking-widest ${isLightMode ? 'border-slate-300 text-slate-900 placeholder-slate-400 focus:bg-[#a855f7]/5' : 'border-slate-800 text-white placeholder-slate-600 focus:bg-[#a855f7]/10'}`;
 
   return (
-    <main className={`relative min-h-screen flex flex-col font-sans cursor-none overflow-x-hidden transition-colors duration-1000 ${bgPrimary}`}>
+    <main className="min-h-screen bg-black font-mono flex items-center justify-center relative overflow-hidden selection:bg-red-600 selection:text-white cursor-none">
       <CustomCursor />
-      <ThemeToggle isLight={isLightMode} toggleTheme={() => setIsLightMode(!isLightMode)} />
+      
+      {/* Harsh Scanline & Grid Background */}
+      <div className="absolute inset-0 bg-[linear-gradient(rgba(220,38,38,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(220,38,38,0.05)_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none opacity-50" />
+      <div className="absolute inset-0 bg-[linear-gradient(transparent_50%,rgba(0,0,0,0.25)_50%)] bg-[length:100%_4px] pointer-events-none z-0 opacity-50" />
 
-      {/* 3D BACKGROUND LAYER - Changed to FIXED so it doesn't break flex layout */}
-      <div className="fixed inset-0 z-0 pointer-events-auto cursor-grab active:cursor-grabbing">
-        <Canvas camera={{ position: [0, 0, 8], fov: 45 }}>
-          <OrbitControls enableZoom={false} enablePan={false} dampingFactor={0.05} />
-          <ambientLight intensity={isLightMode ? 0.5 : 0.1} />
-          <directionalLight position={[5, 5, -5]} intensity={isLightMode ? 3 : 2} color={isLightMode ? "#0284c7" : "#00f0ff"} />
-          <Sparkles count={200} scale={15} size={1} speed={0.2} color={authState === 'success' ? "#a855f7" : (isLightMode ? "#0284c7" : "#00f0ff")} opacity={isLightMode ? 0.15 : 0.3} />
-          <CinematicCore authState={authState} isBooting={isBooting} isLightMode={isLightMode} />
-          <EffectComposer>
-            <Bloom luminanceThreshold={isLightMode ? 0.5 : 0.1} mipmapBlur intensity={isBooting ? 3.0 : 1.5} radius={0.8} />
-            <Glitch 
-              active={authState === 'error'} 
-              delay={new THREE.Vector2(0, 0)} duration={new THREE.Vector2(0.1, 0.3)} 
-              strength={new THREE.Vector2(0.2, 0.6)} mode={GlitchMode.CONSTANT_MILD} 
-            />
-          </EffectComposer>
-        </Canvas>
-      </div>
+      {/* Dimmed, ominous background ambient lights */}
+      <div className="absolute top-1/4 left-1/4 w-[40vw] h-[40vw] bg-red-900/10 rounded-full blur-[150px] pointer-events-none" />
+      <div className="absolute bottom-1/4 right-1/4 w-[40vw] h-[40vw] bg-blue-900/10 rounded-full blur-[150px] pointer-events-none" />
 
-      {/* FOREGROUND UI LAYER - Safely constrained above the footer */}
-      <AnimatePresence>
-        {!isBooting && (
-          <div className="relative z-10 w-full flex-1 flex flex-col lg:flex-row pointer-events-none min-h-[85vh]">
-            
-            {/* Left Side Message */}
-            <motion.div 
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5, duration: 1 }}
-              className="hidden lg:flex w-1/2 flex-col justify-center p-16 xl:p-24"
-            >
-              <div className="text-cyan-500/50 font-mono text-xs tracking-[0.3em] uppercase drop-shadow-md mb-8">
-                System Gateway // Build 9.0.4
-              </div>
-              <div>
-                <h1 className={`text-5xl xl:text-6xl font-black tracking-tighter mb-4 ${textPrimary}`}>
-                  Digital CSxPEDIA<span className="text-cyan-400">.</span>
-                </h1>
-                <p className={`font-light max-w-sm text-lg ${isLightMode ? 'text-slate-600' : 'text-slate-400'}`}>
-                  Encrypted biometric spatial matrix. Access requires authorized cryptographic handshake.
-                </p>
-              </div>
-            </motion.div>
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.98, y: 10 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: "easeOut" }}
+        className="relative z-10 w-full max-w-lg p-10 bg-black border border-red-900/50 shadow-[0_0_50px_rgba(153,27,27,0.15)] rounded-none"
+      >
+        {/* Brutalist Decorative Corners */}
+        <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-red-600" />
+        <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-red-600" />
+        <div className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-red-600" />
+        <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-red-600" />
 
-            {/* Right Side (Form Panel) */}
-            <motion.div 
-              initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2, type: 'spring', damping: 20 }}
-              className={`w-full lg:w-1/2 flex items-center justify-center p-8 lg:p-24 pointer-events-auto transition-colors duration-1000 ${isLightMode ? 'bg-gradient-to-l from-slate-50 via-slate-50/90 to-transparent' : 'bg-gradient-to-l from-[#010309] via-[#010309]/90 to-transparent'}`}
-            >
-              <div className="w-full max-w-md pt-20 lg:pt-0">
-                
-                <div className="mb-10 text-center lg:text-left">
-                  <h2 className={`text-3xl font-bold tracking-wide mb-2 ${textPrimary}`}>
-                    {mode === 'login' ? 'Access Matrix' : 'Initialize Identity'}
-                  </h2>
-                  <p className={isLightMode ? 'text-slate-500 text-sm' : 'text-slate-400 text-sm'}>
-                    {mode === 'login' ? 'Enter your 10-character Secret Member Code.' : 'Establish your parameters for network access.'}
-                  </p>
-                </div>
-
-                <AnimatePresence mode="wait">
-                  {/* ===================== LOGIN MODE ===================== */}
-                  {mode === 'login' && (
-                    <motion.form 
-                      key="login" onSubmit={handleLogin}
-                      initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
-                      className="space-y-6"
-                    >
-                      <div className="relative group">
-                        <KeySquare size={16} className={`absolute right-2 top-1/2 -translate-y-1/2 ${authState === 'error' ? 'text-red-500' : (isLightMode ? 'text-slate-400' : 'text-slate-600')}`} />
-                        <input 
-                          type="text" required maxLength={10} placeholder="Secret Code (e.g. AEX4921B7C)" 
-                          disabled={authState !== 'idle'} value={secretCode} onChange={(e) => setSecretCode(e.target.value.toUpperCase())}
-                          className={`${inputStyle} ${authState === 'error' ? 'border-red-500/50 text-red-500 bg-red-500/10' : ''}`} 
-                        />
-                      </div>
-
-                      {/* Display live backend errors */}
-                      {authError && (
-                        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-red-500 text-xs font-bold uppercase tracking-widest flex items-center justify-center pt-2">
-                          <AlertTriangle size={14} className="mr-2" /> {authError}
-                        </motion.p>
-                      )}
-
-                      <button 
-                        type="submit" disabled={authState !== 'idle'}
-                        className={`w-full flex items-center justify-center py-4 font-black uppercase tracking-[0.2em] text-xs transition-all disabled:opacity-50 disabled:cursor-not-allowed rounded-xl ${
-                          authState === 'success' 
-                            ? 'bg-[#9333ea] text-white shadow-[0_0_30px_rgba(168,85,247,0.6)]' 
-                            : 'bg-[#a855f7] hover:bg-[#9333ea] text-white shadow-[0_0_20px_rgba(168,85,247,0.3)] hover:shadow-[0_0_30px_rgba(168,85,247,0.5)]'
-                        }`}
-                      >
-                        {authState === 'scanning' ? <ScanFace className="animate-pulse text-white" size={18} /> : authState === 'error' ? 'Access Denied' : authState === 'success' ? 'Link Established' : 'Execute Login'}
-                      </button>
-                    </motion.form>
-                  )}
-
-                  {/* ===================== REGISTER MODE ===================== */}
-                  {mode === 'register' && (
-                    <motion.form 
-                      key="register" onSubmit={handleRegister}
-                      initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
-                      className="space-y-5"
-                    >
-                      <div className="grid grid-cols-2 gap-6">
-                        <input type="text" required placeholder="Full Name" className={inputStyle} value={regData.name} onChange={(e) => setRegData({...regData, name: e.target.value})} />
-                        <input type="number" required placeholder="Age" className={inputStyle} value={regData.age} onChange={(e) => setRegData({...regData, age: e.target.value})} />
-                      </div>
-                      
-                      <input type="email" required placeholder="Email Address (Required)" className={inputStyle} value={regData.email} onChange={(e) => setRegData({...regData, email: e.target.value})} />
-                      <input type="tel" placeholder="Phone Number (Optional)" className={inputStyle} value={regData.phone} onChange={(e) => setRegData({...regData, phone: e.target.value})} />
-                      
-                      <div className="grid grid-cols-2 gap-6">
-                        <input type="password" required placeholder="Backup Password" className={inputStyle} value={regData.backupPass} onChange={(e) => setRegData({...regData, backupPass: e.target.value})} />
-                        <input type="password" required placeholder="Confirm Password" className={inputStyle} value={regData.confirmPass} onChange={(e) => setRegData({...regData, confirmPass: e.target.value})} />
-                      </div>
-
-                      {/* Display live backend errors */}
-                      {authError && (
-                        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-red-500 text-xs font-bold uppercase tracking-widest flex items-center justify-center pt-2">
-                          <AlertTriangle size={14} className="mr-2" /> {authError}
-                        </motion.p>
-                      )}
-
-                      <button 
-                        type="submit" disabled={authState !== 'idle'}
-                        className={`w-full flex items-center justify-center py-4 mt-4 font-black uppercase tracking-[0.2em] text-xs transition-all disabled:opacity-50 disabled:cursor-not-allowed rounded-xl ${
-                          authState === 'success' 
-                            ? 'bg-[#9333ea] text-white shadow-[0_0_30px_rgba(168,85,247,0.6)]' 
-                            : 'bg-[#a855f7] hover:bg-[#9333ea] text-white shadow-[0_0_20px_rgba(168,85,247,0.3)] hover:shadow-[0_0_30px_rgba(168,85,247,0.5)]'
-                        }`}
-                      >
-                        {authState === 'scanning' ? <ScanFace className="animate-pulse text-white" size={18} /> : authState === 'success' ? 'Identity Initialized' : 'Initialize Profile'}
-                      </button>
-                    </motion.form>
-                  )}
-                </AnimatePresence>
-
-                <div className="mt-8 text-center pb-12 lg:pb-0">
-                  <button 
-                    onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setAuthError(''); setAuthState('idle'); }}
-                    className={`text-xs uppercase tracking-widest font-bold transition-colors ${isLightMode ? 'text-slate-500 hover:text-slate-900' : 'text-slate-500 hover:text-white'}`}
-                  >
-                    {mode === 'login' ? 'Request Network Access (Register)' : 'Return to Gateway (Login)'}
-                  </button>
-                </div>
-
-              </div>
-            </motion.div>
-
+        {/* Header Block */}
+        <div className="flex flex-col items-center justify-center text-center mb-10 border-b border-red-900/30 pb-8">
+          <ShieldAlert size={48} strokeWidth={1} className="text-red-600 mb-6" />
+          <h1 className="text-4xl md:text-5xl font-black uppercase tracking-[0.2em] text-white leading-none">
+            LEVEL <span className="text-red-600">5</span>
+          </h1>
+          <p className="text-[10px] text-blue-500 tracking-[0.4em] uppercase mt-4">
+            Restricted Command Core
+          </p>
+          <div className="flex items-center space-x-2 mt-4">
+            <div className="w-1.5 h-1.5 bg-red-600 animate-pulse" />
+            <span className="text-[8px] text-slate-500 tracking-widest">AWAITING_INPUT</span>
           </div>
-        )}
-      </AnimatePresence>
+        </div>
 
-      {/* OVERLAY FOR SUCCESSFUL REGISTRATION */}
-      <AnimatePresence>
-        {mode === 'register' && authState === 'success' && (
-          <motion.div 
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className={`fixed inset-0 z-[60] backdrop-blur-md flex flex-col items-center justify-center pointer-events-auto ${isLightMode ? 'bg-slate-50/90' : 'bg-[#010309]/90'}`}
-          >
-            <ShieldCheck size={64} className="text-[#a855f7] mb-6 drop-shadow-[0_0_15px_rgba(168,85,247,0.8)]" />
-            <h2 className={`text-3xl font-black tracking-widest uppercase mb-4 ${textPrimary}`}>Identity Registered</h2>
-            <p className={`font-mono text-sm max-w-md text-center mb-8 px-6 leading-relaxed ${isLightMode ? 'text-slate-500' : 'text-slate-400'}`}>
-              Your cipher code has been transmitted. Please check your email to verify your identity and activate your neural link.
-            </p>
-            <p className="text-[#a855f7] text-xs font-mono animate-pulse flex items-center uppercase tracking-widest font-bold">
-              Awaiting Verification <ArrowRight size={14} className="ml-2" />
-            </p>
-          </motion.div>
-        )}
-      </AnimatePresence>
+        <form onSubmit={handleAdminLogin} className="flex flex-col space-y-6">
+          
+          {/* Email Input */}
+          <div className="flex flex-col space-y-2 group">
+            <label className="text-[9px] text-blue-500 tracking-[0.3em] uppercase group-focus-within:text-red-500 transition-colors">
+              [ IDENTIFIER ]
+            </label>
+            <div className="relative flex">
+              <div className="w-2 bg-blue-900/30 group-focus-within:bg-red-600 transition-colors" />
+              <input 
+                type="email" 
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="flex-1 bg-black border border-blue-900/30 border-l-0 text-white text-xs py-4 px-4 focus:outline-none focus:border-red-600 focus:bg-red-950/20 transition-colors rounded-none placeholder-slate-800 tracking-widest uppercase"
+                placeholder="OPERATOR_EMAIL"
+                spellCheck="false"
+              />
+            </div>
+          </div>
 
-      {/* BOTTOM COMPONENTS - SYNCHRONIZED FADE IN */}
-      <AnimatePresence>
-        {!isBooting && (
-          <motion.div 
-            initial={{ opacity: 0 }} 
-            animate={{ opacity: 1 }} 
-            transition={{ delay: 0.5, duration: 1 }}
-            className="w-full mt-auto flex flex-col"
+          {/* Password Input */}
+          <div className="flex flex-col space-y-2 group">
+            <label className="text-[9px] text-blue-500 tracking-[0.3em] uppercase group-focus-within:text-red-500 transition-colors">
+              [ ENCRYPTION_KEY ]
+            </label>
+            <div className="relative flex">
+              <div className="w-2 bg-blue-900/30 group-focus-within:bg-red-600 transition-colors" />
+              <input 
+                type="password" 
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="flex-1 bg-black border border-blue-900/30 border-l-0 text-white text-xs py-4 px-4 focus:outline-none focus:border-red-600 focus:bg-red-950/20 transition-colors rounded-none placeholder-slate-800 tracking-widest"
+                placeholder="••••••••••••"
+              />
+            </div>
+          </div>
+
+          {/* Error Output */}
+          <AnimatePresence>
+            {error && (
+              <motion.div 
+                initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
+                className="text-red-500 text-[10px] font-black uppercase tracking-widest text-left bg-red-950/30 border-l-2 border-red-600 py-3 px-4 rounded-none"
+              >
+                {error}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Submit Button */}
+          <button 
+            type="submit" 
+            disabled={isLoading}
+            className="relative w-full h-14 bg-red-900/20 border border-red-700 flex items-center justify-center font-black text-[11px] uppercase tracking-[0.4em] text-red-500 hover:bg-red-600 hover:text-white transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed rounded-none mt-4 group"
           >
-            <div className="relative z-20 w-full pointer-events-auto border-t border-slate-500/20 bg-black/20 backdrop-blur-md">
-              <Footer isLight={isLightMode} currentRole="guest" />
-            </div>
-            <div className="relative z-30 pointer-events-auto">
-              <BottomNav currentRole="guest" />
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            {isLoading ? (
+              <div className="flex items-center space-x-3">
+                <Loader2 size={16} className="animate-spin text-white" />
+                <span className="text-white">AUTHENTICATING...</span>
+              </div>
+            ) : (
+              <span className="relative z-10 flex items-center">
+                INITIALIZE_OVERRIDE
+                <span className="ml-3 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all">»</span>
+              </span>
+            )}
+          </button>
+        </form>
+
+        <div className="mt-8 flex justify-between items-center border-t border-red-900/30 pt-6">
+          <span className="text-[8px] text-slate-600 tracking-widest uppercase">
+            SEC_PROTOCOL: ACTIVE
+          </span>
+          <button 
+            type="button" 
+            onClick={() => router.push('/auth')} 
+            className="text-[9px] text-slate-500 uppercase tracking-widest hover:text-blue-500 transition-colors cursor-pointer"
+          >
+            [ ABORT SEQUENCE ]
+          </button>
+        </div>
+      </motion.div>
     </main>
   );
 }
