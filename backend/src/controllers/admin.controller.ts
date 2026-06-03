@@ -1,68 +1,110 @@
 import { Request, Response } from 'express';
+import os from 'os';
 import prisma from '../config/prisma';
+import { catchAsync } from '../utils/catchAsync';
 
-// Universal error catcher wrapper
-const catchAsync = (fn: Function) => (req: Request, res: Response, next: any) => {
-  Promise.resolve(fn(req, res, next)).catch(next);
-};
+// ==========================================
+// 1. DASHBOARD TELEMETRY ENGINE
+// ==========================================
+export const getDashboardStats = catchAsync(async (req: Request, res: Response) => {
+  const totalNodes = await prisma.user.count();
+  
+  const recentNodes = await prisma.user.findMany({
+    take: 5,
+    orderBy: { createdAt: 'desc' },
+    select: { id: true, username: true, fullName: true, role: true, isVerified: true }
+  });
 
-// @desc    Get all registered users in the matrix
-// @route   GET /api/admin/users
-// @access  Private/Admin
+  const totalMem = os.totalmem();
+  const freeMem = os.freemem();
+  const usedMem = totalMem - freeMem;
+  
+  const memUsagePercent = ((usedMem / totalMem) * 100).toFixed(1);
+  const usedMemGB = (usedMem / (1024 ** 3)).toFixed(2);
+  const totalMemGB = (totalMem / (1024 ** 3)).toFixed(2);
+
+  // Simulated CPU load for the UI widget
+  const cpuLoad = Math.floor(Math.random() * (45 - 25 + 1) + 25); 
+
+  res.status(200).json({
+    status: 'success',
+    data: {
+      networkIntegrity: 99.8,
+      nodes: recentNodes,
+      totalNodes,
+      hardware: {
+        cpuUsage: cpuLoad,
+        memory: { percent: memUsagePercent, usedGB: usedMemGB, totalGB: totalMemGB }
+      }
+    }
+  });
+});
+
+// ==========================================
+// 2. FETCH FULL NODE ROSTER
+// ==========================================
 export const getAllUsers = catchAsync(async (req: Request, res: Response) => {
   const users = await prisma.user.findMany({
-    select: { 
-      id: true, 
-      username: true, 
-      email: true, 
-      fullName: true, 
-      role: true, 
-      profilePic: true,
-      createdAt: true,
-      // Count how many posts and saved items they have for activity tracking
-      _count: {
-        select: { posts: true, savedPosts: true }
-      }
+    select: {
+      id: true,
+      username: true,
+      email: true,
+      fullName: true,
+      role: true,
+      isVerified: true,
+      createdAt: true
     },
     orderBy: { createdAt: 'desc' }
   });
 
-  res.status(200).json({ status: 'success', results: users.length, data: users });
+  res.status(200).json({
+    status: 'success',
+    results: users.length,
+    data: users
+  });
 });
 
-// @desc    Update User Role (Promote/Demote)
-// @route   PUT /api/admin/users/:id/role
-// @access  Private/Admin
+// ==========================================
+// 3. ELEVATE OR DEMOTE NODE CLEARANCE
+// ==========================================
 export const updateUserRole = catchAsync(async (req: Request, res: Response) => {
-  const targetId = String(req.params.id); // <-- Fix: Force strict String type
+  const { id } = req.params as { id: string };
   const { role } = req.body;
 
-  if (role !== 'user' && role !== 'admin') {
-    return res.status(400).json({ message: 'Invalid role assignment.' });
+  if (!['user', 'admin'].includes(role)) {
+    return res.status(400).json({ message: 'Invalid clearance level.' });
   }
 
   const updatedUser = await prisma.user.update({
-    where: { id: targetId },
+    where: { id },
     data: { role },
     select: { id: true, username: true, role: true }
   });
 
-  res.status(200).json({ status: 'success', data: updatedUser });
+  res.status(200).json({
+    status: 'success',
+    message: `Clearance updated to ${role.toUpperCase()}`,
+    data: updatedUser
+  });
 });
 
-// @desc    Permanently Delete a User
-// @route   DELETE /api/admin/users/:id
-// @access  Private/Admin
+// ==========================================
+// 4. TERMINATE NODE (DELETE)
+// ==========================================
 export const deleteUser = catchAsync(async (req: Request, res: Response) => {
-  const targetId = String(req.params.id); // <-- Fix: Force strict String type
+  const { id } = req.params as { id: string };
 
-  if (req.user?.id === targetId) {
-    return res.status(400).json({ message: 'Security Protocol: You cannot terminate your own admin instance.' });
+  // Optional: Prevent the Master Admin from deleting themselves
+  if (req.user?.id === id) {
+    return res.status(403).json({ message: 'Master Override: Cannot terminate own node.' });
   }
 
   await prisma.user.delete({
-    where: { id: targetId }
+    where: { id }
   });
 
-  res.status(200).json({ status: 'success', message: 'User permanently extracted from the matrix.' });
+  res.status(200).json({ // Using 200 instead of 204 so we can send a success message back to the UI
+    status: 'success',
+    message: 'Node successfully terminated.'
+  });
 });

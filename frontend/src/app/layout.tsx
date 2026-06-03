@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { Inter, Fira_Code } from "next/font/google";
 import "./globals.css";
 
-// 🔥 IMPORT THE SECRET GATE
+// 🔥 GLOBAL SYSTEM COMPONENTS
+import SmoothScroll from '@/components/SmoothScroll';
 import AdminCipherGate from "@/components/AdminCipherGate";
 
 // Initialize standard and tech-themed fonts
@@ -21,13 +22,21 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${inter.variable} ${firaCode.variable}`}>
-      <body className="bg-[#010205] text-white antialiased overflow-x-hidden selection:bg-orange-500/30 selection:text-orange-500">
+      <body className="bg-[#020617] text-white antialiased overflow-x-hidden selection:bg-blue-600/30 selection:text-blue-400">
         
-        {/* THE INVISIBLE ADMIN GATE */}
+        {/* ========================================= */}
+        {/* THE INVISIBLE ADMIN GATE                  */}
+        {/* Listens globally for the 190436 cipher    */}
+        {/* ========================================= */}
         <AdminCipherGate />
         
-        {/* Main Application Canvas */}
-        {children}
+        {/* ========================================= */}
+        {/* THE MOMENTUM SCROLLING ENGINE             */}
+        {/* Wraps the entire canvas for buttery scroll*/}
+        {/* ========================================= */}
+        <SmoothScroll>
+          {children}
+        </SmoothScroll>
         
       </body>
     </html>

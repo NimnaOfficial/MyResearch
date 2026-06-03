@@ -36,3 +36,28 @@ a, button, input {
 * {
   cursor: none !important;
 }
+
+/* Hide the default text-selection cursor in inputs while keeping them typable */
+input, textarea {
+  caret-color: #00f0ff; /* Makes the blinking typing line Matrix Cyan */
+}
+
+/* Premium Matrix Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #020617;
+}
+::-webkit-scrollbar-thumb {
+  background: #1e3a8a; 
+  border-radius: 0px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #a855f7; /* Syncs with your cybernetic cursor */
+}
+
+/* Ensure smooth native behavior alongside Lenis */
+html {
+  scroll-behavior: smooth;
+}

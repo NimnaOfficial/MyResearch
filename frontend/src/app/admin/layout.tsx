@@ -46,7 +46,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         {/* ========================================= */}
         {/* TOP COMMAND NAVIGATION BAR */}
         {/* ========================================= */}
-        <header className="h-20 w-full bg-[#050B14]/90 backdrop-blur-md border-b border-blue-900/30 flex items-center justify-between px-6 lg:px-10 z-20 shadow-[0_10px_30px_rgba(0,0,0,0.5)]">
+        <header className="sticky top-0 z-50 h-20 w-full bg-[#050B14]/90 backdrop-blur-md border-b border-blue-900/30 flex items-center justify-between px-6 lg:px-10 z-20 shadow-[0_10px_30px_rgba(0,0,0,0.5)]">
           
           {/* Branding */}
           <div className="flex items-center space-x-4">
