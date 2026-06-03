@@ -11,8 +11,6 @@ import { sendSecretCodeEmail } from '../utils/sendEmail';
 // ==========================================
 export const registerUser = catchAsync(async (req: Request, res: Response) => {
   console.log("[RADAR] Incoming registration request received:", req.body.email);
-  
-  // 🔥 DEV RADAR: This will print EXACTLY what your frontend sends!
   console.log("[PAYLOAD CHECK]:", req.body);
 
   const { password, email, fullName, age, phone } = req.body;
@@ -22,7 +20,6 @@ export const registerUser = catchAsync(async (req: Request, res: Response) => {
   }
 
   const generatedSecretCode = crypto.randomBytes(5).toString('hex').toUpperCase();
-  const generatedId = crypto.randomUUID(); 
 
   const salt = await bcrypt.genSalt(12);
   const passwordHash = await bcrypt.hash(password, salt);
@@ -33,8 +30,9 @@ export const registerUser = catchAsync(async (req: Request, res: Response) => {
       passwordHash: passwordHash,
       username: generatedSecretCode,         
       fullName: fullName || null,
-      age: age || null,
-      phone: phone || null
+      age: age ? String(age) : null,
+      phone: phone || null,
+      status: 'ACTIVE' // Explicitly setting default status
     }
   });
 
@@ -92,12 +90,17 @@ export const loginUser = catchAsync(async (req: Request, res: Response) => {
   if (email && password) {
     const user = await prisma.user.findUnique({ 
       where: { email },
-      select: { id: true, username: true, passwordHash: true, isVerified: true, role: true } 
+      // 🔥 FIX: Added 'status: true' so the bouncer can read it
+      select: { id: true, username: true, passwordHash: true, isVerified: true, role: true, status: true } 
     });
 
     if (!user) return res.status(401).json({ message: 'Access Denied: Invalid credentials.' });
     
-    // Verify the decrypted password hash
+    // 🔥 THE SUSPENSION BOUNCER
+    if (user.status === 'SUSPENDED') {
+      return res.status(403).json({ message: 'ACCESS DENIED: NODE SUSPENDED BY SYSTEM ADMIN.' });
+    }
+    
     const isMatch = await bcrypt.compare(password, user.passwordHash);
     if (!isMatch) return res.status(401).json({ message: 'Access Denied: Invalid credentials.' });
 
@@ -114,7 +117,7 @@ export const loginUser = catchAsync(async (req: Request, res: Response) => {
       data: { 
         id: user.id, 
         secretCode: user.username, 
-        user: { role: user.role } // Properly feeds data.data.user.role to the frontend Admin Terminal
+        user: { role: user.role } 
       }
     });
   }
@@ -126,11 +129,17 @@ export const loginUser = catchAsync(async (req: Request, res: Response) => {
 
   const user = await prisma.user.findUnique({ 
     where: { username: secretCode },
-    select: { id: true, username: true, passwordHash: true, isVerified: true, role: true }
+    // 🔥 FIX: Added 'status: true' so the bouncer can read it
+    select: { id: true, username: true, passwordHash: true, isVerified: true, role: true, status: true }
   });
 
   if (!user) return res.status(401).json({ message: 'Access Denied: Invalid cipher code.' });
   
+  // 🔥 THE SUSPENSION BOUNCER
+  if (user.status === 'SUSPENDED') {
+    return res.status(403).json({ message: 'ACCESS DENIED: NODE SUSPENDED BY SYSTEM ADMIN.' });
+  }
+
   if (!user.isVerified) {
     return res.status(403).json({ message: 'Access Denied: Email has not been verified.' });
   }
@@ -159,12 +168,10 @@ export const loginUser = catchAsync(async (req: Request, res: Response) => {
 export const getMe = catchAsync(async (req: Request, res: Response) => {
   const userId = req.user?.id;
 
-  // 1. Verify the session exists first
   if (!userId) {
     return res.status(401).json({ message: 'Unauthorized: No active session.' });
   }
 
-  // 2. Fetch the user with explicitly selected fields and relations
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: {
@@ -178,16 +185,20 @@ export const getMe = catchAsync(async (req: Request, res: Response) => {
       isVerified: true,
       createdAt: true,
       savedPosts: true, 
-      role: true, // 🔥 ADDED: Required for AdminGuard to verify clearance on page load
+      role: true, 
+      status: true
     },
   });
 
-  // 3. Handle ghost sessions
   if (!user) {
     return res.status(404).json({ message: 'Identity not found in the matrix.' });
   }
 
-  // 4. Return the payload
+  // Double-check active session status
+  if (user.status === 'SUSPENDED') {
+    return res.status(403).json({ message: 'Active session severed. Node suspended.' });
+  }
+
   res.status(200).json({ status: 'success', data: user });
 });
 
@@ -200,7 +211,7 @@ export const updateMe = catchAsync(async (req: Request, res: Response) => {
   if (!userId) return res.status(401).json({ message: 'Unauthorized: No active session.' });
 
   const { email, password, fullName, age, phone } = req.body;
-  const dataToUpdate: any = { fullName, age, phone };
+  const dataToUpdate: any = { fullName, age: age ? String(age) : null, phone };
 
   if (password && password.trim() !== "") {
     const bcrypt = require('bcrypt');
@@ -225,7 +236,6 @@ export const uploadProfilePic = catchAsync(async (req: Request, res: Response) =
   if (!userId) return res.status(401).json({ message: 'Unauthorized' });
   if (!req.file) return res.status(400).json({ message: 'No image provided' });
 
-  // 🔥 THE FIX: Cloudinary automatically injects the secure cloud URL into `req.file.path`
   const cloudImageUrl = req.file.path; 
 
   const updatedUser = await prisma.user.update({

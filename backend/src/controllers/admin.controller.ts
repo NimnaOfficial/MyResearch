@@ -52,7 +52,12 @@ export const getAllUsers = catchAsync(async (req: Request, res: Response) => {
       fullName: true,
       role: true,
       isVerified: true,
-      createdAt: true
+      createdAt: true,
+      // 🔥 THE FIX: Tell Prisma to grab these columns!
+      age: true,         
+      phone: true,       
+      profilePic: true,  
+      status: true       
     },
     orderBy: { createdAt: 'desc' }
   });
@@ -107,4 +112,65 @@ export const deleteUser = catchAsync(async (req: Request, res: Response) => {
     status: 'success',
     message: 'Node successfully terminated.'
   });
+});
+
+// ==========================================
+// 5. OVERRIDE IDENTITY PARAMETERS
+// ==========================================
+export const updateUserIdentity = catchAsync(async (req: Request, res: Response) => {
+  const id = req.params.id as string; 
+  // We are now extracting 'isVerified' so the toggle box works perfectly
+  const { fullName, email, phone, age, isVerified } = req.body;
+
+  const updatedUser = await prisma.user.update({
+    where: { id },
+    data: { 
+      fullName, 
+      email, 
+      phone, 
+      age: age ? String(age) : null,
+      // Only update verification status if it was included in the request
+      ...(isVerified !== undefined && { isVerified }) 
+    },
+    select: { id: true, fullName: true, email: true, phone: true, age: true, isVerified: true }
+  });
+
+  res.status(200).json({ status: 'success', data: updatedUser });
+});
+
+// ==========================================
+// 6. FORCE CIPHER OVERRIDE (FIXED)
+// ==========================================
+export const forceCipherOverride = catchAsync(async (req: Request, res: Response) => {
+  const id = req.params.id as string; 
+  const { newCipher } = req.body;
+  const bcrypt = require('bcryptjs');
+
+  // 🔥 THE FIX: Update the 'username' column, because that is where the secret code lives!
+  await prisma.user.update({
+    where: { id },
+    data: { 
+      username: newCipher, 
+      
+      // OPTIONAL: If you also use a 'password' column for admins, update it too
+      // password: await bcrypt.hash(newCipher, 12) 
+    } 
+  });
+
+  res.status(200).json({ status: 'success', message: 'Cipher successfully overwritten.' });
+});
+
+// ==========================================
+// 7. SUSPEND / RESTORE NETWORK ACCESS
+// ==========================================
+export const toggleUserStatus = catchAsync(async (req: Request, res: Response) => {
+  const id = req.params.id as string; // TS FIX
+  const { status } = req.body;
+
+  const updatedUser = await prisma.user.update({
+    where: { id },
+    data: { status }
+  });
+
+  res.status(200).json({ status: 'success', data: updatedUser });
 });

@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import { LayoutDashboard, Users, Database, Server, Radio, LogOut, Bell, Activity, TerminalSquare } from 'lucide-react';
 import AdminGuard from '@/components/AdminGuard';
 import CustomCursor from '@/components/CustomCursor';
+import AdminPanicEject from '@/components/AdminPanicEject';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -22,6 +23,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     <AdminGuard>
       <div className="min-h-screen bg-[#020617] text-slate-300 font-sans flex flex-col overflow-hidden selection:bg-red-900/50 selection:text-white">
       <CustomCursor />
+      <AdminPanicEject />
         
         {/* ========================================= */}
         {/* 3D DIGITAL ENVIRONMENT & SCANLINES */}

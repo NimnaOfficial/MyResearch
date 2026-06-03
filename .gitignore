@@ -58,7 +58,7 @@ Thumbs.db
 *.db-journal
 
 #unnessery 
-/trash
+/.trash
 
 #Backups
 /.bakfrontend/node_modules/

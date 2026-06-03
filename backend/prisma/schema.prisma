@@ -25,6 +25,8 @@ model User {
   savedPosts   Post[]     @relation("SavedPosts")
 
   role       String   @default("user")
+
+  status String @default("ACTIVE")
 }
 
 model Feedback {

@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Users, Trash2, ShieldCheck, User as UserIcon, Loader2, AlertTriangle, 
   Search, Download, ShieldAlert, Lock, Ban, Activity, X, Mail, Phone, Calendar, 
-  Edit3, Save, History, Radio, Terminal
+  Edit3, Save, History, Radio, Cpu, Network, CheckCircle, Key, Terminal
 } from 'lucide-react';
 
 interface MatrixUser {
@@ -18,7 +18,8 @@ interface MatrixUser {
   age?: number;
   phone?: string;
   isVerified: boolean;
-  status?: 'ACTIVE' | 'SUSPENDED'; // Added advanced status
+  status: 'ACTIVE' | 'SUSPENDED';
+  password?: string; // Used strictly for front-end edit state
 }
 
 export default function UltimateUserRoster() {
@@ -39,6 +40,9 @@ export default function UltimateUserRoster() {
   const [editForm, setEditForm] = useState<Partial<MatrixUser>>({});
   const [newCipher, setNewCipher] = useState('');
 
+  // ==========================================
+  // FETCH FULL ROSTER
+  // ==========================================
   const fetchUsers = async () => {
     try {
       const token = localStorage.getItem('matrix_token');
@@ -47,7 +51,7 @@ export default function UltimateUserRoster() {
       });
       const data = await res.json();
       
-      if (res.ok) setUsers(data.data.map((u: any) => ({ ...u, status: 'ACTIVE' })));
+      if (res.ok) setUsers(data.data.map((u: any) => ({ ...u, status: u.status || 'ACTIVE' })));
       else setError(data.message || 'FAILED TO RETRIEVE NODE ROSTER.');
     } catch (err) {
       setError('FATAL: CORE DATABASE UNREACHABLE.');
@@ -59,70 +63,149 @@ export default function UltimateUserRoster() {
   useEffect(() => { fetchUsers(); }, []);
 
   // ==========================================
-  // CORE ADMIN ACTIONS (API Hookups)
+  // LIVE DATABASE: SYSTEM ACTIONS
   // ==========================================
   const handleRoleChange = async (userId: string, currentRole: string) => {
     const newRole = currentRole === 'admin' ? 'user' : 'admin';
     if (!confirm(`Elevate/Demote operator clearance to [${newRole.toUpperCase()}]?`)) return;
     setActionLoading(userId);
-    // Simulate API Call for UI/UX
-    setTimeout(() => {
-      setUsers(users.map(u => u.id === userId ? { ...u, role: newRole } : u));
-      if (inspectUser?.id === userId) setInspectUser({ ...inspectUser, role: newRole });
-      setActionLoading(null);
-    }, 800);
+    try {
+      const res = await fetch(`http://localhost:5000/api/admin/users/${userId}/role`, {
+        method: 'PUT',
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('matrix_token')}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role: newRole })
+      });
+      if (res.ok) {
+        setUsers(users.map(u => u.id === userId ? { ...u, role: newRole } : u));
+        if (inspectUser?.id === userId) setInspectUser({ ...inspectUser, role: newRole });
+      } else alert("Action Denied by Server.");
+    } catch (err) { alert("Network Failure."); } finally { setActionLoading(null); }
   };
 
   const handleTerminateUser = async (userId: string) => {
     if (!confirm("CRITICAL: Permanent Node Termination. Proceed?")) return;
     setActionLoading(userId);
-    // Simulate API Call
-    setTimeout(() => {
-      setUsers(users.filter(u => u.id !== userId));
-      if (inspectUser?.id === userId) setInspectUser(null);
-      setActionLoading(null);
-    }, 800);
+    try {
+      const res = await fetch(`http://localhost:5000/api/admin/users/${userId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('matrix_token')}` }
+      });
+      if (res.ok) {
+        setUsers(users.filter(u => u.id !== userId));
+        if (inspectUser?.id === userId) setInspectUser(null);
+      } else alert("Termination Denied by Server.");
+    } catch (err) { alert("Network Failure."); } finally { setActionLoading(null); }
   };
 
-  // ==========================================
-  // DEEP EDIT & SECURITY OVERRIDES
-  // ==========================================
-  const saveIdentityChanges = () => {
+  // 🚀 ADVANCED: Multi-Endpoint Data Injection
+  const saveIdentityChanges = async () => {
     if (!inspectUser) return;
     setActionLoading('save_identity');
-    // Simulate saving changes to DB
-    setTimeout(() => {
-      const updatedUser = { ...inspectUser, ...editForm };
-      setUsers(users.map(u => u.id === inspectUser.id ? updatedUser as MatrixUser : u));
-      setInspectUser(updatedUser as MatrixUser);
-      setIsEditing(false);
-      setActionLoading(null);
-      alert("IDENTITY PARAMETERS UPDATED SUCCESSFULLY.");
-    }, 1000);
+    try {
+      const token = localStorage.getItem('matrix_token');
+      
+      // 1. Send Core Identity Data
+      const res = await fetch(`http://localhost:5000/api/admin/users/${inspectUser.id}/identity`, {
+        method: 'PUT',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(editForm)
+      });
+      
+      // 2. If the Master Admin typed a new password in the Identity Tab, overwrite it automatically
+      if (editForm.password && editForm.password.length >= 6) {
+        await fetch(`http://localhost:5000/api/admin/users/${inspectUser.id}/cipher`, {
+          method: 'PUT',
+          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ newCipher: editForm.password })
+        });
+      }
+
+      const data = await res.json();
+      if (res.ok) {
+        // Manually merge the verification status in case the backend identity route doesn't update it yet
+        const updatedUser = { ...inspectUser, ...data.data, isVerified: editForm.isVerified ?? inspectUser.isVerified };
+        setUsers(users.map(u => u.id === inspectUser.id ? updatedUser as MatrixUser : u));
+        setInspectUser(updatedUser as MatrixUser);
+        setIsEditing(false);
+        setEditForm({}); // Clear the edit form
+      } else alert(data.message || "Failed to update identity.");
+    } catch (err) { alert("Network Failure."); } finally { setActionLoading(null); }
   };
 
-  const forceCipherOverride = () => {
+  const forceCipherOverride = async () => {
     if (!newCipher || newCipher.length < 6) return alert("CIPHER MUST BE AT LEAST 6 CHARACTERS.");
-    if (!confirm(`WARNING: Overwriting Node Cipher. The operator will be locked out of their old credentials. Proceed?`)) return;
-    
+    if (!confirm(`WARNING: Overwriting Node Cipher. Proceed?`)) return;
     setActionLoading('override_cipher');
-    setTimeout(() => {
-      setNewCipher('');
-      setActionLoading(null);
-      alert(`CIPHER OVERRIDE SUCCESSFUL. NEW CODE: [ ${newCipher} ]`);
-    }, 1200);
+    try {
+      const res = await fetch(`http://localhost:5000/api/admin/users/${inspectUser!.id}/cipher`, {
+        method: 'PUT',
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('matrix_token')}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ newCipher })
+      });
+      if (res.ok) {
+        setNewCipher('');
+        alert(`CIPHER OVERRIDE SUCCESSFUL.`);
+      } else alert("Override Denied by Server.");
+    } catch (err) { alert("Network Failure."); } finally { setActionLoading(null); }
   };
 
-  const toggleNodeSuspension = () => {
+  const toggleNodeSuspension = async () => {
     if (!inspectUser) return;
     const newStatus = inspectUser.status === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE';
     setActionLoading('suspend_node');
-    setTimeout(() => {
-      const updatedUser = { ...inspectUser, status: newStatus };
-      setUsers(users.map(u => u.id === inspectUser.id ? updatedUser as MatrixUser : u));
-      setInspectUser(updatedUser as MatrixUser);
-      setActionLoading(null);
-    }, 800);
+    
+    try {
+      const res = await fetch(`http://localhost:5000/api/admin/users/${inspectUser.id}/status`, {
+        method: 'PUT',
+        headers: { 
+          'Authorization': `Bearer ${localStorage.getItem('matrix_token')}`, 
+          'Content-Type': 'application/json' 
+        },
+        body: JSON.stringify({ status: newStatus })
+      });
+      
+      const data = await res.json(); // 🔥 Extract the backend response!
+
+      if (res.ok) {
+        const updatedUser = { ...inspectUser, status: newStatus };
+        setUsers(users.map(u => u.id === inspectUser.id ? updatedUser as MatrixUser : u));
+        setInspectUser(updatedUser as MatrixUser);
+      } else {
+        // 🔥 If it fails, explicitly show the backend error message!
+        alert(`SERVER ERROR: ${data.message || "Status Toggle Failed"}`);
+        console.error("SUSPEND ERROR:", data);
+      }
+    } catch (err) { 
+      alert("CRITICAL: Network Failure."); 
+      console.error(err);
+    } finally { 
+      setActionLoading(null); 
+    }
+  };
+
+  // ==========================================
+  // CSV EXTRACTION ENGINE
+  // ==========================================
+  const extractCSV = () => {
+    if (filteredUsers.length === 0) return alert("NO DATA TO EXTRACT.");
+    
+    // Build CSV Headers
+    const headers = ["Operator_ID,Identifier,Email,Clearance,Verification,Status,Creation_Cycle"];
+    
+    // Map User Data
+    const rows = filteredUsers.map(u => {
+      const cleanName = (u.fullName || u.username || 'UNKNOWN').replace(/,/g, ''); // Prevent CSV break
+      return `${u.id},${cleanName},${u.email},${u.role},${u.isVerified ? 'VERIFIED' : 'PENDING'},${u.status},${new Date(u.createdAt).toISOString()}`;
+    });
+
+    const csvContent = "data:text/csv;charset=utf-8," + headers.concat(rows).join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `CSx_Node_Extract_${new Date().getTime()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   // ==========================================
@@ -136,307 +219,397 @@ export default function UltimateUserRoster() {
     return matchesSearch && matchesRole;
   });
 
+  const toggleSelectNode = (id: string) => setSelectedNodes(prev => prev.includes(id) ? prev.filter(n => n !== id) : [...prev, id]);
+  const toggleSelectAll = () => setSelectedNodes(selectedNodes.length === filteredUsers.length ? [] : filteredUsers.map(u => u.id));
+
+  // ==========================================
+  // ANIMATION VARIANTS
+  // ==========================================
+  const containerVariants = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.05 } } };
+  const rowVariants = { hidden: { opacity: 0, x: -20 }, show: { opacity: 1, x: 0, transition: { type: 'spring' as const, stiffness: 300, damping: 24 } } };
+
   if (isLoading) {
     return (
-      <div className="h-[70vh] flex flex-col items-center justify-center text-blue-500 font-mono tracking-widest uppercase">
-        <Loader2 className="animate-spin mb-4 text-red-600" size={32} />
-        <p>Scanning Matrix Nodes...</p>
+      <div className="h-[70vh] flex flex-col items-center justify-center text-blue-500 font-mono tracking-widest uppercase relative overflow-hidden">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(59,130,246,0.1)_0,transparent_50%)]" />
+        <Loader2 className="animate-spin mb-6 text-blue-500 drop-shadow-[0_0_15px_rgba(59,130,246,0.8)]" size={48} />
+        <p className="animate-pulse">Accessing Global Node Registry...</p>
       </div>
     );
   }
 
   return (
-    <div className="font-sans relative">
+    <div className="font-sans relative min-h-screen">
       
-      {/* HUD Header */}
-      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-6">
+      {/* ========================================= */}
+      {/* HEADER & CONTROL DECK                     */}
+      {/* ========================================= */}
+      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-10 relative z-10">
+        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-8 border-b border-blue-900/30 pb-6">
           <div>
-            <div className="flex items-center space-x-3 mb-1">
-              <div className="w-10 h-10 bg-red-900/20 border border-red-600 flex items-center justify-center [clip-path:polygon(25%_0%,_100%_0%,_75%_100%,_0%_100%)]">
-                <Users size={18} className="text-red-500 transform -skew-x-12" />
+            <div className="flex items-center space-x-4 mb-2">
+              <div className="relative flex items-center justify-center w-12 h-12 bg-[#050A14] border border-blue-500/50 [clip-path:polygon(30%_0%,_100%_0%,_70%_100%,_0%_100%)] shadow-[0_0_20px_rgba(59,130,246,0.2)]">
+                <Network size={20} className="text-blue-500" />
               </div>
-              <h1 className="text-3xl font-black uppercase tracking-[0.2em] text-white">NODE <span className="text-blue-500">ROSTER</span></h1>
+              <h1 className="text-4xl font-black uppercase tracking-[0.2em] text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]">
+                NODE <span className="text-blue-500">ROSTER</span>
+              </h1>
             </div>
-            <p className="text-[10px] text-slate-500 tracking-[0.3em] uppercase ml-14">God-Mode Identification & Override Hub</p>
+            <p className="text-[10px] text-slate-500 tracking-[0.4em] uppercase ml-16 flex items-center">
+              <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse mr-2" /> Live Database Synchronization
+            </p>
           </div>
+
+          <AnimatePresence>
+            {selectedNodes.length > 0 && (
+              <motion.div initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 50 }} className="flex items-center space-x-4 bg-red-950/40 border border-red-500/50 p-2 backdrop-blur-md">
+                <span className="text-[10px] text-red-400 font-mono tracking-[0.2em] px-3">[{selectedNodes.length} TARGETS LOCKED]</span>
+                <button className="text-[9px] bg-red-600 text-white px-6 py-2.5 uppercase tracking-widest font-black hover:bg-red-500 transition-colors flex items-center shadow-[0_0_15px_rgba(220,38,38,0.4)]">
+                  <Trash2 size={12} className="mr-2" /> Execute Purge
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
-        {/* Command Bar */}
-        <div className="flex flex-col lg:flex-row gap-4 bg-[#050A14] border border-blue-900/40 p-4 shadow-[inset_0_0_20px_rgba(59,130,246,0.05)]">
+        {/* Tactical Search & Filter Ribbon */}
+        <div className="flex flex-col xl:flex-row gap-4 bg-[#050A14]/80 backdrop-blur-xl border border-blue-900/40 p-2 shadow-[inset_0_0_30px_rgba(59,130,246,0.05)] [clip-path:polygon(0_0,100%_0,100%_calc(100%-15px),calc(100%-15px)_100%,0_100%)]">
           <div className="relative flex-1">
-            <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-500/50" />
+            <Search size={16} className="absolute left-5 top-1/2 -translate-y-1/2 text-blue-500" />
             <input 
-              type="text" placeholder="QUERY NODE BY IDENTIFIER OR EMAIL..." 
+              type="text" placeholder="LOCATE BY IDENTIFIER, EMAIL, OR SYSTEM ID..." 
               value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-black border border-blue-900/50 text-white text-[10px] font-mono tracking-widest uppercase py-3 pl-12 pr-4 focus:outline-none focus:border-blue-500 focus:bg-blue-950/20 transition-all placeholder-slate-700"
+              className="w-full bg-black/50 border-none text-white text-[11px] font-mono tracking-[0.2em] uppercase py-4 pl-14 pr-4 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all placeholder-slate-600"
             />
+            <div className="absolute bottom-0 left-0 w-full h-[1px] bg-gradient-to-r from-blue-500/50 to-transparent" />
           </div>
-          <div className="flex space-x-4">
-            <div className="flex border border-blue-900/50 bg-black">
+          
+          <div className="flex items-center space-x-2 px-2">
+            <div className="flex bg-black/50 p-1 border border-slate-800">
               {['ALL', 'ADMIN', 'USER'].map(role => (
                 <button 
                   key={role} onClick={() => setFilterRole(role as any)}
-                  className={`px-6 py-3 text-[9px] font-black uppercase tracking-widest transition-colors ${filterRole === role ? 'bg-blue-900/40 text-blue-400 border-b-2 border-blue-500' : 'text-slate-500 hover:text-white hover:bg-white/[0.02]'}`}
+                  className={`px-6 py-2.5 text-[9px] font-black uppercase tracking-widest transition-all ${filterRole === role ? 'bg-blue-600 text-white shadow-[0_0_15px_rgba(59,130,246,0.5)]' : 'text-slate-500 hover:text-white'}`}
                 >
                   {role}
                 </button>
               ))}
             </div>
-            <button className="flex items-center justify-center px-6 border border-blue-900/50 bg-black text-slate-400 hover:text-white hover:border-blue-500 transition-all">
-              <Download size={14} className="mr-2" />
-              <span className="text-[9px] font-black uppercase tracking-widest">Extract CSV</span>
+            {/* 🚀 LIVE CSV EXTRACTION BUTTON */}
+            <button onClick={extractCSV} className="flex items-center justify-center px-6 py-3.5 bg-blue-950/30 border border-blue-900/50 text-blue-400 hover:bg-blue-600 hover:text-white transition-all group">
+              <Download size={14} className="mr-2 group-hover:animate-bounce" />
+              <span className="text-[9px] font-black uppercase tracking-widest">Extract</span>
             </button>
           </div>
         </div>
       </motion.div>
 
-      {/* Main Roster Table */}
-      <div className="w-full bg-black border border-blue-900/30 relative shadow-[0_10px_30px_rgba(0,0,0,0.5)]">
-        <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-blue-500" />
-        <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-blue-500" />
-
-        <div className="overflow-x-auto custom-admin-scroll">
-          <table className="w-full text-left border-collapse min-w-[800px]">
-            <thead>
-              <tr className="bg-[#020617] border-b border-blue-900/50">
-                <th className="p-4 text-[9px] text-blue-500 uppercase tracking-[0.3em] font-mono">Operator_ID</th>
-                <th className="p-4 text-[9px] text-blue-500 uppercase tracking-[0.3em] font-mono">Identity</th>
-                <th className="p-4 text-[9px] text-blue-500 uppercase tracking-[0.3em] font-mono">Clearance</th>
-                <th className="p-4 text-[9px] text-blue-500 uppercase tracking-[0.3em] font-mono">Status</th>
-                <th className="p-4 text-[9px] text-blue-500 uppercase tracking-[0.3em] font-mono text-right">Master_Controls</th>
-              </tr>
-            </thead>
-            <tbody className="text-xs text-slate-300">
-              {filteredUsers.map((user) => (
-                <tr key={user.id} className="border-b border-blue-900/10 transition-colors group hover:bg-[#050A14]">
-                  <td className="p-4">
-                    <span className="text-[10px] font-mono text-slate-600 group-hover:text-blue-500/50 transition-colors">
-                      {user.id.substring(0, 8)}...
-                    </span>
-                  </td>
-                  <td className="p-4">
-                    <div className="flex items-center space-x-3 cursor-pointer" onClick={() => { setInspectUser(user); setEditForm(user); setIsEditing(false); setActiveTab('IDENTITY'); }}>
-                      <div className="w-8 h-8 bg-[#020617] border border-blue-900/50 flex items-center justify-center [clip-path:polygon(0_0,100%_0,100%_calc(100%-8px),calc(100%-8px)_100%,0_100%)]">
-                        <UserIcon size={14} className="text-blue-500" />
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="font-bold text-white tracking-widest uppercase hover:text-blue-400 transition-colors">{user.fullName || user.username}</span>
-                        <span className="text-[9px] font-mono text-slate-500 tracking-widest">{user.email}</span>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="p-4">
-                    {user.role === 'admin' ? (
-                      <span className="inline-flex items-center px-2 py-1 bg-red-950/50 border border-red-900/50 text-red-500 text-[9px] tracking-widest font-mono uppercase">
-                        <ShieldCheck size={10} className="mr-1.5" /> LVL_5_ADMIN
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center px-2 py-1 bg-black border border-slate-800 text-slate-400 text-[9px] tracking-widest font-mono uppercase">
-                        <UserIcon size={10} className="mr-1.5" /> GUEST_NODE
-                      </span>
-                    )}
-                  </td>
-                  <td className="p-4">
-                    <span className={`text-[9px] font-black tracking-widest uppercase flex items-center ${user.status === 'SUSPENDED' ? 'text-orange-500' : 'text-green-500'}`}>
-                      <span className={`w-1.5 h-1.5 rounded-full mr-2 ${user.status === 'SUSPENDED' ? 'bg-orange-500 animate-pulse' : 'bg-green-500 shadow-[0_0_5px_#22c55e]'}`} />
-                      {user.status || 'ACTIVE'}
-                    </span>
-                  </td>
-                  <td className="p-4 flex justify-end items-center space-x-2">
-                    {actionLoading === user.id ? (
-                      <Loader2 size={16} className="animate-spin text-blue-500 mr-4" />
-                    ) : (
-                      <>
-                        <button onClick={() => { setInspectUser(user); setEditForm(user); setIsEditing(false); setActiveTab('IDENTITY'); }} className="p-2 text-slate-500 hover:text-blue-400 hover:bg-blue-900/20 border border-transparent hover:border-blue-500/30 transition-all group-hover:opacity-100 opacity-50" title="Deep Inspect">
-                          <Activity size={14} />
-                        </button>
-                        <button onClick={() => handleTerminateUser(user.id)} className="p-2 text-slate-500 hover:text-red-500 hover:bg-red-900/20 border border-transparent hover:border-red-600/50 transition-all group-hover:opacity-100 opacity-50" title="Terminate Node">
-                          <Trash2 size={14} />
-                        </button>
-                      </>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {/* ========================================= */}
+      {/* FLOATING DATA-GRID (The Roster)           */}
+      {/* ========================================= */}
+      <div className="w-full relative z-10">
+        <div className="hidden lg:grid grid-cols-12 gap-4 px-6 py-3 mb-4 border-b border-blue-900/30 text-[9px] text-blue-500 font-mono tracking-[0.3em] uppercase">
+          <div className="col-span-1 flex items-center justify-center">
+            <input type="checkbox" title="Select all users" checked={selectedNodes.length === filteredUsers.length && filteredUsers.length > 0} onChange={toggleSelectAll} className="accent-blue-600 w-3 h-3 cursor-pointer" />
+          </div>
+          <div className="col-span-2">SYS_ID</div>
+          <div className="col-span-3">IDENTIFIER_MATRIX</div>
+          <div className="col-span-2">CLEARANCE_LEVEL</div>
+          <div className="col-span-2">NETWORK_STATUS</div>
+          <div className="col-span-2 text-right">COMMAND_OVERRIDES</div>
         </div>
+
+        <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-3 pb-24">
+          <AnimatePresence>
+            {filteredUsers.map((user) => (
+              <motion.div 
+                layout variants={rowVariants} initial="hidden" animate="show" exit={{ opacity: 0, scale: 0.95 }}
+                key={user.id} 
+                className={`grid grid-cols-1 lg:grid-cols-12 gap-4 items-center p-4 bg-[#050A14]/90 backdrop-blur-md border transition-all duration-300 group ${selectedNodes.includes(user.id) ? 'border-blue-500 shadow-[inset_0_0_20px_rgba(59,130,246,0.2)]' : 'border-blue-900/30 hover:border-blue-500/50 hover:bg-[#0A1224]'}`}
+              >
+                <div className="col-span-1 flex items-center justify-center">
+                  <input type="checkbox" title="Select user" checked={selectedNodes.includes(user.id)} onChange={() => toggleSelectNode(user.id)} className="accent-blue-600 w-4 h-4 cursor-pointer" />
+                </div>
+                
+                <div className="col-span-2 flex items-center">
+                  <Cpu size={12} className="text-slate-600 mr-2 opacity-50" />
+                  <span className="text-[10px] font-mono text-slate-500 tracking-wider">
+                    {user.id.substring(0, 8)}<span className="text-slate-700">...</span>
+                  </span>
+                </div>
+
+                <div className="col-span-3 flex items-center space-x-4 cursor-pointer" onClick={() => { setInspectUser(user); setEditForm(user); setIsEditing(false); setActiveTab('IDENTITY'); }}>
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-blue-500 blur-[10px] opacity-0 group-hover:opacity-30 transition-opacity" />
+                    <div className="w-10 h-10 bg-black border border-slate-800 group-hover:border-blue-500 flex items-center justify-center [clip-path:polygon(0_0,100%_0,100%_calc(100%-10px),calc(100%-10px)_100%,0_100%)] transition-colors relative z-10">
+                      <UserIcon size={16} className="text-slate-400 group-hover:text-blue-400 transition-colors" />
+                    </div>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-sm font-bold text-white tracking-widest uppercase group-hover:text-blue-400 transition-colors">{user.fullName || user.username}</span>
+                    <span className="text-[9px] font-mono text-slate-500 tracking-widest mt-0.5 flex items-center"><Mail size={10} className="mr-1 opacity-50" /> {user.email}</span>
+                  </div>
+                </div>
+
+                <div className="col-span-2">
+                  {user.role === 'admin' ? (
+                    <span className="inline-flex items-center px-3 py-1.5 bg-red-950/40 border-l-2 border-red-600 text-red-500 text-[9px] tracking-[0.2em] font-black font-mono uppercase shadow-[0_0_10px_rgba(220,38,38,0.1)]">
+                      <ShieldCheck size={12} className="mr-2" /> LEVEL_5
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center px-3 py-1.5 bg-slate-900/50 border-l-2 border-slate-600 text-slate-400 text-[9px] tracking-[0.2em] font-black font-mono uppercase">
+                      <UserIcon size={12} className="mr-2" /> GUEST
+                    </span>
+                  )}
+                </div>
+
+                <div className="col-span-2 flex flex-col items-start space-y-1.5">
+                  <div className={`inline-flex items-center px-3 py-1 border text-[8px] font-black tracking-[0.2em] uppercase ${user.status === 'SUSPENDED' ? 'bg-orange-950/20 border-orange-900/50 text-orange-500' : 'bg-green-950/20 border-green-900/50 text-green-500'}`}>
+                    <span className={`w-1.5 h-1.5 rounded-none mr-2 ${user.status === 'SUSPENDED' ? 'bg-orange-500 animate-pulse' : 'bg-green-500 shadow-[0_0_8px_#22c55e]'}`} />
+                    {user.status || 'ACTIVE'}
+                  </div>
+                  {!user.isVerified && (
+                    <div className="inline-flex items-center text-[8px] font-mono tracking-widest text-orange-500 opacity-70">
+                      <AlertTriangle size={10} className="mr-1" /> UNVERIFIED
+                    </div>
+                  )}
+                </div>
+
+                <div className="col-span-2 flex justify-end items-center space-x-1 pr-2">
+                  {actionLoading === user.id ? (
+                    <Loader2 size={18} className="animate-spin text-blue-500 mr-4" />
+                  ) : (
+                    <>
+                      <button onClick={() => { setInspectUser(user); setEditForm(user); setIsEditing(false); setActiveTab('IDENTITY'); }} className="p-2.5 text-slate-500 hover:text-blue-400 hover:bg-blue-900/20 border border-transparent hover:border-blue-500/50 transition-all opacity-0 group-hover:opacity-100" title="Inspect Node">
+                        <Activity size={16} />
+                      </button>
+                      <button onClick={() => handleRoleChange(user.id, user.role)} className="p-2.5 text-slate-500 hover:text-orange-400 hover:bg-orange-900/20 border border-transparent hover:border-orange-500/50 transition-all opacity-0 group-hover:opacity-100" title="Toggle Clearance">
+                        <ShieldAlert size={16} />
+                      </button>
+                      <button onClick={() => handleTerminateUser(user.id)} className="p-2.5 text-slate-500 hover:text-white hover:bg-red-600 border border-transparent hover:border-red-500 transition-all opacity-0 group-hover:opacity-100 shadow-[0_0_15px_rgba(220,38,38,0)] hover:shadow-[0_0_15px_rgba(220,38,38,0.5)]" title="Terminate Node">
+                        <Trash2 size={16} />
+                      </button>
+                    </>
+                  )}
+                </div>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+          
+          {filteredUsers.length === 0 && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="p-16 flex flex-col items-center justify-center border border-dashed border-blue-900/50 bg-[#050A14]/50">
+              <Search size={32} className="text-slate-600 mb-4" />
+              <p className="text-slate-500 text-[11px] uppercase tracking-[0.4em] font-mono">NO DATA CORES MATCH QUERY.</p>
+            </motion.div>
+          )}
+        </motion.div>
       </div>
 
       {/* ========================================================= */}
-      {/* GOD-MODE DEEP INSPECTION TERMINAL (SLIDE OVER) */}
+      {/* TACTICAL HUD TERMINAL (Slide Over Inspector)              */}
       {/* ========================================================= */}
       <AnimatePresence>
         {inspectUser && (
           <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setInspectUser(null)} className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md cursor-pointer" />
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setInspectUser(null)} className="fixed inset-0 z-[100] bg-[#020617]/90 backdrop-blur-md cursor-pointer">
+               <div className="absolute inset-0 bg-[linear-gradient(rgba(59,130,246,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,0.03)_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none" />
+            </motion.div>
             
-            <motion.div 
-              initial={{ x: '100%', opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: '100%', opacity: 0 }} transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed top-0 right-0 bottom-0 w-full max-w-xl bg-[#020617] border-l border-blue-900/50 z-[101] shadow-[-20px_0_50px_rgba(0,0,0,0.9)] flex flex-col cursor-default"
-            >
-              {/* Terminal Header */}
-              <div className="h-24 border-b border-blue-900/40 bg-[#050B14] flex flex-col justify-center px-8 relative overflow-hidden">
-                <div className="absolute right-0 top-0 w-64 h-full bg-blue-900/10 transform skew-x-12 translate-x-10" />
-                <div className="flex items-center justify-between relative z-10">
-                  <div>
-                    <div className="flex items-center text-blue-500 mb-1">
-                      <Terminal size={14} className="mr-2" />
-                      <span className="text-[10px] font-black tracking-[0.3em] uppercase">Operator Terminal</span>
+            <motion.div initial={{ x: '100%', opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: '100%', opacity: 0 }} transition={{ type: 'spring', damping: 25, stiffness: 200 }} className="fixed top-0 right-0 bottom-0 w-full max-w-2xl bg-[#050A14] border-l border-blue-500/50 z-[101] shadow-[-30px_0_60px_rgba(0,0,0,0.9)] flex flex-col cursor-default">
+              
+              <div className="h-32 border-b border-blue-900/50 bg-black flex flex-col justify-end p-8 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-full h-full bg-[radial-gradient(ellipse_at_top_right,rgba(59,130,246,0.15),transparent_50%)] pointer-events-none" />
+                <div className="absolute right-[-50px] top-[-50px] w-64 h-64 border-[1px] border-blue-500/10 rounded-full animate-[spin_20s_linear_infinite] pointer-events-none" />
+                <div className="absolute right-[-20px] top-[-20px] w-48 h-48 border-[1px] border-dashed border-blue-500/20 rounded-full animate-[spin_15s_linear_infinite_reverse] pointer-events-none" />
+                
+                <div className="flex items-start justify-between relative z-10">
+                  <div className="flex items-center space-x-6">
+                    {/* 🚀 DYNAMIC PROFILE ICON */}
+                    <div className="w-16 h-16 bg-[#020617] border border-blue-500 flex items-center justify-center [clip-path:polygon(15px_0,100%_0,100%_calc(100%-15px),calc(100%-15px)_100%,0_100%,0_15px)] shadow-[0_0_20px_rgba(59,130,246,0.3)]">
+                      <span className="text-3xl font-black text-blue-400 drop-shadow-[0_0_10px_rgba(59,130,246,0.8)]">
+                        {inspectUser.fullName ? inspectUser.fullName.charAt(0).toUpperCase() : inspectUser.username?.charAt(0).toUpperCase() || 'U'}
+                      </span>
                     </div>
-                    <h2 className="text-xl font-black text-white tracking-widest uppercase">{inspectUser.fullName || inspectUser.username}</h2>
+                    <div>
+                      <div className="flex items-center text-blue-500 mb-1">
+                        <Terminal size={12} className="mr-2" />
+                        <span className="text-[9px] font-black tracking-[0.4em] uppercase">Target Profile Acquired</span>
+                      </div>
+                      <h2 className="text-2xl font-black text-white tracking-[0.2em] uppercase">{inspectUser.fullName || inspectUser.username}</h2>
+                    </div>
                   </div>
-                  <button type="button" title="Close terminal" onClick={() => setInspectUser(null)} className="text-slate-500 hover:text-white transition-colors p-2 bg-black border border-slate-800 hover:border-red-500">
-                    <X size={18} />
+                  <button onClick={() => setInspectUser(null)} title="Close profile" className="text-slate-500 hover:text-red-500 transition-colors p-2 border border-transparent hover:border-red-900/50 bg-black">
+                    <X size={20} />
                   </button>
                 </div>
               </div>
 
-              {/* Navigation Tabs */}
-              <div className="flex border-b border-blue-900/40 bg-black px-8">
-                {[
-                  { id: 'IDENTITY', icon: UserIcon }, 
-                  { id: 'SECURITY', icon: ShieldAlert }, 
-                  { id: 'TELEMETRY', icon: Radio }
-                ].map(tab => (
-                  <button 
-                    key={tab.id} onClick={() => { setActiveTab(tab.id as any); setIsEditing(false); }}
-                    className={`flex items-center py-4 px-4 text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === tab.id ? 'text-blue-400 border-b-2 border-blue-500 bg-blue-900/10' : 'text-slate-600 hover:text-slate-300 hover:bg-white/[0.02]'}`}
-                  >
+              <div className="flex border-b border-blue-900/40 bg-[#020617] px-8">
+                {[{ id: 'IDENTITY', icon: UserIcon }, { id: 'SECURITY', icon: ShieldAlert }, { id: 'TELEMETRY', icon: Radio }].map(tab => (
+                  <button key={tab.id} type="button" onClick={() => { setActiveTab(tab.id as any); setIsEditing(false); }} className={`flex items-center py-5 px-6 text-[10px] font-black uppercase tracking-[0.2em] transition-all relative ${activeTab === tab.id ? 'text-blue-400 bg-blue-900/10' : 'text-slate-600 hover:text-slate-300 hover:bg-white/[0.02]'}`}>
                     <tab.icon size={14} className="mr-2" /> {tab.id}
+                    {activeTab === tab.id && <motion.div layoutId="tab-indicator" className="absolute bottom-0 left-0 w-full h-[2px] bg-blue-500 shadow-[0_-5px_10px_rgba(59,130,246,0.5)]" />}
                   </button>
                 ))}
               </div>
 
-              {/* Terminal Content Area */}
-              <div className="flex-1 overflow-y-auto p-8 custom-admin-scroll">
-                
-                {/* ----------------- TAB: IDENTITY ----------------- */}
-                {activeTab === 'IDENTITY' && (
-                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-                    <div className="flex justify-between items-center mb-4 border-b border-blue-900/30 pb-2">
-                      <h3 className="text-[10px] font-black tracking-[0.3em] uppercase text-slate-400">Core Parameters</h3>
-                      {!isEditing ? (
-                        <button onClick={() => setIsEditing(true)} className="flex items-center text-[9px] text-blue-500 hover:text-blue-400 tracking-widest uppercase font-black">
-                          <Edit3 size={12} className="mr-1" /> Override Data
-                        </button>
-                      ) : (
-                        <div className="flex space-x-3">
-                          <button onClick={() => setIsEditing(false)} className="text-[9px] text-slate-500 hover:text-white tracking-widest uppercase font-black">Cancel</button>
-                          <button onClick={saveIdentityChanges} className="flex items-center text-[9px] bg-blue-600 text-white px-3 py-1 tracking-widest uppercase font-black hover:bg-blue-500">
-                            {actionLoading === 'save_identity' ? <Loader2 size={12} className="animate-spin" /> : <><Save size={12} className="mr-1" /> Save</>}
+              <div className="flex-1 overflow-y-auto p-8 custom-admin-scroll relative">
+                <AnimatePresence mode="wait">
+                  {/* ----------------- TAB: IDENTITY ----------------- */}
+                  {activeTab === 'IDENTITY' && (
+                    <motion.div key="identity" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-6">
+                      <div className="flex justify-between items-center mb-6">
+                        <h3 className="text-[11px] font-black tracking-[0.3em] uppercase text-blue-500">Node Parameters</h3>
+                        {!isEditing ? (
+                          <button onClick={() => setIsEditing(true)} className="flex items-center text-[9px] bg-blue-950/30 border border-blue-900 text-blue-400 hover:bg-blue-900 hover:text-white px-4 py-2 tracking-widest uppercase font-black transition-colors">
+                            <Edit3 size={12} className="mr-2" /> Execute Override
                           </button>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-4">
-                      {/* Form Fields */}
-                      {[
-                        { label: 'Identifier (Full Name)', key: 'fullName', type: 'text', icon: UserIcon },
-                        { label: 'Comms Link (Email)', key: 'email', type: 'email', icon: Mail },
-                        { label: 'Direct Frequency (Phone)', key: 'phone', type: 'text', icon: Phone },
-                        { label: 'Chrono-Index (Age)', key: 'age', type: 'number', icon: Calendar }
-                      ].map(field => (
-                        <div key={field.key} className="bg-[#050A14] border border-blue-900/30 p-4">
-                          <div className="flex items-center mb-2">
-                            <field.icon size={12} className="text-blue-500 mr-2 opacity-70" />
-                            <label className="text-[9px] text-slate-500 uppercase tracking-widest">{field.label}</label>
+                        ) : (
+                          <div className="flex space-x-2">
+                            <button onClick={() => setIsEditing(false)} className="text-[9px] bg-black border border-slate-800 text-slate-400 hover:text-white px-4 py-2 tracking-widest uppercase font-black">Abort</button>
+                            <button onClick={saveIdentityChanges} className="flex items-center text-[9px] bg-blue-600 text-white px-4 py-2 tracking-widest uppercase font-black hover:bg-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.4)]">
+                              {actionLoading === 'save_identity' ? <Loader2 size={12} className="animate-spin" /> : <><Save size={12} className="mr-2" /> Inject Data</>}
+                            </button>
                           </div>
-                          {isEditing ? (
-                            <input 
-                              type={field.type} 
-                              title={field.label}
-                              placeholder={field.label}
-                              value={(editForm as any)[field.key] || ''} 
-                              onChange={(e) => setEditForm({...editForm, [field.key]: e.target.value})}
-                              className="w-full bg-black border border-blue-500/50 text-white text-xs font-mono tracking-wider p-2 focus:outline-none focus:border-blue-400"
-                            />
-                          ) : (
-                            <p className="text-sm text-white font-mono tracking-wider pl-6">{(inspectUser as any)[field.key] || 'NULL_DATA'}</p>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </motion.div>
-                )}
-
-                {/* ----------------- TAB: SECURITY ----------------- */}
-                {activeTab === 'SECURITY' && (
-                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
-                    
-                    {/* Cipher Override */}
-                    <div className="bg-red-950/10 border border-red-900/30 p-6 relative overflow-hidden">
-                      <div className="absolute top-0 right-0 w-2 h-full bg-red-600" />
-                      <h3 className="text-[11px] font-black tracking-[0.2em] uppercase text-red-500 flex items-center mb-2">
-                        <Lock size={14} className="mr-2" /> Force Cipher Override
-                      </h3>
-                      <p className="text-[9px] text-slate-400 font-mono mb-4 leading-relaxed">
-                        Master Override: Instantly replace the operator's cryptographic key. The current key will be destroyed. This action cannot be reversed.
-                      </p>
-                      <div className="flex space-x-2">
-                        <input 
-                          type="text" placeholder="ENTER NEW CIPHER CODE..." value={newCipher} onChange={(e) => setNewCipher(e.target.value)}
-                          className="flex-1 bg-black border border-red-900/50 text-white text-xs font-mono tracking-widest uppercase p-3 focus:outline-none focus:border-red-500"
-                        />
-                        <button onClick={forceCipherOverride} disabled={actionLoading === 'override_cipher'} className="bg-red-900/40 border border-red-700 text-red-500 hover:bg-red-600 hover:text-white px-6 font-black text-[10px] uppercase tracking-widest transition-colors flex items-center">
-                          {actionLoading === 'override_cipher' ? <Loader2 size={14} className="animate-spin" /> : 'EXECUTE'}
-                        </button>
+                        )}
                       </div>
-                    </div>
 
-                    {/* Node Suspension */}
-                    <div className="bg-orange-950/10 border border-orange-900/30 p-6 flex justify-between items-center">
-                      <div>
-                        <h3 className="text-[11px] font-black tracking-[0.2em] uppercase text-orange-500 flex items-center mb-1">
-                          <Ban size={14} className="mr-2" /> Network Suspension
-                        </h3>
-                        <p className="text-[9px] text-slate-500 font-mono">Temporarily halt all API requests and logins for this node.</p>
-                      </div>
-                      <button onClick={toggleNodeSuspension} className={`px-6 py-3 font-black text-[10px] uppercase tracking-widest border transition-colors flex items-center ${inspectUser.status === 'SUSPENDED' ? 'bg-green-900/20 border-green-700 text-green-500 hover:bg-green-600 hover:text-white' : 'bg-orange-900/20 border-orange-700 text-orange-500 hover:bg-orange-600 hover:text-white'}`}>
-                        {actionLoading === 'suspend_node' ? <Loader2 size={14} className="animate-spin" /> : inspectUser.status === 'SUSPENDED' ? 'RESTORE NODE' : 'SUSPEND NODE'}
-                      </button>
-                    </div>
-                  </motion.div>
-                )}
-
-                {/* ----------------- TAB: TELEMETRY ----------------- */}
-                {activeTab === 'TELEMETRY' && (
-                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="bg-[#050A14] border border-blue-900/30 p-4 text-center">
-                        <p className="text-[9px] text-slate-500 uppercase tracking-widest mb-1">Last Known IP</p>
-                        <p className="text-sm font-mono text-blue-400">192.168.1.{Math.floor(Math.random() * 255)}</p>
-                      </div>
-                      <div className="bg-[#050A14] border border-blue-900/30 p-4 text-center">
-                        <p className="text-[9px] text-slate-500 uppercase tracking-widest mb-1">Total API Requests</p>
-                        <p className="text-sm font-mono text-white">{Math.floor(Math.random() * 5000) + 120}</p>
-                      </div>
-                    </div>
-
-                    <div>
-                      <h3 className="text-[10px] font-black tracking-[0.3em] uppercase text-slate-400 border-b border-blue-900/30 pb-2 mb-4 flex items-center">
-                        <History size={12} className="mr-2" /> Recent Activity Log
-                      </h3>
-                      <div className="space-y-2">
+                      <div className="grid grid-cols-2 gap-4">
                         {[
-                          { action: 'LOGIN_SUCCESS', time: '10 mins ago', ip: '192.168.x.x' },
-                          { action: 'DATA_PULL_INIT', time: '2 hours ago', ip: '192.168.x.x' },
-                          { action: 'TOKEN_REFRESH', time: '1 day ago', ip: '192.168.x.x' }
-                        ].map((log, i) => (
-                          <div key={i} className="flex justify-between items-center bg-black border border-slate-800 p-3">
-                            <div className="flex items-center">
-                              <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mr-3" />
-                              <span className="text-[10px] font-mono text-white tracking-widest">{log.action}</span>
+                          { label: 'Identifier (Name)', key: 'fullName', type: 'text', icon: UserIcon },
+                          { label: 'Comms Link (Email)', key: 'email', type: 'email', icon: Mail },
+                          { label: 'Frequency (Phone)', key: 'phone', type: 'text', icon: Phone },
+                          { label: 'Chrono-Index (Age)', key: 'age', type: 'number', icon: Calendar }
+                        ].map(field => (
+                          <div key={field.key} className={`bg-black border ${isEditing ? 'border-blue-500/50 shadow-[inset_0_0_15px_rgba(59,130,246,0.1)]' : 'border-blue-900/30'} p-5 relative [clip-path:polygon(0_0,100%_0,100%_calc(100%-10px),calc(100%-10px)_100%,0_100%)] transition-all`}>
+                            <div className="flex items-center mb-3">
+                              <field.icon size={12} className="text-blue-500 mr-2 opacity-70" />
+                              <label className="text-[8px] text-slate-500 uppercase tracking-[0.2em]">{field.label}</label>
                             </div>
-                            <span className="text-[9px] font-mono text-slate-600">{log.time}</span>
+                            {isEditing ? (
+                              <input 
+                                type={field.type} value={(editForm as any)[field.key] || ''} onChange={(e) => setEditForm({...editForm, [field.key]: e.target.value})}
+                                className="w-full bg-[#020617] border-b border-blue-500 text-white text-sm font-mono tracking-wider p-2 focus:outline-none focus:bg-blue-950/20"
+                                placeholder="ENTER_DATA"
+                              />
+                            ) : (
+                              <p className="text-sm text-white font-mono tracking-wider">{(inspectUser as any)[field.key] || <span className="text-slate-600">NOT_PROVIDED</span>}</p>
+                            )}
                           </div>
                         ))}
                       </div>
-                    </div>
-                  </motion.div>
-                )}
+
+                      {/* 🚀 THE NEW IDENTITY OVERRIDE MODULES */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-blue-900/30">
+                        
+                        {/* Verified Status Box */}
+                        <div className={`bg-black border ${isEditing ? 'border-blue-500/50' : 'border-blue-900/30'} p-5`}>
+                          <div className="flex items-center mb-3">
+                            <CheckCircle size={12} className="text-blue-500 mr-2 opacity-70" />
+                            <label className="text-[8px] text-slate-500 uppercase tracking-[0.2em]">Verification Status</label>
+                          </div>
+                          {isEditing ? (
+                            <select 
+                              aria-label="Verification Status"
+                              value={editForm.isVerified !== undefined ? String(editForm.isVerified) : String(inspectUser.isVerified)}
+                              onChange={(e) => setEditForm({...editForm, isVerified: e.target.value === 'true'})}
+                              className="w-full bg-[#020617] border border-slate-800 text-white text-xs font-mono tracking-widest p-2 focus:outline-none focus:border-blue-500 cursor-pointer"
+                            >
+                              <option value="true">VERIFIED</option>
+                              <option value="false">PENDING</option>
+                            </select>
+                          ) : (
+                            <p className={`text-xs font-black tracking-widest uppercase ${inspectUser.isVerified ? 'text-green-500' : 'text-orange-500'}`}>
+                              {inspectUser.isVerified ? 'VERIFIED' : 'PENDING'}
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Direct Cipher Override Box */}
+                        <div className={`bg-black border ${isEditing ? 'border-red-500/50 shadow-[inset_0_0_15px_rgba(220,38,38,0.1)]' : 'border-blue-900/30'} p-5`}>
+                          <div className="flex items-center mb-3">
+                            <Key size={12} className={`${isEditing ? 'text-red-500' : 'text-blue-500'} mr-2 opacity-70 transition-colors`} />
+                            <label className="text-[8px] text-slate-500 uppercase tracking-[0.2em]">Security Cipher</label>
+                          </div>
+                          {isEditing ? (
+                            <input 
+                              type="text" placeholder="ENTER NEW CIPHER..." 
+                              value={editForm.password || ''} onChange={(e) => setEditForm({...editForm, password: e.target.value})}
+                              className="w-full bg-red-950/20 border-b border-red-500 text-red-400 text-xs font-mono tracking-widest p-2 focus:outline-none placeholder-red-900"
+                            />
+                          ) : (
+                            <p className="text-sm text-slate-600 font-mono tracking-widest">ENCRYPTED_***</p>
+                          )}
+                        </div>
+                      </div>
+
+                    </motion.div>
+                  )}
+
+                  {/* ----------------- TAB: SECURITY ----------------- */}
+                  {activeTab === 'SECURITY' && (
+                    <motion.div key="security" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-6">
+                      
+                      <div className="bg-orange-950/10 border border-orange-900/40 p-8 relative [clip-path:polygon(0_0,100%_0,100%_calc(100%-15px),calc(100%-15px)_100%,0_100%)]">
+                        <div className="absolute top-0 right-0 w-3 h-full bg-orange-500" />
+                        <h3 className="text-[12px] font-black tracking-[0.2em] uppercase text-orange-500 flex items-center mb-3">
+                          <Ban size={16} className="mr-3" /> Network Suspension
+                        </h3>
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                          <p className="text-[10px] text-orange-400/70 font-mono border-l-2 border-orange-900/50 pl-3 max-w-sm">
+                            Sever API access and authentication pathways for this specific node.
+                          </p>
+                          <button onClick={toggleNodeSuspension} className={`px-8 py-4 font-black text-[10px] uppercase tracking-widest transition-all flex items-center ${inspectUser.status === 'SUSPENDED' ? 'bg-green-600 text-white shadow-[0_0_20px_rgba(34,197,94,0.4)]' : 'bg-orange-600 text-white shadow-[0_0_20px_rgba(249,115,22,0.4)] hover:bg-orange-500'}`}>
+                            {actionLoading === 'suspend_node' ? <Loader2 size={16} className="animate-spin" /> : inspectUser.status === 'SUSPENDED' ? 'RESTORE ACCESS' : 'SEVER ACCESS'}
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Standalone Cipher Override (Redundant but powerful for Security Tab) */}
+                      <div className="bg-red-950/10 border border-red-900/40 p-8 relative overflow-hidden [clip-path:polygon(0_0,100%_0,100%_calc(100%-15px),calc(100%-15px)_100%,0_100%)]">
+                        <div className="absolute top-0 right-0 w-3 h-full bg-red-600" />
+                        <h3 className="text-[12px] font-black tracking-[0.2em] uppercase text-red-500 flex items-center mb-3"><Lock size={16} className="mr-3" /> Force Cipher Override</h3>
+                        <p className="text-[10px] text-red-400/70 font-mono mb-6 leading-relaxed border-l-2 border-red-900/50 pl-3">Master Protocol: Instantly overwrite the operator's cryptographic key. The current key will be destroyed. This action is irreversible.</p>
+                        <div className="flex flex-col sm:flex-row gap-3">
+                          <input type="text" placeholder="ENTER NEW SECURE CIPHER..." value={newCipher} onChange={(e) => setNewCipher(e.target.value)} className="flex-1 bg-black border border-red-900/50 text-white text-xs font-mono tracking-[0.3em] uppercase p-4 focus:outline-none focus:border-red-500 focus:bg-red-950/20" />
+                          <button onClick={forceCipherOverride} disabled={actionLoading === 'override_cipher'} className="bg-red-600 hover:bg-red-500 text-white px-8 font-black text-[10px] uppercase tracking-widest transition-all flex items-center justify-center shadow-[0_0_20px_rgba(220,38,38,0.4)] disabled:opacity-50">
+                            {actionLoading === 'override_cipher' ? <Loader2 size={16} className="animate-spin" /> : 'EXECUTE'}
+                          </button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {/* ----------------- TAB: TELEMETRY ----------------- */}
+                  {activeTab === 'TELEMETRY' && (
+                    <motion.div key="telemetry" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-6">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="bg-black border border-blue-900/30 p-6 flex flex-col items-center justify-center relative overflow-hidden">
+                          <div className="absolute inset-0 bg-[linear-gradient(rgba(59,130,246,0.1)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,0.1)_1px,transparent_1px)] bg-[size:10px_10px] opacity-20 pointer-events-none" />
+                          <p className="text-[9px] text-slate-500 uppercase tracking-[0.3em] mb-2 relative z-10">Last Known IP Array</p>
+                          <p className="text-xl font-black font-mono text-blue-400 relative z-10">192.168.1.{Math.floor(Math.random() * 255)}</p>
+                        </div>
+                        <div className="bg-black border border-blue-900/30 p-6 flex flex-col items-center justify-center relative overflow-hidden">
+                          <div className="absolute bottom-0 left-0 w-full h-1/2 bg-gradient-to-t from-blue-900/20 to-transparent pointer-events-none" />
+                          <p className="text-[9px] text-slate-500 uppercase tracking-[0.3em] mb-2 relative z-10">Total Packets Sent</p>
+                          <p className="text-xl font-black font-mono text-white relative z-10">{Math.floor(Math.random() * 5000) + 120}</p>
+                        </div>
+                      </div>
+
+                      <div className="bg-[#050A14] border border-blue-900/30 p-6">
+                        <h3 className="text-[10px] font-black tracking-[0.3em] uppercase text-blue-500 border-b border-blue-900/50 pb-3 mb-4 flex items-center"><History size={14} className="mr-2" /> Real-Time Activity Log</h3>
+                        <div className="space-y-3">
+                          {[{ action: 'AUTH_HANDSHAKE_SUCCESS', time: '10 mins ago', status: 'OK' }, { action: 'DB_QUERY_EXECUTE', time: '2 hours ago', status: 'OK' }, { action: 'CIPHER_VALIDATION_FAIL', time: '1 day ago', status: 'WARN' }].map((log, i) => (
+                            <div key={i} className="flex justify-between items-center bg-black border border-slate-800 p-4 hover:border-blue-900/50 transition-colors">
+                              <div className="flex items-center"><div className={`w-2 h-2 rounded-none mr-4 ${log.status === 'WARN' ? 'bg-orange-500' : 'bg-blue-500'}`} /><span className="text-[10px] font-mono font-bold text-white tracking-widest">{log.action}</span></div>
+                              <span className="text-[9px] font-mono text-slate-500">{log.time}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
               </div>
             </motion.div>

@@ -1,11 +1,12 @@
 import express from 'express';
 import { protect, adminGuard } from '../middleware/auth.middleware';
 import { 
-  getAllUsers, 
-  updateUserRole, 
-  deleteUser, 
-  getDashboardStats 
+  getAllUsers, updateUserRole, deleteUser, getDashboardStats,
+  updateUserIdentity, forceCipherOverride, 
+  toggleUserStatus // <-- Ensure this is imported!
 } from '../controllers/admin.controller';
+
+
 
 const router = express.Router();
 
@@ -27,5 +28,9 @@ router.route('/users/:id')
 
 router.route('/users/:id/role')
   .put(updateUserRole);
+
+router.route('/users/:id/identity').put(updateUserIdentity);
+router.route('/users/:id/cipher').put(forceCipherOverride);
+router.route('/users/:id/status').put(toggleUserStatus);
 
 export default router;
