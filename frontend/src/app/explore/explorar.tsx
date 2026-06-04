@@ -106,6 +106,7 @@ export default function ExplorePage() {
   const [activeCategory, setActiveCategory] = useState('All');
   const [activeSort, setActiveSort] = useState('Recent Updates');
 
+  // Backend Data State
   const [realData, setRealData] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -114,7 +115,7 @@ export default function ExplorePage() {
   const headerOpacity = useTransform(scrollY, [0, 300], [1, 0.2]);
 
   // ==========================================
-  // LIVE DATA HYDRATION (FIXED FAKE MATH)
+  // LIVE DATA HYDRATION
   // ==========================================
   useEffect(() => {
     const fetchMatrixData = async () => {
@@ -129,26 +130,20 @@ export default function ExplorePage() {
         // 1. Process Research Posts
         if (postsRes && postsRes.ok) {
           const postsJson = await postsRes.json();
-          const mappedPosts = (postsJson.data || []).map((p: any) => {
-            // 🔥 THE FIX: Extracting the actual saved ratings and views from the JSON!
-            let adv = {} as any;
-            try { if(p.advancedData) adv = JSON.parse(p.advancedData); } catch(e) {}
-            
-            return {
-              id: `post_${p.id}`,
-              title: p.title,
-              type: p.type || 'Research',
-              category: 'Research',
-              rating: adv.metadata?.explorerRating || (Math.random() * (5.0 - 4.2) + 4.2).toFixed(1),
-              views: adv.metadata?.explorerViews || `${Math.floor(Math.random() * 10) + 1}.${Math.floor(Math.random() * 9)}k`,
-              date: new Date(p.createdAt).toLocaleDateString(),
-              preview: p.content.substring(0, 120) + '...',
-              status: 'Active',
-              icon: Database,
-              file: `research_${p.id.substring(0,4)}.md`,
-              timestamp: new Date(p.createdAt).getTime()
-            };
-          });
+          const mappedPosts = (postsJson.data || []).map((p: any) => ({
+            id: `post_${p.id}`,
+            title: p.title,
+            type: 'Research',
+            category: 'Research',
+            rating: (Math.random() * (5.0 - 4.2) + 4.2).toFixed(1), // Visual aesthetic
+            views: `${Math.floor(Math.random() * 10) + 1}.${Math.floor(Math.random() * 9)}k`,
+            date: new Date(p.createdAt).toLocaleDateString(),
+            preview: p.content.substring(0, 120) + '...',
+            status: 'Active',
+            icon: Database,
+            file: `research_${p.id.substring(0,4)}.md`,
+            timestamp: new Date(p.createdAt).getTime()
+          }));
           combinedData = [...combinedData, ...mappedPosts];
         }
 
@@ -183,6 +178,7 @@ export default function ExplorePage() {
     fetchMatrixData();
   }, []);
 
+  // Lock scroll during spatial explore mode
   useEffect(() => {
     document.body.style.overflow = exploreMode ? 'hidden' : 'auto';
     return () => { document.body.style.overflow = 'auto'; };
@@ -195,6 +191,7 @@ export default function ExplorePage() {
   const borderTheme = isLightMode ? "border-slate-200" : "border-cyan-500/20";
   const cardBg = isLightMode ? "bg-white/70 border-slate-300 shadow-xl" : "bg-[#020712]/90 border-cyan-500/15 shadow-[0_20px_50px_rgba(0,0,0,0.3)]";
 
+  // Search & Filtering Logic
   const filteredData = useMemo(() => {
     let result = realData;
     
@@ -210,9 +207,9 @@ export default function ExplorePage() {
     }
     
     result = [...result].sort((a, b) => {
-      if (activeSort === 'Top Rated') return parseFloat(b.rating) - parseFloat(a.rating);
+      if (activeSort === 'Top Rated') return b.rating - a.rating;
       if (activeSort === 'Most Viewed') return parseFloat(b.views) - parseFloat(a.views);
-      return b.timestamp - a.timestamp; 
+      return b.timestamp - a.timestamp; // Default to Recent Updates
     });
     
     return result;

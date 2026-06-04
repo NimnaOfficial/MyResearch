@@ -60,3 +60,18 @@ export const adminGuard = async (req: Request, res: Response, next: NextFunction
     return res.status(500).json({ message: 'Internal Matrix Error during clearance verification.' });
   }
 };
+
+// ==========================================
+// ROLE-BASED ACCESS CONTROL
+// ==========================================
+export const restrictTo = (...roles: string[]) => {
+  return (req: any, res: any, next: any) => {
+    // Check if the user exists and if their role matches the required roles
+    if (!req.user || !roles.includes(req.user.role)) {
+      return res.status(403).json({ 
+        message: 'ACCESS DENIED: Insufficient clearance level for this operation.' 
+      });
+    }
+    next();
+  };
+};

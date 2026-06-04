@@ -17,15 +17,14 @@ import { useRouter } from 'next/navigation';
 interface Metric { label: string; value: string; trend: string; }
 interface Figure { title: string; url: string; hue: string; }
 interface DataSource { name: string; type: string; size: string; url: string; }
-// 🔥 THE FIX: Added explorerRating and explorerViews to Metadata
-interface Metadata { writer: string; contributors: string[]; startDate: string; endDate: string; topics: string[]; explorerRating?: string; explorerViews?: string; }
+interface Metadata { writer: string; contributors: string[]; startDate: string; endDate: string; topics: string[]; }
 interface Routing { targetRecent: boolean; targetUpcoming: boolean; targetPrototypes: boolean; targetExplorer: boolean; }
 
 interface ResearchFormState {
   id?: string;
   title: string;
   type: string;
-  content: string; 
+  content: string; // Abstract
   heroImg: string;
   published: boolean;
   methodology: string;
@@ -40,16 +39,22 @@ interface ResearchFormState {
 const DEFAULT_FORM: ResearchFormState = {
   title: '', type: 'Research', content: '', heroImg: 'from-slate-800 to-black', published: false,
   methodology: '', conclusion: '', metrics: [], figures: [], dataSources: [],
-  metadata: { writer: 'SYS_ADMIN', contributors: [], startDate: '', endDate: '', topics: [], explorerRating: '4.8', explorerViews: '12.4k' },
+  metadata: { writer: 'SYS_ADMIN', contributors: [], startDate: '', endDate: '', topics: [] },
   routing: { targetRecent: true, targetUpcoming: false, targetPrototypes: false, targetExplorer: true }
 };
 
+// ==========================================
+// SMART THUMBNAIL PRESETS ENGINE
+// ==========================================
 const THUMBNAIL_PRESETS = {
   Research: ['from-blue-900 to-black', 'from-indigo-950 to-slate-900', 'from-purple-900 to-black', 'from-slate-800 to-blue-950'],
   Project: ['from-[#00ff66]/20 to-black', 'from-teal-900 to-slate-900', 'from-cyan-950 to-black', 'from-emerald-900/50 to-black'],
   Documentation: ['from-orange-950 to-black', 'from-amber-900/50 to-black', 'from-slate-800 to-black', 'from-stone-800 to-orange-950']
 };
 
+// ==========================================
+// CUSTOM RICH TEXT EDITOR COMPONENT
+// ==========================================
 const RichTextEditor = ({ label, value, onChange, placeholder }: { label: string, value: string, onChange: (val: string) => void, placeholder: string }) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -73,6 +78,7 @@ const RichTextEditor = ({ label, value, onChange, placeholder }: { label: string
     <div className="bg-black border border-[#00f0ff]/30 p-6 flex flex-col group focus-within:border-[#00ff66] transition-colors shadow-lg [clip-path:polygon(0_0,100%_0,100%_calc(100%-15px),calc(100%-15px)_100%,0_100%)]">
       <label className="text-[10px] text-[#00f0ff] uppercase tracking-[0.3em] mb-3 font-black">{label}</label>
       
+      {/* Enhanced Command Bar - Sharp Borders */}
       <div className="flex flex-wrap items-center gap-1 bg-[#02050A] border border-slate-800 p-2 mb-2">
         <button type="button" title="Heading 1" aria-label="Heading 1" onClick={() => applyFormat('# ', '')} className="p-2 text-slate-400 hover:text-[#00ff66] hover:bg-slate-800 transition-colors"><Heading1 size={14} /></button>
         <button type="button" title="Heading 2" aria-label="Heading 2" onClick={() => applyFormat('## ', '')} className="p-2 text-slate-400 hover:text-[#00ff66] hover:bg-slate-800 transition-colors"><Heading2 size={14} /></button>
@@ -96,24 +102,34 @@ const RichTextEditor = ({ label, value, onChange, placeholder }: { label: string
   );
 };
 
+// ==========================================
+// MASTER PAGE COMPONENT
+// ==========================================
 export default function MasterResearchForge() {
   const router = useRouter();
   
+  // CORE STATES
   const [posts, setPosts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   
+  // UI STATES
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<'ALL' | 'PUBLISHED' | 'DRAFT'>('ALL');
   
+  // TERMINAL FORGE STATES
   const [isForgeOpen, setIsForgeOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'ROUTING' | 'IDENTITY' | 'THESIS' | 'ARRAYS' | 'ATTACHMENTS' | 'METADATA'>('ROUTING');
   const [formData, setFormData] = useState<ResearchFormState>(DEFAULT_FORM);
   const [tagInput, setTagInput] = useState('');
   const [showJsonCompiler, setShowJsonCompiler] = useState(false);
   
+  // AUTO-SAVE STATES
   const [hasDraft, setHasDraft] = useState(false);
 
+  // ==========================================
+  // HYDRATION: FETCH ALL DATA
+  // ==========================================
   const fetchPosts = async () => {
     try {
       const token = localStorage.getItem('matrix_token');
@@ -139,6 +155,9 @@ export default function MasterResearchForge() {
     if (draft) setHasDraft(true);
   }, [router]);
 
+  // ==========================================
+  // AUTO-SAVE CACHE ENGINE
+  // ==========================================
   useEffect(() => {
     if (isForgeOpen) {
       const timer = setTimeout(() => {
@@ -162,6 +181,9 @@ export default function MasterResearchForge() {
     setHasDraft(false);
   };
 
+  // ==========================================
+  // FORGE ENGINE: OPEN & PARSE
+  // ==========================================
   const openForge = (post?: any) => {
     if (post) {
       let advanced = {};
@@ -194,14 +216,19 @@ export default function MasterResearchForge() {
     clearDraft();
   };
 
+ // ==========================================
+  // DATABASE EXECUTION (SAVE/DELETE)
+  // ==========================================
   const saveToMatrix = async () => {
+    // 🚀 SMART VALIDATION: Auto-switch to the Identity tab if required fields are missing
     if (!formData.title || !formData.content) {
-      setActiveTab('IDENTITY'); 
+      setActiveTab('IDENTITY'); // Warps the user to the correct tab
       setTimeout(() => {
         alert("System Integrity Error: Research Title and Executive Abstract are required before compiling.");
-      }, 150); 
+      }, 150); // Small delay to allow the tab animation to finish
       return;
     }
+    
     setActionLoading(true);
 
     const payload = {
@@ -258,6 +285,9 @@ export default function MasterResearchForge() {
     } catch (err) { alert("Network Failure"); }
   };
 
+  // ==========================================
+  // DYNAMIC MUTATORS & REORDERING
+  // ==========================================
   const addArrayItem = (field: 'metrics' | 'figures' | 'dataSources', defaultItem: any) => setFormData(prev => ({ ...prev, [field]: [...prev[field], defaultItem] }));
   const updateArrayItem = (field: 'metrics' | 'figures' | 'dataSources', index: number, key: string, value: string) => setFormData(prev => { const newArr = [...prev[field]]; newArr[index] = { ...newArr[index], [key]: value }; return { ...prev, [field]: newArr }; });
   const removeArrayItem = (field: 'metrics' | 'figures' | 'dataSources', index: number) => setFormData(prev => ({ ...prev, [field]: prev[field].filter((_, i) => i !== index) }));
@@ -285,6 +315,9 @@ export default function MasterResearchForge() {
   };
   const removeTag = (index: number) => setFormData(prev => ({ ...prev, metadata: { ...prev.metadata, topics: prev.metadata.topics.filter((_, i) => i !== index) } }));
 
+  // ==========================================
+  // RENDER LOGIC (OPTIMIZED MEMOIZATION)
+  // ==========================================
   const filteredPosts = useMemo(() => posts.filter(post => {
     const matchesSearch = post.title.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = filterStatus === 'ALL' || (filterStatus === 'PUBLISHED' && post.published) || (filterStatus === 'DRAFT' && !post.published);
@@ -303,10 +336,14 @@ export default function MasterResearchForge() {
   return (
     <div className="font-sans relative min-h-screen bg-[#010205] text-white selection:bg-[#00ff66]/30">
       
+      {/* ========================================================= */}
+      {/* 1. TOP COMMAND DECK (Hidden when Forge is open) */}
+      {/* ========================================================= */}
       <AnimatePresence>
         {!isForgeOpen && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, y: -20 }} className="p-6 lg:p-10 relative z-10 max-w-[1600px] mx-auto">
             
+            {/* Auto-Save Draft Recovery Banner */}
             <AnimatePresence>
               {hasDraft && (
                 <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9 }} className="mb-6 bg-orange-950/30 border border-orange-900/50 p-4 flex items-center justify-between [clip-path:polygon(0_0,100%_0,100%_calc(100%-10px),calc(100%-10px)_100%,0_100%)]">
@@ -340,6 +377,7 @@ export default function MasterResearchForge() {
               </button>
             </div>
 
+            {/* Tactical Search Ribbon */}
             <div className="flex flex-col xl:flex-row gap-4 bg-[#050A14] border border-[#00f0ff]/40 p-2 shadow-[inset_0_0_30px_rgba(0,240,255,0.05)] mb-8 [clip-path:polygon(0_0,100%_0,100%_calc(100%-15px),calc(100%-15px)_100%,0_100%)]">
               <div className="relative flex-1">
                 <Search size={16} className="absolute left-5 top-1/2 -translate-y-1/2 text-[#00f0ff]" />
@@ -364,6 +402,7 @@ export default function MasterResearchForge() {
               </div>
             </div>
 
+            {/* THE FLOATING DATA-GRID */}
             <div className="hidden lg:grid grid-cols-12 gap-4 px-6 py-3 mb-4 border-b border-[#00f0ff]/30 text-[9px] text-[#00f0ff] font-mono tracking-[0.3em] uppercase">
               <div className="col-span-2">NODE_ID</div>
               <div className="col-span-4">RESEARCH_IDENTIFIER</div>
@@ -423,13 +462,16 @@ export default function MasterResearchForge() {
         {isForgeOpen && (
           <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.98 }} transition={{ type: "spring", damping: 25, stiffness: 200 }} className="fixed inset-0 z-[200] bg-[#010205] flex overflow-hidden">
             
+            {/* LEFT PANE: NAVIGATION RAIL */}
             <div className="w-80 border-r border-[#00f0ff]/20 bg-[#02050A] flex flex-col shadow-[20px_0_50px_rgba(0,0,0,0.5)] z-20 shrink-0">
+              {/* Header */}
               <div className="h-28 px-8 flex flex-col justify-center border-b border-[#00f0ff]/20 bg-black relative overflow-hidden">
                  <div className="absolute top-0 right-0 w-32 h-32 bg-[#00ff66]/10 blur-[40px] pointer-events-none" />
                  <h2 className="text-[#00ff66] font-black uppercase tracking-[0.2em] flex items-center relative z-10"><Database size={16} className="mr-3" /> DataCore Forge</h2>
                  <p className="text-[9px] font-mono text-slate-500 uppercase tracking-widest mt-1 relative z-10">ID: {formData.id ? formData.id.substring(0,8) : 'NEW_NODE_ACTIVE'}</p>
               </div>
 
+              {/* Navigation Tabs */}
               <div className="flex-1 overflow-y-auto py-6">
                  {[
                     { id: 'ROUTING', icon: Compass, label: 'Display Routing' }, 
@@ -448,6 +490,7 @@ export default function MasterResearchForge() {
                  ))}
               </div>
 
+              {/* Action Bar */}
               <div className="p-6 bg-black border-t border-[#00f0ff]/20 flex flex-col gap-3">
                  <button title="View JSON Payload" aria-label="View JSON Payload" onClick={() => setShowJsonCompiler(!showJsonCompiler)} className="w-full text-slate-400 hover:text-white text-[10px] font-mono tracking-widest border border-slate-800 hover:border-white/20 py-3 flex items-center justify-center transition-all"><FileJson size={14} className="mr-2" /> View JSON Payload</button>
                  <button title="Compile & Save" aria-label="Compile & Save" onClick={saveToMatrix} disabled={actionLoading} className="w-full bg-[#00ff66] text-black font-black text-xs tracking-[0.2em] py-4 uppercase hover:bg-[#00ff66]/80 flex items-center justify-center shadow-[0_0_20px_rgba(0,255,102,0.3)] disabled:opacity-50 [clip-path:polygon(0_0,100%_0,100%_calc(100%-10px),calc(100%-10px)_100%,0_100%)]">
@@ -457,8 +500,10 @@ export default function MasterResearchForge() {
               </div>
             </div>
 
+            {/* RIGHT PANE: EDITOR WORKSPACE */}
             <div className="flex-1 bg-[#050A14] overflow-y-auto custom-scrollbar relative">
                
+               {/* JSON Preview Overlay */}
                <AnimatePresence>
                   {showJsonCompiler && (
                     <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="absolute top-0 right-0 h-full w-[500px] bg-black/95 z-50 p-8 border-l border-[#00f0ff]/50 backdrop-blur-xl shadow-2xl overflow-y-auto custom-scrollbar">
@@ -483,12 +528,13 @@ export default function MasterResearchForge() {
                         </div>
 
                         <div className="grid grid-cols-1 gap-4">
+                          {/* Target: Guest Explorer */}
                           <label className={`flex items-center p-6 border cursor-pointer transition-all ${formData.routing.targetExplorer ? 'bg-indigo-500/10 border-indigo-500 shadow-[0_0_20px_rgba(99,102,241,0.15)]' : 'bg-black border-slate-800 hover:border-slate-600'} [clip-path:polygon(0_0,100%_0,100%_calc(100%-15px),calc(100%-15px)_100%,0_100%)]`}>
                              <input type="checkbox" title="Toggle Public Guest Explorer" aria-label="Toggle Public Guest Explorer" checked={formData.routing.targetExplorer} onChange={e => setFormData({ ...formData, routing: { ...formData.routing, targetExplorer: e.target.checked }})} className="hidden" />
                              <div className={`w-5 h-5 border flex items-center justify-center mr-6 ${formData.routing.targetExplorer ? 'border-indigo-500 bg-indigo-500' : 'border-slate-600'}`}>{formData.routing.targetExplorer && <Check size={14} className="text-black" />}</div>
                              <div>
                                <h3 className="text-sm font-black text-white uppercase tracking-widest">Public Guest Explorer</h3>
-                               <p className="text-[10px] text-slate-500 font-mono mt-1">Pushes node to the public-facing 3D matrix interface (`explorar.tsx`).</p>
+                               <p className="text-[10px] text-slate-500 font-mono mt-1">Pushes node to the public-facing 3D matrix interface (`guest_explorar.tsx`).</p>
                              </div>
                           </label>
 
@@ -557,6 +603,7 @@ export default function MasterResearchForge() {
                           <label className="text-[10px] text-[#00f0ff] uppercase tracking-[0.3em] mb-4 font-black flex items-center"><ImageIcon size={14} className="mr-2" /> Hero Banner (Image URL or Tailwind Gradient)</label>
                           <input title="Hero Banner" aria-label="Hero Banner" type="text" value={formData.heroImg} onChange={e => setFormData({...formData, heroImg: e.target.value})} className="w-full bg-[#02050A] border border-slate-800 text-slate-300 text-sm font-mono tracking-wider p-4 outline-none focus:border-[#00ff66]" placeholder="e.g. https://... OR 'from-slate-800 to-black'" />
                           
+                          {/* NEW: Smart Thumbnail Presets Engine */}
                           <div className="mt-6 pt-4 border-t border-slate-800">
                              <p className="text-[9px] text-slate-500 uppercase tracking-widest mb-3">Field-Specific Thumbnail Suggestions</p>
                              <div className="flex space-x-3">
@@ -583,7 +630,7 @@ export default function MasterResearchForge() {
                           </div>
                         </div>
 
-                        {/* 🔥 THE FIX: Bound the Rating and Views inputs directly to formData.metadata */}
+                        {/* Guest Explorer Specific Overrides */}
                         {formData.routing.targetExplorer && (
                           <div className="bg-indigo-950/10 border border-indigo-500/30 p-6 shadow-lg [clip-path:polygon(0_0,100%_0,100%_calc(100%-15px),calc(100%-15px)_100%,0_100%)]">
                              <div className="flex items-center space-x-2 mb-4 border-b border-indigo-500/20 pb-2">
@@ -593,11 +640,11 @@ export default function MasterResearchForge() {
                              <div className="grid grid-cols-2 gap-4">
                                <div>
                                  <label className="text-[9px] text-slate-500 uppercase tracking-widest block mb-2">Simulated Rating (e.g. 4.8)</label>
-                                 <input title="Simulated Rating" aria-label="Simulated Rating" type="text" value={formData.metadata.explorerRating || ''} onChange={e => setFormData({ ...formData, metadata: { ...formData.metadata, explorerRating: e.target.value }})} placeholder="4.8" className="w-full bg-[#02050A] border border-slate-800 text-indigo-400 font-mono text-sm p-3 outline-none focus:border-indigo-500" />
+                                 <input title="Simulated Rating" aria-label="Simulated Rating" type="text" placeholder="4.8" className="w-full bg-[#02050A] border border-slate-800 text-indigo-400 font-mono text-sm p-3 outline-none focus:border-indigo-500" />
                                </div>
                                <div>
                                  <label className="text-[9px] text-slate-500 uppercase tracking-widest block mb-2">Simulated Views (e.g. 12.4k)</label>
-                                 <input title="Simulated Views" aria-label="Simulated Views" type="text" value={formData.metadata.explorerViews || ''} onChange={e => setFormData({ ...formData, metadata: { ...formData.metadata, explorerViews: e.target.value }})} placeholder="12.4k" className="w-full bg-[#02050A] border border-slate-800 text-indigo-400 font-mono text-sm p-3 outline-none focus:border-indigo-500" />
+                                 <input title="Simulated Views" aria-label="Simulated Views" type="text" placeholder="12.4k" className="w-full bg-[#02050A] border border-slate-800 text-indigo-400 font-mono text-sm p-3 outline-none focus:border-indigo-500" />
                                </div>
                              </div>
                           </div>
@@ -635,6 +682,7 @@ export default function MasterResearchForge() {
                           <AnimatePresence>
                             {formData.metrics.map((metric, i) => (
                               <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, scale: 0.9 }} key={i} className="flex flex-col md:flex-row gap-4 items-center bg-black border border-slate-800 p-4 group hover:border-[#00f0ff]/50 transition-colors [clip-path:polygon(0_0,100%_0,100%_calc(100%-15px),calc(100%-15px)_100%,0_100%)]">
+                                {/* Array Reordering Tools */}
                                 <div className="flex flex-col bg-[#02050a] border border-slate-800 p-1">
                                   <button title="Move Metric Up" aria-label="Move Metric Up" onClick={() => moveArrayItem('metrics', i, 'up')} disabled={i===0} className="p-1 text-slate-500 hover:text-white disabled:opacity-30 border border-transparent hover:border-slate-600"><ChevronUp size={14}/></button>
                                   <button title="Move Metric Down" aria-label="Move Metric Down" onClick={() => moveArrayItem('metrics', i, 'down')} disabled={i===formData.metrics.length-1} className="p-1 text-slate-500 hover:text-white disabled:opacity-30 border border-transparent hover:border-slate-600"><ChevronDown size={14}/></button>

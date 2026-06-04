@@ -4,29 +4,29 @@ import crypto from 'crypto';
 import { catchAsync } from '../utils/catchAsync';
 
 // ==========================================
-// CREATE NEW RESEARCH OR BLOG POST
+// 1. INJECT NEW DATACORE (ADMIN CREATE)
 // ==========================================
 export const createPost = catchAsync(async (req: Request, res: Response) => {
-  const { title, slug, content, type, published } = req.body;
+  const { title, content, type, published, heroImg, advancedData } = req.body;
   const authorId = req.user?.id; 
 
   if (!authorId) return res.status(401).json({ message: 'Unauthorized execution.' });
-  if (!title || !slug || !content) return res.status(400).json({ message: 'Incomplete post payload.' });
+  if (!title || !content) return res.status(400).json({ message: 'Incomplete payload: Title and Abstract are required.' });
 
-  // Manually generate system variables to bypass Prisma caching errors
+  // 🚀 AUTOMATIC SLUG GENERATOR: URL-friendly + Unique Hash
+  const generatedSlug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + crypto.randomBytes(3).toString('hex');
   const generatedId = crypto.randomUUID();
-  const timestamp = new Date();
 
   const newPost = await prisma.post.create({
     data: {
       id: generatedId,
       title,
-      slug,
+      slug: generatedSlug,
       content,
-      type: type || 'BLOG',
+      type: type || 'Research',
       published: published || false,
-      createdAt: timestamp,
-      updatedAt: timestamp,
+      heroImg: heroImg || null,
+      advancedData: advancedData || null,
       authorId,
     },
   });
@@ -39,15 +39,49 @@ export const createPost = catchAsync(async (req: Request, res: Response) => {
 });
 
 // ==========================================
-// FETCH ALL PUBLISHED POSTS
+// 2. OVERWRITE EXISTING DATACORE (ADMIN UPDATE)
+// ==========================================
+export const updatePost = catchAsync(async (req: Request, res: Response) => {
+  const id = req.params.id as string; // 🔥 FIXED: Explicitly cast to string
+  const { title, content, type, published, heroImg, advancedData } = req.body;
+
+  const updatedPost = await prisma.post.update({
+    where: { id },
+    data: {
+      title,
+      content,
+      type,
+      published,
+      heroImg,
+      advancedData,
+    }
+  });
+
+  res.status(200).json({ status: 'success', data: updatedPost });
+});
+
+// ==========================================
+// 3. TERMINATE DATACORE (ADMIN DELETE)
+// ==========================================
+export const deletePost = catchAsync(async (req: Request, res: Response) => {
+  const id = req.params.id as string; // 🔥 FIXED: Explicitly cast to string
+  await prisma.post.delete({ where: { id } });
+  res.status(204).json({ status: 'success', data: null });
+});
+
+// ==========================================
+// 4. FETCH DATACORES (ADMIN OR PUBLIC)
 // ==========================================
 export const getPosts = catchAsync(async (req: Request, res: Response) => {
+  // If request comes from public gateway, only show published. If Admin, show all.
+  const isPublic = req.baseUrl.includes('public') || !req.user || req.user.role !== 'admin';
+  
   const posts = await prisma.post.findMany({
-    where: { published: true },
+    where: isPublic ? { published: true } : {},
     orderBy: { createdAt: 'desc' },
-    // Using Capitalized 'User' and 'Category' to satisfy the strict Prisma cache
+    // 🔥 FIXED: Mapped to the exact schema relation names
     include: {
-      User: { select: { username: true } },
+      author: { select: { username: true, fullName: true, profilePic: true } },
       Category: true,
     }
   });
@@ -59,28 +93,42 @@ export const getPosts = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+// ==========================================
+// 5. FETCH SINGLE DATACORE DETAIL (VIEWING)
+// ==========================================
+export const getSinglePost = catchAsync(async (req: Request, res: Response) => {
+  const id = req.params.id as string; // 🔥 FIXED: Explicitly cast to string
+  
+  const post = await prisma.post.findUnique({
+    where: { id },
+    include: {
+      author: { select: { username: true, fullName: true, profilePic: true } }
+    }
+  });
+
+  if (!post) return res.status(404).json({ message: 'Target node not found.' });
+
+  res.status(200).json({ status: 'success', data: post });
+});
+
+// ==========================================
+// 6. VAULT TOGGLE (USER SAVE POST)
+// ==========================================
 export const toggleSavePost = catchAsync(async (req: Request, res: Response) => {
   const postId = req.params.id as string;
   const userId = req.user?.id;
 
-  if (!userId) {
-    return res.status(401).json({ message: 'Unauthorized access.' });
-  }
+  if (!userId) return res.status(401).json({ message: 'Unauthorized access.' });
 
-  // 1. Universally safe Prisma query (No nested 'where' clauses inside 'select')
   const user = await prisma.user.findUnique({
     where: { id: userId },
     include: { savedPosts: true }
   });
 
-  if (!user) {
-    return res.status(404).json({ message: 'User not found in the matrix.' });
-  }
+  if (!user) return res.status(404).json({ message: 'User not found in the matrix.' });
 
-  // 2. Manually check if the post exists in their vault
   const isAlreadySaved = user.savedPosts.some((post: any) => post.id === postId);
 
-  // 3. Toggle the Relational Connection
   if (isAlreadySaved) {
     await prisma.user.update({
       where: { id: userId },

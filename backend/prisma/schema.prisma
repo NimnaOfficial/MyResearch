@@ -8,32 +8,32 @@ datasource db {
 }
 
 model User {
-  id           String     @id @default(uuid())
+  id           String        @id @default(uuid())
   fullName     String?
   age          String?  
   phone        String?  
   profilePic   String?  
-  username     String     @unique
-  email        String     @unique
-  isVerified   Boolean    @default(false)
+  username     String        @unique
+  email        String        @unique
+  isVerified   Boolean       @default(false)
   passwordHash String
-  createdAt    DateTime   @default(now())
-  feedbacks    Feedback[] 
+  createdAt    DateTime      @default(now())
   
-  // Explicitly named relations so Prisma knows the difference
-  posts        Post[]     @relation("AuthoredPosts") 
-  savedPosts   Post[]     @relation("SavedPosts")
+  // Relations
+  feedbacks    Feedback[] 
+  posts        Post[]        @relation("AuthoredPosts") 
+  savedPosts   Post[]        @relation("SavedPosts")
+  logs         ActivityLog[]
 
-  role       String   @default("user")
+  role         String        @default("user")
+  status       String        @default("ACTIVE")
 
-  status String @default("ACTIVE")
-
+  // Telemetry
   lastIp        String?
   lastUserAgent String?
+  lastDevice    String?
   lastLogin     DateTime?
-  requestCount  Int       @default(0)
-  logs          ActivityLog[]
-  lastDevice  String?
+  requestCount  Int          @default(0)
 }
 
 model ActivityLog {
@@ -68,22 +68,24 @@ model Category {
 }
 
 model Post {
-  id         String    @id @default(uuid())
-  title      String
-  slug       String    @unique
-  content    String
-  type       String    @default("BLOG")
-  published  Boolean   @default(false)
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
+  id           String    @id @default(uuid())
+  title        String
+  slug         String    @unique
+  content      String    // Abstract / Summary (Automatically handles unlimited text in Postgres)
+  type         String    @default("Research")
+  published    Boolean   @default(false)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  heroImg      String?
+  advancedData String?   // Master Data Core (Automatically handles unlimited text in Postgres)
   
-  categoryId String?
-  Category   Category? @relation(fields: [categoryId], references: [id])
+  categoryId   String?
+  Category     Category? @relation(fields: [categoryId], references: [id])
 
   // Explicitly matching the named relations from the User model
-  authorId   String
-  author     User      @relation("AuthoredPosts", fields: [authorId], references: [id])
-  savedBy    User[]    @relation("SavedPosts")
+  authorId     String?
+  author       User?     @relation("AuthoredPosts", fields: [authorId], references: [id])
+  savedBy      User[]    @relation("SavedPosts")
 }
 
 model Release {

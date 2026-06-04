@@ -48,23 +48,6 @@ const FALLBACK_DATA = {
   }
 };
 
-// 🔥 THE FIX: Safe Markdown/HTML Parser
-const renderRichText = (text: string) => {
-  if (!text) return { __html: '' };
-  
-  let formatted = text
-    .replace(/^# (.*$)/gim, '<h1 class="text-3xl md:text-4xl font-black mt-8 mb-4 text-[#00f0ff]">$1</h1>')
-    .replace(/^## (.*$)/gim, '<h2 class="text-2xl md:text-3xl font-bold mt-6 mb-3 text-[#00ff66]">$1</h2>')
-    .replace(/^### (.*$)/gim, '<h3 class="text-xl md:text-2xl font-bold mt-5 mb-2 text-[#00ff66]">$1</h3>')
-    .replace(/\*\*(.*?)\*\*/g, '<strong class="font-black text-white">$1</strong>')
-    .replace(/\*(.*?)\*/g, '<em class="italic text-slate-300">$1</em>')
-    .replace(/~~(.*?)~~/g, '<del class="opacity-50">$1</del>')
-    .replace(/`(.*?)`/g, '<code class="bg-[#00f0ff]/10 text-[#00f0ff] px-1.5 py-0.5 rounded border border-[#00f0ff]/20 font-mono text-sm">$1</code>')
-    .replace(/\n- (.*)/g, '<li class="ml-6 list-disc mb-1">$1</li>');
-
-  return { __html: formatted };
-};
-
 function ActiveDataBackground({ isLight }: { isLight: boolean }) {
   const [nodes, setNodes] = useState<any[]>([]);
   useEffect(() => {
@@ -292,6 +275,7 @@ export default function ResearchDetailPage() {
   const [currentUserRole, setCurrentUserRole] = useState<'guest' | 'user' | 'admin'>('guest');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
+  // Scroll Tracking & Navigation Array
   const navItems = [
     { name: 'Abstract', id: 'abstract-section' },
     { name: 'Methodology', id: 'methodology-section' },
@@ -299,6 +283,9 @@ export default function ResearchDetailPage() {
     { name: 'Conclusion', id: 'conclusion-section' }
   ];
 
+  // ========================================================
+  // THE FIX: Strict State Initialization for Navigation Desync
+  // ========================================================
   useEffect(() => {
     const initMatrix = async () => {
       const token = localStorage.getItem('matrix_token');
@@ -311,6 +298,7 @@ export default function ResearchDetailPage() {
             const userJson = await res.json();
             setUserData(userJson.data);
             
+            // STRICTLY evaluate boolean state so it resets properly when changing links
             const currentlySaved = userJson.data?.savedPosts?.some((post: any) => post.id === researchId);
             setIsSaved(!!currentlySaved);
           }
@@ -393,6 +381,9 @@ export default function ResearchDetailPage() {
     }
   };
 
+  // ========================================================
+  // THE FIX: Fully Verified API Saving & Exception Handling
+  // ========================================================
   const handleToggleSave = async () => {
     const token = localStorage.getItem('matrix_token');
     
@@ -646,7 +637,7 @@ export default function ResearchDetailPage() {
              </div>
           </motion.div>
 
-          {/* 🔥 THE FIX: Abstract Section with Safe Rich Text Render */}
+          {/* Abstract Section */}
           <div id="abstract-section" className="grid grid-cols-1 xl:grid-cols-12 gap-6 md:gap-8 scroll-mt-32">
             <motion.div 
               variants={itemVariants} 
@@ -659,13 +650,7 @@ export default function ResearchDetailPage() {
                  <FileText size={20} className="text-[#00ff66]" />
                  <h3 className={`text-xs font-black uppercase tracking-[0.2em] ${textSecondary}`}>Executive Summary</h3>
                </div>
-               
-               {/* 🚀 INJECTED RICH TEXT HERE */}
-               <div 
-                 className={`text-sm md:text-base leading-relaxed font-medium relative z-10 ${textPrimary} whitespace-pre-wrap`} 
-                 dangerouslySetInnerHTML={renderRichText(data.abstract)} 
-               />
-
+               <p className={`text-sm md:text-base leading-relaxed font-medium relative z-10 ${textPrimary}`}>{data.abstract}</p>
             </motion.div>
 
             <div className="xl:col-span-5 flex flex-col gap-4">
@@ -686,7 +671,7 @@ export default function ResearchDetailPage() {
             </div>
           </div>
           
-          {/* 🔥 THE FIX: Methodology Section with Safe Rich Text Render */}
+          {/* Methodology Section */}
           <motion.div 
             id="methodology-section"
             variants={itemVariants} 
@@ -698,15 +683,10 @@ export default function ResearchDetailPage() {
                <Microscope size={22} className="text-[#00ff66]" />
                <h3 className={`text-xs md:text-sm font-black uppercase tracking-[0.2em] ${textSecondary}`}>Methodology & Framework</h3>
              </div>
-             
-             {/* 🚀 INJECTED RICH TEXT HERE */}
-             <div 
-               className={`text-base md:text-lg leading-relaxed font-medium relative z-10 ${textPrimary} whitespace-pre-wrap`} 
-               dangerouslySetInnerHTML={renderRichText(data.methodology)} 
-             />
-
+             <p className={`text-base md:text-lg leading-relaxed font-medium relative z-10 ${textPrimary}`}>{data.methodology}</p>
           </motion.div>
 
+          {/* Visual Schematics Accordion Section */}
           <motion.div id="visuals-section" variants={itemVariants} className="w-full flex flex-col mt-4 mb-4 scroll-mt-32">
             <div className="flex items-center space-x-3 mb-6 px-4">
                <ImageIcon size={18} className="text-[#00ff66]" />
@@ -715,7 +695,7 @@ export default function ResearchDetailPage() {
             <FigureAccordion figures={data.figures} isLight={isLightMode} />
           </motion.div>
 
-          {/* 🔥 THE FIX: Conclusion Section with Safe Rich Text Render */}
+          {/* Conclusion Section */}
           <motion.div 
             id="conclusion-section"
             variants={itemVariants} 
@@ -728,13 +708,7 @@ export default function ResearchDetailPage() {
                <CheckCircle size={22} className="text-[#00ff66]" />
                <h3 className={`text-xs md:text-sm font-black uppercase tracking-[0.2em] ${textSecondary}`}>Research Conclusion</h3>
              </div>
-             
-             {/* 🚀 INJECTED RICH TEXT HERE */}
-             <div 
-               className={`text-base md:text-lg leading-relaxed font-medium relative z-10 ${textPrimary} whitespace-pre-wrap`} 
-               dangerouslySetInnerHTML={renderRichText(data.conclusion)} 
-             />
-
+             <p className={`text-base md:text-lg leading-relaxed font-medium relative z-10 ${textPrimary}`}>{data.conclusion}</p>
           </motion.div>
 
         </motion.div>
@@ -753,6 +727,7 @@ export default function ResearchDetailPage() {
         </motion.div>
       </div>
 
+      {/* THE FIX: Cleared JSX Terminal Metadata Formatting */}
       <div className="w-full max-w-[1500px] mx-auto px-4 md:px-6 lg:px-12 mb-20 relative z-10 pointer-events-auto">
         <motion.div 
           initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: "-50px" }} transition={{ type: "spring", stiffness: 100 }}
@@ -825,7 +800,7 @@ export default function ResearchDetailPage() {
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0, 255, 102, 0.3); border-radius: 10px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(0, 255, 102, 0.8); }
-        html { scroll-behavior: smooth; }
+        html { scroll-behavior: smooth; } /* Fallback for native smooth scrolling */
       `}</style>
     </main>
   );

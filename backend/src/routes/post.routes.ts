@@ -1,31 +1,39 @@
 import { Router } from 'express';
-import { createPost, getPosts, toggleSavePost } from '../controllers/post.controller';
-import { requireAuth } from '../middleware/requireAuth';
-import prisma from '../config/prisma';
+import { 
+  createPost, 
+  getPosts, 
+  getSinglePost, 
+  updatePost, 
+  deletePost, 
+  toggleSavePost 
+} from '../controllers/post.controller';
+import { protect, restrictTo } from '../middleware/auth.middleware'; // Unified middleware
 import { generateResearchPDF } from '../controllers/pdf.controller';
-import { protect } from '../middleware/auth.middleware';
-
 
 const router = Router();
 
-router.get('/', async (req, res) => {
-  try {
-    const posts = await prisma.post.findMany({ orderBy: { createdAt: 'desc' } });
-    res.status(200).json({ status: 'success', data: posts });
-  } catch (error) {
-    res.status(500).json({ status: 'error', message: 'Failed to fetch data cores.' });
-  }
-});
-
-// PUBLIC ROUTE: Anyone can read published posts
+// ==========================================
+// PUBLIC GATEWAY ROUTES (No Auth Required)
+// ==========================================
 router.get('/', getPosts);
-
-// PROTECTED ROUTE: Only authenticated identities can create posts
-router.post('/', requireAuth, createPost);
-
+router.get('/:id', getSinglePost);
 router.get('/:id/pdf', generateResearchPDF);
 
-// Make sure it looks exactly like this!
+// ==========================================
+// USER PROTECTED ROUTES (Level 1 Clearance)
+// ==========================================
+// Only logged-in users can save posts to their vault
 router.post('/:id/save', protect, toggleSavePost);
+
+// ==========================================
+// ADMIN FORGE ROUTES (Level 5 Clearance)
+// ==========================================
+// Only System Admins can forge, modify, or terminate data cores
+router.use(protect);
+router.use(restrictTo('admin'));
+
+router.post('/', createPost);
+router.put('/:id', updatePost);
+router.delete('/:id', deletePost);
 
 export default router;
