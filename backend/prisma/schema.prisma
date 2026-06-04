@@ -27,6 +27,23 @@ model User {
   role       String   @default("user")
 
   status String @default("ACTIVE")
+
+  lastIp        String?
+  lastUserAgent String?
+  lastLogin     DateTime?
+  requestCount  Int       @default(0)
+  logs          ActivityLog[]
+  lastDevice  String?
+}
+
+model ActivityLog {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  action    String
+  status    String   // "OK", "WARN", "ERROR"
+  ip        String?
+  createdAt DateTime @default(now())
 }
 
 model Feedback {

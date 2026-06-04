@@ -57,7 +57,16 @@ export const getAllUsers = catchAsync(async (req: Request, res: Response) => {
       age: true,         
       phone: true,       
       profilePic: true,  
-      status: true       
+      status: true,
+      lastIp: true,
+      lastUserAgent: true,
+      lastDevice: true,
+      lastLogin: true,
+      requestCount: true,
+      logs: {
+        take: 5,
+        orderBy: { createdAt: 'desc' }
+      }       
     },
     orderBy: { createdAt: 'desc' }
   });

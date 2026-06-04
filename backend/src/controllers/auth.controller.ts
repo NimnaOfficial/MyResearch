@@ -104,6 +104,32 @@ export const loginUser = catchAsync(async (req: Request, res: Response) => {
     const isMatch = await bcrypt.compare(password, user.passwordHash);
     if (!isMatch) return res.status(401).json({ message: 'Access Denied: Invalid credentials.' });
 
+    // ==========================================
+    // 🚨 TELEMETRY TRACKER INJECTION
+    // ==========================================
+    const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'UNKNOWN_IP';
+    const userAgent = req.headers['user-agent'] || 'UNKNOWN_DEVICE';
+    const device = req.headers['user-agent'] || 'UNKNOWN';
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        lastIp: String(ip),
+        lastUserAgent: userAgent,
+        lastDevice: device,
+        lastLogin: new Date(),
+        requestCount: { increment: 1 },
+        logs: {
+          create: {
+            action: 'AUTH_HANDSHAKE_SUCCESS',
+            status: 'OK',
+            ip: String(ip)
+          }
+        }
+      }
+    });
+    // ==========================================
+
     const token = jwt.sign(
       { id: user.id, username: user.username, role: user.role },
       process.env.JWT_SECRET || 'super_secret_matrix_key_override_in_production',
@@ -143,6 +169,32 @@ export const loginUser = catchAsync(async (req: Request, res: Response) => {
   if (!user.isVerified) {
     return res.status(403).json({ message: 'Access Denied: Email has not been verified.' });
   }
+
+  // ==========================================
+    // 🚨 TELEMETRY TRACKER INJECTION
+    // ==========================================
+    const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'UNKNOWN_IP';
+    const userAgent = req.headers['user-agent'] || 'UNKNOWN_DEVICE';
+    const device = req.headers['user-agent'] || 'UNKNOWN';
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        lastIp: String(ip),
+        lastUserAgent: userAgent,
+        lastDevice: device,
+        lastLogin: new Date(),
+        requestCount: { increment: 1 },
+        logs: {
+          create: {
+            action: 'AUTH_HANDSHAKE_SUCCESS',
+            status: 'OK',
+            ip: String(ip)
+          }
+        }
+      }
+    });
+    // ==========================================
 
   const token = jwt.sign(
     { id: user.id, username: user.username, role: user.role },
