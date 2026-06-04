@@ -71,12 +71,12 @@ const RichTextEditor = ({ label, value, onChange, placeholder }: { label: string
       
       {/* Word-Style Command Bar */}
       <div className="flex items-center space-x-2 bg-[#02050A] border border-slate-800 p-2 mb-2">
-        <button type="button" onClick={() => applyFormat('**', '**')} className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded"><Bold size={14} /></button>
-        <button type="button" onClick={() => applyFormat('*', '*')} className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded"><Italic size={14} /></button>
-        <button type="button" onClick={() => applyFormat('<u>', '</u>')} className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded"><Underline size={14} /></button>
+        <button type="button" onClick={() => applyFormat('**', '**')} title="Bold" className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded"><Bold size={14} /></button>
+        <button type="button" onClick={() => applyFormat('*', '*')} title="Italic" className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded"><Italic size={14} /></button>
+        <button type="button" onClick={() => applyFormat('<u>', '</u>')} title="Underline" className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded"><Underline size={14} /></button>
         <div className="w-px h-4 bg-slate-700 mx-2" />
-        <button type="button" onClick={() => applyFormat('\\n- ', '')} className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded"><List size={14} /></button>
-        <button type="button" onClick={() => applyFormat('<p align=\"left\">', '</p>')} className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded"><AlignLeft size={14} /></button>
+        <button type="button" onClick={() => applyFormat('\\n- ', '')} title="List" className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded"><List size={14} /></button>
+        <button type="button" onClick={() => applyFormat('<p align=\"left\">', '</p>')} title="Align Left" className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded"><AlignLeft size={14} /></button>
       </div>
 
       <textarea 
@@ -350,8 +350,8 @@ export default function MasterResearchForge() {
                     </div>
 
                     <div className="col-span-2 flex justify-end items-center space-x-2 pr-2">
-                      <button onClick={() => openForge(post)} className="p-2.5 text-slate-500 hover:text-[#00f0ff] hover:bg-[#00f0ff]/10 border border-transparent hover:border-[#00f0ff]/50 transition-all opacity-0 group-hover:opacity-100"><Edit3 size={16} /></button>
-                      <button onClick={() => deleteNode(post.id)} className="p-2.5 text-slate-500 hover:text-white hover:bg-red-600 border border-transparent hover:border-red-500 transition-all opacity-0 group-hover:opacity-100"><Trash2 size={16} /></button>
+                      <button title="Edit research post" onClick={() => openForge(post)} className="p-2.5 text-slate-500 hover:text-[#00f0ff] hover:bg-[#00f0ff]/10 border border-transparent hover:border-[#00f0ff]/50 transition-all opacity-0 group-hover:opacity-100"><Edit3 size={16} /></button>
+                      <button title="Delete research post" onClick={() => deleteNode(post.id)} className="p-2.5 text-slate-500 hover:text-white hover:bg-red-600 border border-transparent hover:border-red-500 transition-all opacity-0 group-hover:opacity-100"><Trash2 size={16} /></button>
                     </div>
 
                   </motion.div>
@@ -480,7 +480,7 @@ export default function MasterResearchForge() {
                         <div className="grid grid-cols-2 gap-6">
                           <div className="bg-black border border-[#00f0ff]/30 p-6 focus-within:border-[#00ff66] transition-colors">
                             <label className="text-[10px] text-[#00f0ff] uppercase tracking-[0.3em] block mb-4 font-bold">Classification Type</label>
-                            <select value={formData.type} onChange={e => setFormData({...formData, type: e.target.value})} className="w-full bg-[#02050A] border border-slate-800 text-white p-4 text-xs font-bold tracking-widest uppercase outline-none focus:border-[#00ff66] cursor-pointer">
+                            <select value={formData.type} onChange={e => setFormData({...formData, type: e.target.value})} title="Classification Type" className="w-full bg-[#02050A] border border-slate-800 text-white p-4 text-xs font-bold tracking-widest uppercase outline-none focus:border-[#00ff66] cursor-pointer">
                               <option value="Research">Research Paper</option>
                               <option value="Project">System Project</option>
                               <option value="Documentation">Documentation</option>
@@ -535,7 +535,7 @@ export default function MasterResearchForge() {
                                 <div className="flex-1 w-full"><label className="text-[8px] text-slate-500 uppercase tracking-widest mb-1 block">Label</label><input type="text" placeholder="e.g. Clearance" value={metric.label} onChange={(e) => updateArrayItem('metrics', i, 'label', e.target.value)} className="w-full bg-[#02050A] border border-slate-800 text-white text-sm p-3 outline-none focus:border-[#00ff66]" /></div>
                                 <div className="flex-1 w-full"><label className="text-[8px] text-slate-500 uppercase tracking-widest mb-1 block">Value</label><input type="text" placeholder="e.g. Level 4" value={metric.value} onChange={(e) => updateArrayItem('metrics', i, 'value', e.target.value)} className="w-full bg-[#02050A] border border-slate-800 text-white text-sm p-3 outline-none focus:border-[#00ff66]" /></div>
                                 <div className="w-full md:w-48"><label className="text-[8px] text-slate-500 uppercase tracking-widest mb-1 block">Trend Badge</label><input type="text" placeholder="e.g. Active" value={metric.trend} onChange={(e) => updateArrayItem('metrics', i, 'trend', e.target.value)} className="w-full bg-[#02050A] border border-slate-800 text-[#00ff66] font-mono text-xs font-bold uppercase p-3 outline-none focus:border-[#00ff66]" /></div>
-                                <button type="button" onClick={() => removeArrayItem('metrics', i)} className="text-slate-600 hover:text-red-500 p-3 mt-4 md:mt-0 bg-slate-900/50 hover:bg-red-950/30 rounded border border-transparent hover:border-red-900/50 transition-colors"><Trash2 size={18} /></button>
+                                <button type="button" onClick={() => removeArrayItem('metrics', i)} title="Delete metric" className="text-slate-600 hover:text-red-500 p-3 mt-4 md:mt-0 bg-slate-900/50 hover:bg-red-950/30 rounded border border-transparent hover:border-red-900/50 transition-colors"><Trash2 size={18} /></button>
                               </motion.div>
                             ))}
                           </AnimatePresence>
