@@ -44,8 +44,19 @@ const staggerContainer = {
 
 const ultraSmoothSpring = { type: "spring" as const, stiffness: 120, damping: 20, mass: 0.8 };
 
+// 🔥 THE FIX: Syntax Sanitizer to prevent raw markdown/HTML in preview cards
+const stripMarkdown = (text: string) => {
+  if (!text) return '';
+  return text
+    .replace(/<[^>]*>?/gm, '') // Remove HTML tags
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1') // Remove markdown links but keep text
+    .replace(/([*~_`#])/g, '') // Remove formatting chars
+    .replace(/\n/g, ' ') // Remove newlines
+    .trim();
+};
+
 // ==========================================
-// BACKGROUND: ACTIVE THEME-AWARE NODES (HYDRATION FIXED)
+// BACKGROUND: ACTIVE THEME-AWARE NODES
 // ==========================================
 function ActiveDataBackground({ isLight }: { isLight: boolean }) {
   const [nodes, setNodes] = useState<any[]>([]);
@@ -201,7 +212,7 @@ export default function MasterResearchVault() {
           id: p.id,
           title: p.title,
           label: p.type || 'RESEARCH',
-          desc: p.content.length > 120 ? p.content.substring(0, 120) + '...' : p.content
+          desc: stripMarkdown(p.content).substring(0, 120) + '...' // 🔥 Sanitized Preview
         }));
         setRecentResearch(mappedRecent.length > 0 ? mappedRecent : []);
         if (mappedRecent.length > 0) setActiveRecent(mappedRecent[0].id);
@@ -227,7 +238,7 @@ export default function MasterResearchVault() {
           title: m.title,
           tech: m.type || 'RESEARCH',
           status: 'STABLE',
-          desc: (m.content || '').substring(0, 150) + '...'
+          desc: stripMarkdown(m.content || '').substring(0, 150) + '...' // 🔥 Sanitized Preview
         }));
         setAllResources(mappedAll);
 
@@ -467,7 +478,6 @@ export default function MasterResearchVault() {
                               <span className="text-xs font-mono text-[#00f0ff] mb-4 block tracking-widest uppercase">{item.label}</span>
                               <p className={`text-base mb-8 max-w-lg leading-relaxed font-light ${textSecondary}`}>{item.desc}</p>
                               
-                              {/* 🔥 THE FIX: Attached Router to "Recent Insights" button */}
                               <button 
                                 onClick={() => router.push(`/research/${item.id}`)} 
                                 className={`flex items-center text-xs font-bold uppercase tracking-widest transition-all px-6 py-3 rounded-lg group cursor-pointer ${isLightMode ? 'bg-[#00ff66]/20 text-[#00a843] hover:bg-[#00ff66] hover:text-black' : 'bg-transparent border border-[#00ff66]/50 text-[#00ff66] hover:bg-[#00ff66] hover:text-black'}`}
@@ -558,8 +568,6 @@ export default function MasterResearchVault() {
 
             <div className="flex flex-col space-y-4">
               {filteredResources.length > 0 ? filteredResources.map((res) => (
-                
-                // 🔥 THE FIX: Attached Router to the entire Directory Card
                 <motion.div 
                   key={res.id} 
                   onClick={() => router.push(`/research/${res.id}`)} 
@@ -589,7 +597,6 @@ export default function MasterResearchVault() {
                     </div>
                   </div>
                 </motion.div>
-                
               )) : (
                 <div className={`w-full py-16 flex items-center justify-center rounded-3xl border border-dashed ${isLightMode ? 'border-slate-300' : 'border-slate-800'}`}>
                   <p className={`font-mono text-sm tracking-widest uppercase ${textSecondary}`}>NO RESOURCES MATCH YOUR QUERY.</p>

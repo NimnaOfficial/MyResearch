@@ -1,51 +1,63 @@
 import { Request, Response } from 'express';
-import crypto from 'crypto';
 import prisma from '../config/prisma';
+import crypto from 'crypto';
 import { catchAsync } from '../utils/catchAsync';
 
-// ==========================================
-// LOG A NEW SOFTWARE RELEASE
-// ==========================================
 export const createRelease = catchAsync(async (req: Request, res: Response) => {
-  const { projectName, version, releaseNotes, downloadUrl } = req.body;
-  const authorId = req.user?.id; // Protected by requireAuth
+  const { projectName, version, releaseNotes, downloadUrl, heroImg, published, advancedData } = req.body;
 
-  if (!authorId) return res.status(401).json({ message: 'Unauthorized execution.' });
-  if (!projectName || !version || !downloadUrl) {
-    return res.status(400).json({ message: 'Incomplete release payload.' });
+  if (!projectName || !version || !releaseNotes) {
+    return res.status(400).json({ message: 'Incomplete payload: Project Name, Version, and Notes are required.' });
   }
-
-  const generatedId = crypto.randomUUID();
 
   const newRelease = await prisma.release.create({
     data: {
-      id: generatedId,
+      id: crypto.randomUUID(),
       projectName,
       version,
-      releaseNotes: releaseNotes || 'Standard stability updates and node optimizations.',
-      downloadUrl,
-      publishedAt: new Date(),
+      releaseNotes,
+      downloadUrl: downloadUrl || null,
+      heroImg: heroImg || null,
+      published: published || false,
+      advancedData: advancedData || null,
+      publishedAt: new Date()
     },
   });
 
-  res.status(201).json({
-    status: 'success',
-    message: 'System release deployed to the matrix.',
-    data: newRelease,
-  });
+  res.status(201).json({ status: 'success', data: newRelease });
 });
 
-// ==========================================
-// FETCH ALL SYSTEM RELEASES
-// ==========================================
-export const getReleases = catchAsync(async (req: Request, res: Response) => {
-  const releases = await prisma.release.findMany({
-    orderBy: { publishedAt: 'desc' },
+export const updateRelease = catchAsync(async (req: Request, res: Response) => {
+  const id = req.params.id as string;
+  const { projectName, version, releaseNotes, downloadUrl, heroImg, published, advancedData } = req.body;
+
+  const updatedRelease = await prisma.release.update({
+    where: { id },
+    data: { projectName, version, releaseNotes, downloadUrl, heroImg, published, advancedData }
   });
 
-  res.status(200).json({
-    status: 'success',
-    results: releases.length,
-    data: releases,
+  res.status(200).json({ status: 'success', data: updatedRelease });
+});
+
+export const deleteRelease = catchAsync(async (req: Request, res: Response) => {
+  const id = req.params.id as string;
+  await prisma.release.delete({ where: { id } });
+  res.status(204).json({ status: 'success', data: null });
+});
+
+export const getReleases = catchAsync(async (req: Request, res: Response) => {
+  const isPublic = req.baseUrl.includes('public') || !req.user || req.user.role !== 'admin';
+  const where = isPublic ? { publishedAt: { not: null as any } } : {};
+  const releases = await prisma.release.findMany({
+    where,
+    orderBy: { publishedAt: 'desc' }
   });
+  res.status(200).json({ status: 'success', results: releases.length, data: releases });
+});
+
+export const getSingleRelease = catchAsync(async (req: Request, res: Response) => {
+  const id = req.params.id as string;
+  const release = await prisma.release.findUnique({ where: { id } });
+  if (!release) return res.status(404).json({ message: 'Target node not found.' });
+  res.status(200).json({ status: 'success', data: release });
 });

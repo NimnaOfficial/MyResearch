@@ -95,4 +95,9 @@ model Release {
   releaseNotes String
   downloadUrl  String
   publishedAt  DateTime @default(now())
+  heroImg      String?
+  published    Boolean  @default(false)
+  
+  // 🔥 THE MASTER DATA CORE: Stores the stringified JSON from the Forge
+  advancedData String?
 }

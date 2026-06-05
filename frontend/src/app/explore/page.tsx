@@ -26,6 +26,17 @@ const HIDDEN_NODES = [
   { text: "OPTICAL LINK STABLE", pos: [6, 1, 1] as [number, number, number] }
 ];
 
+// 🔥 THE FIX: Syntax Sanitizer to prevent raw markdown/HTML in preview cards
+const stripMarkdown = (text: string) => {
+  if (!text) return '';
+  return text
+    .replace(/<[^>]*>?/gm, '') // Remove HTML tags
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1') // Remove markdown links but keep text
+    .replace(/([*~_`#])/g, '') // Remove formatting chars like **, ##, ~~
+    .replace(/\n/g, ' ') // Remove newlines
+    .trim();
+};
+
 // ==========================================
 // 2. MAGNETIC PHYSICS WRAPPER
 // ==========================================
@@ -114,7 +125,7 @@ export default function ExplorePage() {
   const headerOpacity = useTransform(scrollY, [0, 300], [1, 0.2]);
 
   // ==========================================
-  // LIVE DATA HYDRATION (FIXED FAKE MATH)
+  // LIVE DATA HYDRATION
   // ==========================================
   useEffect(() => {
     const fetchMatrixData = async () => {
@@ -130,7 +141,6 @@ export default function ExplorePage() {
         if (postsRes && postsRes.ok) {
           const postsJson = await postsRes.json();
           const mappedPosts = (postsJson.data || []).map((p: any) => {
-            // 🔥 THE FIX: Extracting the actual saved ratings and views from the JSON!
             let adv = {} as any;
             try { if(p.advancedData) adv = JSON.parse(p.advancedData); } catch(e) {}
             
@@ -142,7 +152,7 @@ export default function ExplorePage() {
               rating: adv.metadata?.explorerRating || (Math.random() * (5.0 - 4.2) + 4.2).toFixed(1),
               views: adv.metadata?.explorerViews || `${Math.floor(Math.random() * 10) + 1}.${Math.floor(Math.random() * 9)}k`,
               date: new Date(p.createdAt).toLocaleDateString(),
-              preview: p.content.substring(0, 120) + '...',
+              preview: stripMarkdown(p.content).substring(0, 120) + '...', // 🔥 Sanitized Preview
               status: 'Active',
               icon: Database,
               file: `research_${p.id.substring(0,4)}.md`,
@@ -163,7 +173,7 @@ export default function ExplorePage() {
             rating: (Math.random() * (5.0 - 4.5) + 4.5).toFixed(1), 
             views: `${Math.floor(Math.random() * 20) + 5}.${Math.floor(Math.random() * 9)}k`,
             date: new Date(r.publishedAt).toLocaleDateString(),
-            preview: r.releaseNotes,
+            preview: stripMarkdown(r.releaseNotes).substring(0, 120) + '...', // 🔥 Sanitized Preview
             status: 'Active',
             icon: Hexagon,
             file: `v${r.version}.sys`,

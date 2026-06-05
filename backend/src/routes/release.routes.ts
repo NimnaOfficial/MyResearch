@@ -1,22 +1,19 @@
 import { Router } from 'express';
-import { createRelease, getReleases } from '../controllers/release.controller';
-import { requireAuth } from '../middleware/requireAuth';
-import prisma from '../config/prisma';
+import { createRelease, getReleases, getSingleRelease, updateRelease, deleteRelease } from '../controllers/release.controller';
+import { protect, restrictTo } from '../middleware/auth.middleware';
 
 const router = Router();
 
-router.get('/', async (req, res) => {
-  try {
-    const releases = await prisma.release.findMany({ orderBy: { publishedAt: 'desc' } });
-    res.status(200).json({ status: 'success', data: releases });
-  } catch (error) {
-    res.status(500).json({ status: 'error', message: 'Failed to fetch pipelines.' });
-  }
-});
-// PUBLIC ROUTE: Anyone can view the software releases
+// Public Routes
 router.get('/', getReleases);
+router.get('/:id', getSingleRelease);
 
-// PROTECTED ROUTE: Only you (authenticated) can post a new release
-router.post('/', requireAuth, createRelease);
+// Secured Admin Routes
+router.use(protect);
+router.use(restrictTo('admin'));
+
+router.post('/', createRelease);
+router.put('/:id', updateRelease);
+router.delete('/:id', deleteRelease);
 
 export default router;

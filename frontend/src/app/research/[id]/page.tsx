@@ -48,7 +48,7 @@ const FALLBACK_DATA = {
   }
 };
 
-// 🔥 THE FIX: Safe Markdown/HTML Parser
+// 🔥 Safe Markdown/HTML Parser for Typography Rendering
 const renderRichText = (text: string) => {
   if (!text) return { __html: '' };
   
@@ -292,6 +292,7 @@ export default function ResearchDetailPage() {
   const [currentUserRole, setCurrentUserRole] = useState<'guest' | 'user' | 'admin'>('guest');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
+  // Scroll Tracking & Navigation Array
   const navItems = [
     { name: 'Abstract', id: 'abstract-section' },
     { name: 'Methodology', id: 'methodology-section' },
@@ -299,6 +300,9 @@ export default function ResearchDetailPage() {
     { name: 'Conclusion', id: 'conclusion-section' }
   ];
 
+  // ========================================================
+  // Initialization & Data Fetching
+  // ========================================================
   useEffect(() => {
     const initMatrix = async () => {
       const token = localStorage.getItem('matrix_token');
@@ -646,7 +650,7 @@ export default function ResearchDetailPage() {
              </div>
           </motion.div>
 
-          {/* 🔥 THE FIX: Abstract Section with Safe Rich Text Render */}
+          {/* Abstract Section */}
           <div id="abstract-section" className="grid grid-cols-1 xl:grid-cols-12 gap-6 md:gap-8 scroll-mt-32">
             <motion.div 
               variants={itemVariants} 
@@ -686,7 +690,7 @@ export default function ResearchDetailPage() {
             </div>
           </div>
           
-          {/* 🔥 THE FIX: Methodology Section with Safe Rich Text Render */}
+          {/* Methodology Section */}
           <motion.div 
             id="methodology-section"
             variants={itemVariants} 
@@ -707,6 +711,7 @@ export default function ResearchDetailPage() {
 
           </motion.div>
 
+          {/* Visual Schematics Accordion Section */}
           <motion.div id="visuals-section" variants={itemVariants} className="w-full flex flex-col mt-4 mb-4 scroll-mt-32">
             <div className="flex items-center space-x-3 mb-6 px-4">
                <ImageIcon size={18} className="text-[#00ff66]" />
@@ -715,7 +720,7 @@ export default function ResearchDetailPage() {
             <FigureAccordion figures={data.figures} isLight={isLightMode} />
           </motion.div>
 
-          {/* 🔥 THE FIX: Conclusion Section with Safe Rich Text Render */}
+          {/* Conclusion Section */}
           <motion.div 
             id="conclusion-section"
             variants={itemVariants} 
@@ -825,7 +830,7 @@ export default function ResearchDetailPage() {
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0, 255, 102, 0.3); border-radius: 10px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(0, 255, 102, 0.8); }
-        html { scroll-behavior: smooth; }
+        html { scroll-behavior: smooth; } /* Fallback for native smooth scrolling */
       `}</style>
     </main>
   );
