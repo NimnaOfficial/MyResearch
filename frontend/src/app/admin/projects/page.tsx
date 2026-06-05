@@ -7,7 +7,7 @@ import {
   Terminal, Activity, FileJson, Link as LinkIcon, 
   CheckCircle, Heading1, Heading2, Bold, Italic, Underline, Strikethrough, List, AlignLeft, Code,
   ChevronUp, ChevronDown, AlertTriangle, RefreshCw, GitCommit, Layers, Video, HelpCircle, 
-  Compass, Code2, Server, Tags, PlayCircle, FilePlus, FileEdit, Wrench, Image as ImageIcon, Loader2, Check
+  Compass, Code2, Server, Tags, PlayCircle, FolderGit2, Image as ImageIcon, Loader2, Check, GitPullRequest
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
@@ -18,6 +18,7 @@ interface Feature { title: string; desc: string; icon: string; }
 interface Stat { label: string; value: string; }
 interface TimelineEvent { date: string; event: string; desc: string; }
 interface VersionNode { version: string; date: string; notes: string; }
+interface CodeTrace { path: string; type: 'ADDED' | 'CHANGED' | 'FIXED'; }
 interface Routing { targetExplorer: boolean; targetVault: boolean; targetUpcoming: boolean; targetPrototypes: boolean; }
 
 interface ShowcaseMedia { id: string; title: string; videoUrl: string; thumbnailUrl: string; description: string; }
@@ -30,16 +31,16 @@ interface ProjectFormState {
   heroImg: string;
   published: boolean;
   
-  // 🔥 1:1 MAPPING TO VIEWER OPTION PANEL
   architecture: string;
   addedFeatures: string;
   changedUpdates: string;
   fixedBugs: string;
   executiveSummary: string;
   breakingChanges: string;
+  migrationLog: string;
   codeSnippet: string;
   
-  // ARRAYS & MEDIA
+  codeTrace: CodeTrace[];
   versionTrack: VersionNode[];
   techStack: string[];
   features: Feature[];
@@ -61,9 +62,9 @@ interface ProjectFormState {
 
 const DEFAULT_PROJECT: ProjectFormState = {
   projectName: '', version: 'v1.0.0', heroImg: 'from-[#f97316]/20 to-black', published: false,
-  architecture: '', addedFeatures: '', changedUpdates: '', fixedBugs: '', executiveSummary: '', breakingChanges: '',
+  architecture: '', addedFeatures: '', changedUpdates: '', fixedBugs: '', executiveSummary: '', breakingChanges: '', migrationLog: '',
   codeSnippet: '// Initialize core modules...\nconst init = () => {\n  console.log("System Online");\n};',
-  versionTrack: [], techStack: [], features: [], stats: [], timeline: [],
+  codeTrace: [], versionTrack: [], techStack: [], features: [], stats: [], timeline: [],
   githubUrl: '', liveUrl: '', downloadUrl: '', videoUrl: '',
   leadDev: 'SYS_ADMIN', license: 'MIT', explorerRating: '4.9', explorerViews: '15.2k', publishedAt: new Date().toISOString().split('T')[0],
   routing: { targetExplorer: true, targetVault: true, targetUpcoming: false, targetPrototypes: true }
@@ -166,19 +167,13 @@ export default function MasterProjectForge() {
       if(!token) return router.push('/auth');
 
       const resProj = await fetch('http://localhost:5000/api/releases', { headers: { 'Authorization': `Bearer ${token}` } });
-      if (resProj.ok) {
-        const json = await resProj.json();
-        // Force filter to ensure only Projects/Releases show here
-        const filteredData = (json.data || []).filter((r: any) => !r.type || r.type === 'Project');
-        setProjects(filteredData);
-      }
+      if (resProj.ok) setProjects((await resProj.json()).data || []);
 
-      // Showcase Media & FAQs
-      const resMedia = await fetch('http://localhost:5000/api/showcase').catch(() => null);
-      if (resMedia && resMedia.ok) setMediaList((await resMedia.json()).data || []);
+      const resMedia = await fetch('http://localhost:5000/api/showcase', { headers: { 'Authorization': `Bearer ${token}` } });
+      if (resMedia.ok) setMediaList((await resMedia.json()).data || []);
       
-      const resFaq = await fetch('http://localhost:5000/api/faqs').catch(() => null);
-      if (resFaq && resFaq.ok) setFaqList((await resFaq.json()).data || []);
+      const resFaq = await fetch('http://localhost:5000/api/faqs', { headers: { 'Authorization': `Bearer ${token}` } });
+      if (resFaq.ok) setFaqList((await resFaq.json()).data || []);
 
     } catch (err) {
       console.error("Network Failure");
@@ -216,8 +211,8 @@ export default function MasterProjectForge() {
         id: release.id,
         projectName: release.projectName || '',
         version: release.version || '',
-        heroImg: (advanced as any).heroImg || 'from-[#f97316]/20 to-black',
-        published: (advanced as any).published || false,
+        heroImg: release.heroImg || (advanced as any).heroImg || 'from-[#f97316]/20 to-black',
+        published: release.published ?? (advanced as any).published ?? false,
         
         architecture: (advanced as any).architecture || '',
         addedFeatures: (advanced as any).addedFeatures || '',
@@ -225,8 +220,10 @@ export default function MasterProjectForge() {
         fixedBugs: (advanced as any).fixedBugs || '',
         executiveSummary: (advanced as any).executiveSummary || release.releaseNotes || '',
         breakingChanges: (advanced as any).breakingChanges || '',
+        migrationLog: (advanced as any).migrationLog || '',
         codeSnippet: (advanced as any).codeSnippet || '',
         
+        codeTrace: (advanced as any).codeTrace || [],
         versionTrack: (advanced as any).versionTrack || [],
         techStack: (advanced as any).techStack || [],
         features: (advanced as any).features || [],
@@ -252,12 +249,12 @@ export default function MasterProjectForge() {
     setIsForgeOpen(true);
   };
 
-  const openMediaForge = (media?: any) => { setMediaForm(media ? { ...media } : { ...DEFAULT_MEDIA, id: Date.now().toString() }); setIsForgeOpen(true); };
-  const openFaqForge = (faq?: any) => { setFaqForm(faq ? { ...faq } : { ...DEFAULT_FAQ, id: Date.now().toString() }); setIsForgeOpen(true); };
+  const openMediaForge = (media?: any) => { setMediaForm(media ? { ...media } : { title: '', videoUrl: '', thumbnailUrl: '', description: '' } as any); setIsForgeOpen(true); };
+  const openFaqForge = (faq?: any) => { setFaqForm(faq ? { ...faq } : { query: '', response: '' } as any); setIsForgeOpen(true); };
   const closeForge = () => setIsForgeOpen(false);
 
   // ==========================================
-  // DATABASE EXECUTION (SAVE/DELETE)
+  // API EXECUTIONS (SAVE/DELETE)
   // ==========================================
   const saveProject = async () => {
     if (!projectForm.projectName || !projectForm.version) {
@@ -270,31 +267,29 @@ export default function MasterProjectForge() {
     const payload = {
       projectName: projectForm.projectName,
       version: projectForm.version,
-      releaseNotes: projectForm.executiveSummary,
+      releaseNotes: projectForm.executiveSummary, // Mapped automatically
       downloadUrl: projectForm.downloadUrl,
+      heroImg: projectForm.heroImg,
+      published: projectForm.published,
       publishedAt: projectForm.publishedAt ? new Date(projectForm.publishedAt).toISOString() : new Date().toISOString(),
       advancedData: JSON.stringify({
-        heroImg: projectForm.heroImg,
-        published: projectForm.published,
-        
         architecture: projectForm.architecture,
         addedFeatures: projectForm.addedFeatures,
         changedUpdates: projectForm.changedUpdates,
         fixedBugs: projectForm.fixedBugs,
         executiveSummary: projectForm.executiveSummary,
         breakingChanges: projectForm.breakingChanges,
+        migrationLog: projectForm.migrationLog,
         codeSnippet: projectForm.codeSnippet,
-        
+        codeTrace: projectForm.codeTrace,
         versionTrack: projectForm.versionTrack,
         techStack: projectForm.techStack,
         features: projectForm.features,
         stats: projectForm.stats,
         timeline: projectForm.timeline,
-        
         githubUrl: projectForm.githubUrl,
         liveUrl: projectForm.liveUrl,
         videoUrl: projectForm.videoUrl,
-        
         leadDev: projectForm.leadDev,
         license: projectForm.license,
         explorerRating: projectForm.explorerRating,
@@ -327,27 +322,56 @@ export default function MasterProjectForge() {
     } catch (err) { alert("Network Failure"); }
   };
 
-  // Mock Saves for Media/FAQ
-  const saveMedia = () => {
-    setMediaList(prev => { const exists = prev.find(m => m.id === mediaForm.id); if (exists) return prev.map(m => m.id === mediaForm.id ? mediaForm : m); return [mediaForm, ...prev]; });
-    setIsForgeOpen(false);
+  const saveMedia = async () => {
+    setActionLoading(true);
+    try {
+      const token = localStorage.getItem('matrix_token');
+      const url = mediaForm.id ? `http://localhost:5000/api/showcase/${mediaForm.id}` : 'http://localhost:5000/api/showcase';
+      const method = mediaForm.id ? 'PUT' : 'POST';
+      const payload = { title: mediaForm.title, videoUrl: mediaForm.videoUrl, thumbnailUrl: mediaForm.thumbnailUrl, description: mediaForm.description };
+      const res = await fetch(url, { method, headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      if (res.ok) { await fetchAllData(); setIsForgeOpen(false); } else { alert("Media Sync Failed."); }
+    } catch (err) { alert("Network Error."); } finally { setActionLoading(false); }
   };
-  const deleteMedia = (id: string) => setMediaList(prev => prev.filter(m => m.id !== id));
+
+  const deleteMedia = async (id: string) => {
+    if (!confirm("Delete Showcase Media?")) return;
+    try {
+      const token = localStorage.getItem('matrix_token');
+      const res = await fetch(`http://localhost:5000/api/showcase/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
+      if (res.ok) setMediaList(prev => prev.filter(m => m.id !== id));
+    } catch (err) { alert("Network Error."); }
+  };
   
-  const saveFaq = () => {
-    setFaqList(prev => { const exists = prev.find(f => f.id === faqForm.id); if (exists) return prev.map(f => f.id === faqForm.id ? faqForm : f); return [faqForm, ...prev]; });
-    setIsForgeOpen(false);
+  const saveFaq = async () => {
+    setActionLoading(true);
+    try {
+      const token = localStorage.getItem('matrix_token');
+      const url = faqForm.id ? `http://localhost:5000/api/faqs/${faqForm.id}` : 'http://localhost:5000/api/faqs';
+      const method = faqForm.id ? 'PUT' : 'POST';
+      const payload = { query: faqForm.query, response: faqForm.response };
+      const res = await fetch(url, { method, headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      if (res.ok) { await fetchAllData(); setIsForgeOpen(false); } else { alert("FAQ Sync Failed."); }
+    } catch (err) { alert("Network Error."); } finally { setActionLoading(false); }
   };
-  const deleteFaq = (id: string) => setFaqList(prev => prev.filter(f => f.id !== id));
+
+  const deleteFaq = async (id: string) => {
+    if (!confirm("Delete System Query?")) return;
+    try {
+      const token = localStorage.getItem('matrix_token');
+      const res = await fetch(`http://localhost:5000/api/faqs/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
+      if (res.ok) setFaqList(prev => prev.filter(f => f.id !== id));
+    } catch (err) { alert("Network Error."); }
+  };
 
   // ==========================================
   // DYNAMIC MUTATORS
   // ==========================================
-  const addArrayItem = (field: 'features' | 'stats' | 'timeline' | 'versionTrack', defaultItem: any) => setProjectForm(prev => ({ ...prev, [field]: [...prev[field], defaultItem] }));
-  const updateArrayItem = (field: 'features' | 'stats' | 'timeline' | 'versionTrack', index: number, key: string, value: string) => setProjectForm(prev => { const newArr = [...prev[field]]; (newArr[index] as any)[key] = value; return { ...prev, [field]: newArr }; });
-  const removeArrayItem = (field: 'features' | 'stats' | 'timeline' | 'versionTrack', index: number) => setProjectForm(prev => ({ ...prev, [field]: prev[field].filter((_, i) => i !== index) }));
+  const addArrayItem = (field: 'features' | 'stats' | 'timeline' | 'versionTrack' | 'codeTrace', defaultItem: any) => setProjectForm(prev => ({ ...prev, [field]: [...prev[field], defaultItem] }));
+  const updateArrayItem = (field: 'features' | 'stats' | 'timeline' | 'versionTrack' | 'codeTrace', index: number, key: string, value: string) => setProjectForm(prev => { const newArr = [...prev[field]]; (newArr[index] as any)[key] = value; return { ...prev, [field]: newArr }; });
+  const removeArrayItem = (field: 'features' | 'stats' | 'timeline' | 'versionTrack' | 'codeTrace', index: number) => setProjectForm(prev => ({ ...prev, [field]: prev[field].filter((_, i) => i !== index) }));
   
-  const moveArrayItem = (field: 'features' | 'stats' | 'timeline' | 'versionTrack', index: number, direction: 'up' | 'down') => {
+  const moveArrayItem = (field: 'features' | 'stats' | 'timeline' | 'versionTrack' | 'codeTrace', index: number, direction: 'up' | 'down') => {
     setProjectForm(prev => {
       const arr = [...prev[field]];
       if (direction === 'up' && index > 0) { [arr[index - 1], arr[index]] = [arr[index], arr[index - 1]]; } 
@@ -370,8 +394,7 @@ export default function MasterProjectForge() {
   // ==========================================
   const filteredProjects = useMemo(() => projects.filter(p => {
     const matchesSearch = p.projectName.toLowerCase().includes(searchTerm.toLowerCase()) || p.version.toLowerCase().includes(searchTerm.toLowerCase());
-    let pubStatus = false;
-    try { if (p.advancedData) pubStatus = JSON.parse(p.advancedData).published; } catch(e) {}
+    const pubStatus = p.published;
     const matchesStatus = filterStatus === 'ALL' || (filterStatus === 'PUBLISHED' && pubStatus) || (filterStatus === 'DRAFT' && !pubStatus);
     return matchesSearch && matchesStatus;
   }), [projects, searchTerm, filterStatus]);
@@ -494,8 +517,7 @@ export default function MasterProjectForge() {
                 <div className="space-y-3 pb-24">
                   <AnimatePresence>
                     {filteredProjects.map((p) => {
-                      let pubStatus = false;
-                      try { if (p.advancedData) pubStatus = JSON.parse(p.advancedData).published; } catch(e) {}
+                      const pubStatus = p.published;
 
                       return (
                         <motion.div layout initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, scale: 0.95 }} key={p.id} className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-center p-4 bg-[#180d08]/90 backdrop-blur-md border border-[#f97316]/20 hover:border-[#f97316]/70 transition-all duration-300 group [clip-path:polygon(0_0,100%_0,100%_calc(100%-15px),calc(100%-15px)_100%,0_100%)]">
@@ -528,6 +550,7 @@ export default function MasterProjectForge() {
                       )
                     })}
                   </AnimatePresence>
+                  {filteredProjects.length === 0 && <div className="py-16 text-center border border-dashed border-[#f97316]/30"><p className="text-slate-500 font-mono text-sm tracking-widest uppercase">NO DATA CORES DETECTED.</p></div>}
                 </div>
               </>
             )}
@@ -607,7 +630,7 @@ export default function MasterProjectForge() {
                     { id: 'ROUTING', icon: Compass, label: 'Display Routing' }, 
                     { id: 'IDENTITY', icon: Activity, label: 'Core Identity' }, 
                     { id: 'DOCUMENTATION', icon: FileText, label: 'Documentation' }, 
-                    { id: 'CHANGELOG', icon: GitCommit, label: 'Changelogs (Add/Change/Fix)' },
+                    { id: 'CHANGELOG', icon: GitPullRequest, label: 'Changelog Details' },
                     { id: 'ARCHITECTURE', icon: Code2, label: 'System Architecture' },
                     { id: 'MEDIA', icon: PlayCircle, label: 'Media & Repos' }, 
                     { id: 'ARRAYS', icon: Server, label: 'Dynamic Arrays' },
@@ -766,7 +789,8 @@ export default function MasterProjectForge() {
                       {activeProjectTab === 'DOCUMENTATION' && (
                         <motion.div key="documentation" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-8">
                           <RichTextEditor label="Executive Summary" value={projectForm.executiveSummary} onChange={(val) => setProjectForm({...projectForm, executiveSummary: val})} placeholder="Provide a high-level technical overview of this release..." />
-                          <RichTextEditor label="Breaking Changes / Migration" value={projectForm.breakingChanges} onChange={(val) => setProjectForm({...projectForm, breakingChanges: val})} placeholder="Detail database migrations, deprecated API endpoints, and breaking changes..." />
+                          <RichTextEditor label="Breaking Changes" value={projectForm.breakingChanges} onChange={(val) => setProjectForm({...projectForm, breakingChanges: val})} placeholder="Detail deprecated APIs and breaking changes..." />
+                          <RichTextEditor label="Migration Manifest" value={projectForm.migrationLog} onChange={(val) => setProjectForm({...projectForm, migrationLog: val})} placeholder="Provide exact steps to migrate to this version..." />
                         </motion.div>
                       )}
 
@@ -821,6 +845,34 @@ export default function MasterProjectForge() {
                       {/* ARRAYS TAB */}
                       {activeProjectTab === 'ARRAYS' && (
                         <motion.div key="arrays" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-12">
+                          
+                          {/* Code Trace Directory Builder */}
+                          <div>
+                            <div className="flex items-center justify-between border-b border-[#f97316]/30 pb-4 mb-6">
+                              <p className="text-lg text-[#f97316] font-black uppercase tracking-widest">Code Trace Directory</p>
+                              <button title="Add Trace" aria-label="Add Trace" onClick={() => addArrayItem('codeTrace', { path: '', type: 'ADDED' })} className="text-[#fb923c] text-xs font-black uppercase tracking-widest hover:text-white hover:bg-[#f97316]/20 flex items-center bg-[#f97316]/10 px-4 py-2 border border-[#f97316]/30 [clip-path:polygon(0_0,100%_0,100%_calc(100%-8px),calc(100%-8px)_100%,0_100%)]"><Plus size={14} className="mr-2" /> Inject Path</button>
+                            </div>
+                            <div className="space-y-4">
+                              <AnimatePresence>
+                                {projectForm.codeTrace.map((trace, i) => (
+                                  <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} key={i} className="flex flex-col md:flex-row gap-4 items-center bg-[#180d08] border border-[#f97316]/30 p-4 [clip-path:polygon(0_0,100%_0,100%_calc(100%-15px),calc(100%-15px)_100%,0_100%)]">
+                                    <div className="flex-1 w-full">
+                                      <input type="text" placeholder="SOURCE PATH (e.g. src/api/engine.ts)" title="Path" aria-label="Path" value={trace.path} onChange={(e) => updateArrayItem('codeTrace', i, 'path', e.target.value)} className="w-full bg-[#0c0604] border border-[#f97316]/20 text-white font-mono text-sm tracking-widest p-4 outline-none focus:border-[#f97316] [clip-path:polygon(0_0,100%_0,100%_calc(100%-8px),calc(100%-8px)_100%,0_100%)]" />
+                                    </div>
+                                    <div className="w-48 shrink-0">
+                                      <select title="Trace Type" aria-label="Trace Type" value={trace.type} onChange={(e) => updateArrayItem('codeTrace', i, 'type', e.target.value)} className="w-full bg-[#0c0604] border border-[#f97316]/20 text-[#fb923c] font-mono text-xs font-bold uppercase tracking-widest p-4 outline-none focus:border-[#f97316] cursor-pointer [clip-path:polygon(0_0,100%_0,100%_calc(100%-8px),calc(100%-8px)_100%,0_100%)]">
+                                        <option value="ADDED">[+] ADDED</option>
+                                        <option value="CHANGED">[*] CHANGED</option>
+                                        <option value="FIXED">[-] FIXED</option>
+                                      </select>
+                                    </div>
+                                    <button title="Delete Trace" aria-label="Delete Trace" onClick={() => removeArrayItem('codeTrace', i)} className="text-[#f97316]/50 hover:text-red-500 px-4 py-4 md:py-0 h-full bg-[#0c0604] border border-[#f97316]/20 hover:border-red-900/50 transition-colors [clip-path:polygon(0_0,100%_0,100%_calc(100%-8px),calc(100%-8px)_100%,0_100%)]"><Trash2 size={18} /></button>
+                                  </motion.div>
+                                ))}
+                              </AnimatePresence>
+                              {projectForm.codeTrace.length === 0 && <p className="text-slate-600 font-mono text-xs tracking-widest uppercase py-10 text-center">NO CODE TRACES INITIALIZED.</p>}
+                            </div>
+                          </div>
                           
                           {/* Tech Stack Tag Builder */}
                           <div>

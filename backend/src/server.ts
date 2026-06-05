@@ -6,6 +6,8 @@ import { errorHandler } from './middleware/errorHandler';
 import authRoutes from './routes/auth.routes';
 import postRoutes from './routes/post.routes';
 import releaseRoutes from './routes/release.routes';
+import showcaseRoutes from './routes/showcase.routes';
+import faqRoutes from './routes/faq.routes';
 
 dotenv.config();
 
@@ -51,6 +53,8 @@ app.use(errorHandler);
 app.use('/api/auth', authRoutes);
 app.use('/api/posts', postRoutes);
 app.use('/api/releases', releaseRoutes);
+app.use('/api/showcase', showcaseRoutes);
+app.use('/api/faqs', faqRoutes);
 
 const PORT = parseInt(process.env.PORT || '5000', 10);
 

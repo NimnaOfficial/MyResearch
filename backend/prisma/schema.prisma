@@ -4,36 +4,39 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  // The 'url' property is removed here for Prisma 7 compatibility
+  // The 'url' property is removed here for Prisma 7 compatibility (ensure it's in your .env)
 }
 
+// ==========================================
+// SYSTEM USERS & IDENTITIES
+// ==========================================
 model User {
-  id           String        @id @default(uuid())
-  fullName     String?
-  age          String?  
-  phone        String?  
-  profilePic   String?  
-  username     String        @unique
-  email        String        @unique
-  isVerified   Boolean       @default(false)
-  passwordHash String
-  createdAt    DateTime      @default(now())
+  id            String        @id @default(uuid())
+  fullName      String?
+  age           String?  
+  phone         String?  
+  profilePic    String?  
+  username      String        @unique
+  email         String        @unique
+  isVerified    Boolean       @default(false)
+  passwordHash  String
+  createdAt     DateTime      @default(now())
   
   // Relations
-  feedbacks    Feedback[] 
-  posts        Post[]        @relation("AuthoredPosts") 
-  savedPosts   Post[]        @relation("SavedPosts")
-  logs         ActivityLog[]
+  feedbacks     Feedback[] 
+  posts         Post[]        @relation("AuthoredPosts") 
+  savedPosts    Post[]        @relation("SavedPosts")
+  logs          ActivityLog[]
 
-  role         String        @default("user")
-  status       String        @default("ACTIVE")
+  role          String        @default("user")
+  status        String        @default("ACTIVE")
 
   // Telemetry
   lastIp        String?
   lastUserAgent String?
   lastDevice    String?
   lastLogin     DateTime?
-  requestCount  Int          @default(0)
+  requestCount  Int           @default(0)
 }
 
 model ActivityLog {
@@ -60,6 +63,9 @@ model Feedback {
   user        User?    @relation(fields: [userId], references: [id])
 }
 
+// ==========================================
+// RESEARCH MATRIX (DATA CORES)
+// ==========================================
 model Category {
   id    String @id @default(uuid())
   name  String
@@ -71,33 +77,67 @@ model Post {
   id           String    @id @default(uuid())
   title        String
   slug         String    @unique
-  content      String    // Abstract / Summary (Automatically handles unlimited text in Postgres)
+  content      String    // Abstract / Summary 
   type         String    @default("Research")
   published    Boolean   @default(false)
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
   heroImg      String?
-  advancedData String?   // Master Data Core (Automatically handles unlimited text in Postgres)
+  
+  // The Master Data Core JSON Payload
+  advancedData String?   
   
   categoryId   String?
   Category     Category? @relation(fields: [categoryId], references: [id])
 
-  // Explicitly matching the named relations from the User model
   authorId     String?
   author       User?     @relation("AuthoredPosts", fields: [authorId], references: [id])
   savedBy      User[]    @relation("SavedPosts")
 }
 
+// ==========================================
+// PROJECT RELEASES (ARCHITECTURE VAULT)
+// ==========================================
 model Release {
   id           String   @id @default(uuid())
   projectName  String
   version      String
   releaseNotes String
-  downloadUrl  String
-  publishedAt  DateTime @default(now())
+  downloadUrl  String?  // Made optional: Not all projects have downloadable ZIPs
   heroImg      String?
   published    Boolean  @default(false)
   
-  // 🔥 THE MASTER DATA CORE: Stores the stringified JSON from the Forge
+  // The Master Data Core JSON Payload
   advancedData String?
+  
+  // Standard Lifecycle Tracking
+  publishedAt  DateTime @default(now())
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @default(now()) @updatedAt
+}
+
+// ==========================================
+// SYSTEM QUERIES FORGE (FAQs)
+// ==========================================
+model Faq {
+  id           String   @id @default(uuid())
+  query        String
+  response     String
+  
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+// ==========================================
+// SHOWCASE MEDIA FORGE
+// ==========================================
+model Showcase {
+  id           String   @id @default(uuid())
+  title        String
+  videoUrl     String
+  thumbnailUrl String?
+  description  String?
+  
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
