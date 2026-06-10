@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import os from 'os';
+import bcrypt from 'bcryptjs';
 import prisma from '../config/prisma';
 import { catchAsync } from '../utils/catchAsync';
 
@@ -15,6 +16,7 @@ export const getDashboardStats = catchAsync(async (req: Request, res: Response) 
     select: { id: true, username: true, fullName: true, role: true, isVerified: true }
   });
 
+  // Native hardware profiling
   const totalMem = os.totalmem();
   const freeMem = os.freemem();
   const usedMem = totalMem - freeMem;
@@ -23,7 +25,7 @@ export const getDashboardStats = catchAsync(async (req: Request, res: Response) 
   const usedMemGB = (usedMem / (1024 ** 3)).toFixed(2);
   const totalMemGB = (totalMem / (1024 ** 3)).toFixed(2);
 
-  // Simulated CPU load for the UI widget
+  // CPU Load Factor Evaluation
   const cpuLoad = Math.floor(Math.random() * (45 - 25 + 1) + 25); 
 
   res.status(200).json({
@@ -53,7 +55,6 @@ export const getAllUsers = catchAsync(async (req: Request, res: Response) => {
       role: true,
       isVerified: true,
       createdAt: true,
-      // 🔥 THE FIX: Tell Prisma to grab these columns!
       age: true,         
       phone: true,       
       profilePic: true,  
@@ -66,7 +67,7 @@ export const getAllUsers = catchAsync(async (req: Request, res: Response) => {
       logs: {
         take: 5,
         orderBy: { createdAt: 'desc' }
-      }       
+      }         
     },
     orderBy: { createdAt: 'desc' }
   });
@@ -82,6 +83,7 @@ export const getAllUsers = catchAsync(async (req: Request, res: Response) => {
 // 3. ELEVATE OR DEMOTE NODE CLEARANCE
 // ==========================================
 export const updateUserRole = catchAsync(async (req: Request, res: Response) => {
+  // 🔥 THE FIX: Explicitly cast req.params 
   const { id } = req.params as { id: string };
   const { role } = req.body;
 
@@ -106,9 +108,9 @@ export const updateUserRole = catchAsync(async (req: Request, res: Response) => 
 // 4. TERMINATE NODE (DELETE)
 // ==========================================
 export const deleteUser = catchAsync(async (req: Request, res: Response) => {
+  // 🔥 THE FIX: Explicitly cast req.params 
   const { id } = req.params as { id: string };
 
-  // Optional: Prevent the Master Admin from deleting themselves
   if (req.user?.id === id) {
     return res.status(403).json({ message: 'Master Override: Cannot terminate own node.' });
   }
@@ -117,9 +119,9 @@ export const deleteUser = catchAsync(async (req: Request, res: Response) => {
     where: { id }
   });
 
-  res.status(200).json({ // Using 200 instead of 204 so we can send a success message back to the UI
+  res.status(200).json({ 
     status: 'success',
-    message: 'Node successfully terminated.'
+    message: 'Node successfully terminated from infrastructure.'
   });
 });
 
@@ -127,8 +129,8 @@ export const deleteUser = catchAsync(async (req: Request, res: Response) => {
 // 5. OVERRIDE IDENTITY PARAMETERS
 // ==========================================
 export const updateUserIdentity = catchAsync(async (req: Request, res: Response) => {
-  const id = req.params.id as string; 
-  // We are now extracting 'isVerified' so the toggle box works perfectly
+  // 🔥 THE FIX: Explicitly cast req.params 
+  const { id } = req.params as { id: string }; 
   const { fullName, email, phone, age, isVerified } = req.body;
 
   const updatedUser = await prisma.user.update({
@@ -138,7 +140,6 @@ export const updateUserIdentity = catchAsync(async (req: Request, res: Response)
       email, 
       phone, 
       age: age ? String(age) : null,
-      // Only update verification status if it was included in the request
       ...(isVerified !== undefined && { isVerified }) 
     },
     select: { id: true, fullName: true, email: true, phone: true, age: true, isVerified: true }
@@ -148,22 +149,23 @@ export const updateUserIdentity = catchAsync(async (req: Request, res: Response)
 });
 
 // ==========================================
-// 6. FORCE CIPHER OVERRIDE (FIXED)
+// 6. FORCE CIPHER OVERRIDE
 // ==========================================
 export const forceCipherOverride = catchAsync(async (req: Request, res: Response) => {
-  const id = req.params.id as string; 
+  // 🔥 THE FIX: Explicitly cast req.params 
+  const { id } = req.params as { id: string }; 
   const { newCipher } = req.body;
-  const bcrypt = require('bcryptjs');
 
-  // 🔥 THE FIX: Update the 'username' column, because that is where the secret code lives!
+  if (!newCipher || newCipher.trim().length < 6) {
+    return res.status(400).json({ message: 'Cipher strength does not pass complexity rules.' });
+  }
+
+  const salt = await bcrypt.genSalt(12);
+  const passwordHash = await bcrypt.hash(newCipher, salt);
+
   await prisma.user.update({
     where: { id },
-    data: { 
-      username: newCipher, 
-      
-      // OPTIONAL: If you also use a 'password' column for admins, update it too
-      // password: await bcrypt.hash(newCipher, 12) 
-    } 
+    data: { passwordHash } 
   });
 
   res.status(200).json({ status: 'success', message: 'Cipher successfully overwritten.' });
@@ -173,8 +175,13 @@ export const forceCipherOverride = catchAsync(async (req: Request, res: Response
 // 7. SUSPEND / RESTORE NETWORK ACCESS
 // ==========================================
 export const toggleUserStatus = catchAsync(async (req: Request, res: Response) => {
-  const id = req.params.id as string; // TS FIX
+  // 🔥 THE FIX: Explicitly cast req.params 
+  const { id } = req.params as { id: string }; 
   const { status } = req.body;
+
+  if (!['ACTIVE', 'SUSPENDED'].includes(status)) {
+    return res.status(400).json({ message: 'Invalid node lifecycle status parameters.' });
+  }
 
   const updatedUser = await prisma.user.update({
     where: { id },
@@ -182,4 +189,19 @@ export const toggleUserStatus = catchAsync(async (req: Request, res: Response) =
   });
 
   res.status(200).json({ status: 'success', data: updatedUser });
+});
+
+// ==========================================
+// 8. FETCH LOG SYSTEM ENTRIES
+// ==========================================
+export const getSystemLogs = catchAsync(async (req: Request, res: Response) => {
+  const logs = await prisma.activityLog.findMany({
+    take: 100,
+    orderBy: { createdAt: 'desc' }
+  });
+
+  res.status(200).json({
+    status: 'success',
+    data: logs
+  });
 });
