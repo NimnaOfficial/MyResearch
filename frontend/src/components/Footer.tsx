@@ -113,21 +113,29 @@ export default function Footer({ isLight = false, currentRole = 'guest' }: Foote
             Establish a direct secure link across global networks.
           </p>
           <div className="flex space-x-4 pt-2">
-            {[Terminal, Network, Globe, Mail].map((Icon, idx) => (
-              <motion.a
-                key={idx}
-                whileHover={{ y: -5, scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-                className={`p-3 rounded-xl border backdrop-blur-md transition-colors duration-300 cursor-pointer ${
-                  isLight 
-                    ? 'border-slate-300 bg-white hover:border-blue-500 hover:text-blue-600 text-slate-500 shadow-sm' 
-                    : 'border-cyan-900/50 bg-[#030b1c]/50 hover:border-cyan-400 hover:text-cyan-400 text-slate-400 shadow-[0_0_15px_rgba(34,211,238,0.05)]'
-                }`}
-              >
-                <Icon size={20} />
-              </motion.a>
-            ))}
-          </div>
+  {[
+    { Icon: Terminal, url: "https://github.com/NimnaOfficial" },
+    { Icon: Network, url: "https://www.linkedin.com/in/sandanimne-k-g-l-a276aa34a" },
+    { Icon: Globe, url: "https://nimnaofficial.github.io/My-Portfolio/" },
+    { Icon: Mail, url: "mailto:sandanimne01@gmail.com" }
+  ].map(({ Icon, url }, idx) => (
+    <motion.a
+      key={idx}
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      whileHover={{ y: -5, scale: 1.1 }}
+      whileTap={{ scale: 0.9 }}
+      className={`p-3 rounded-xl border backdrop-blur-md transition-colors duration-300 cursor-pointer ${
+        isLight 
+          ? 'border-slate-300 bg-white hover:border-blue-500 hover:text-blue-600 text-slate-500 shadow-sm' 
+          : 'border-cyan-900/50 bg-[#030b1c]/50 hover:border-cyan-400 hover:text-cyan-400 text-slate-400 shadow-[0_0_15px_rgba(34,211,238,0.05)]'
+      }`}
+    >
+      <Icon size={20} />
+    </motion.a>
+  ))}
+</div>
         </div>
       </div>
 

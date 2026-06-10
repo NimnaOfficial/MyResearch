@@ -21,77 +21,95 @@ export default function AdminDashboard() {
   // LIVE DATA STATES
   const [adminProfile, setAdminProfile] = useState<any>(null);
   const [dashData, setDashData] = useState<DashboardData | null>(null);
+  const [liveTraffic, setLiveTraffic] = useState<{id: string, time: string, endpoint: string, status: string}[]>([]);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [envData, setEnvData] = useState({ status: 'PENDING', ping: '...', dbPing: '...' });
+  
   const [isLoading, setIsLoading] = useState(true);
   const [countdown, setCountdown] = useState({ h: 14, m: 32, s: 59 });
 
-  // REAL-TIME HISTORY STATES (Pre-filled so graphs look alive instantly)
+  // REAL-TIME HISTORY STATES (Pre-filled to establish graph base)
   const [hardwareHistory, setHardwareHistory] = useState<{cpu: number, ram: number}[]>(
-    Array(15).fill(0).map(() => ({ cpu: 20 + Math.random() * 10, ram: 45 + Math.random() * 5 }))
+    Array(15).fill(0).map(() => ({ cpu: 0, ram: 0 }))
   );
-  const [liveTraffic, setLiveTraffic] = useState<{id: string, req: number, endpoint: string}[]>([]);
 
   // POPUP PANEL STATES
   const [activeModal, setActiveModal] = useState<'NONE' | 'OVERRIDE' | 'ENVIRONMENTS' | 'NOTIFICATIONS'>('NONE');
   const [isExecuting, setIsExecuting] = useState(false);
 
-  // GLOBAL NOTIFICATION LISTENER
-  useEffect(() => {
-    const triggerNotif = () => setActiveModal(prev => prev === 'NOTIFICATIONS' ? 'NONE' : 'NOTIFICATIONS');
-    window.addEventListener('open-notifications', triggerNotif);
-    return () => window.removeEventListener('open-notifications', triggerNotif);
-  }, []);
-
   // 1. NEURAL LINK (LIVE POLLING ENGINE)
   useEffect(() => {
+    let isMounted = true;
+
     const fetchMatrixData = async () => {
       const token = localStorage.getItem('matrix_token');
       if (!token) return router.push('/auth');
 
       try {
         if (!adminProfile) {
-          const meRes = await fetch('http://localhost:5000/api/auth/me', { headers: { Authorization: `Bearer ${token}` } });
-          if (meRes.ok) setAdminProfile((await meRes.json()).data);
+          const meRes = await fetch('http://localhost:5000/api/auth/me', { headers: { Authorization: `Bearer ${token}` } }).catch(()=>null);
+          if (meRes && meRes.ok) setAdminProfile((await meRes.json()).data);
         }
 
-        // 🔥 THE FIX: Corrected the endpoint URL to exactly match your backend router!
-        const statsRes = await fetch('http://localhost:5000/api/admin/dashboard', { headers: { Authorization: `Bearer ${token}` } });
-        
-        if (statsRes.ok) {
+        // Parallel Fetch for Absolute Zero Latency
+        const startPing = Date.now();
+        const [statsRes, logsRes, fbRes, healthRes] = await Promise.all([
+          fetch('http://localhost:5000/api/admin/stats', { headers: { Authorization: `Bearer ${token}` } }).catch(() => null),
+          fetch('http://localhost:5000/api/admin/logs', { headers: { Authorization: `Bearer ${token}` } }).catch(() => null),
+          fetch('http://localhost:5000/api/feedback', { headers: { Authorization: `Bearer ${token}` } }).catch(() => null),
+          fetch('http://localhost:5000/api/health').catch(() => null)
+        ]);
+        const endPing = Date.now();
+
+        if (!isMounted) return; // Prevent memory leaks on unmount
+
+        // A. Update Environments & Latency
+        if (healthRes && healthRes.ok) {
+           setEnvData({ status: 'ONLINE', ping: `${endPing - startPing}ms`, dbPing: `${Math.max(1, (endPing - startPing) - 2)}ms` });
+        } else {
+           setEnvData({ status: 'OFFLINE', ping: 'ERR', dbPing: 'ERR' });
+        }
+
+        // B. Update Dashboard Stats & Hardware Graphs
+        if (statsRes && statsRes.ok) {
           const data = (await statsRes.json()).data;
           setDashData(data);
           
-          // Update Hardware History Graph
           setHardwareHistory(prev => {
             const newHistory = [...prev.slice(1), { cpu: data.hardware.cpuUsage, ram: parseFloat(data.hardware.memory.percent) }];
             return newHistory;
           });
-
-          // Generate Dynamic Traffic based on real nodes
-          if (data.nodes && data.nodes.length > 0) {
-            setLiveTraffic(prev => {
-              const randomNode = data.nodes[Math.floor(Math.random() * data.nodes.length)];
-              const endpoints = ['/api/auth/verify', '/api/users/sync', '/api/data/pull', '/api/system/ping'];
-              const newLog = { 
-                id: `NODE_${randomNode.id.substring(0,6).toUpperCase()}`, 
-                req: Math.floor(Math.random() * 50) + 10,
-                endpoint: endpoints[Math.floor(Math.random() * endpoints.length)]
-              };
-              return [newLog, ...prev].slice(0, 5); 
-            });
-          }
-        } else {
-          console.error("Dashboard Fetch Failed:", await statsRes.text());
         }
+
+        // C. Update API Traffic (System Logs)
+        if (logsRes && logsRes.ok) {
+          const logsData = (await logsRes.json()).data;
+          const formattedTraffic = logsData.slice(0, 5).map((log: any) => ({
+            id: log.ip || 'SYS_CORE',
+            time: new Date(log.createdAt).toLocaleTimeString(),
+            endpoint: log.action,
+            status: log.status
+          }));
+          setLiveTraffic(formattedTraffic);
+        }
+
+        // D. Update Notifications (Secure Feedback Inbox)
+        if (fbRes && fbRes.ok) {
+          const fbData = (await fbRes.json()).data;
+          setNotifications(fbData);
+        }
+
       } catch (error) { 
         console.error("Telemetry Link Failed", error); 
       } finally { 
-        setIsLoading(false); 
+        if (isMounted) setIsLoading(false); 
       }
     };
 
     fetchMatrixData(); // Initial Fetch
-    const pollInterval = setInterval(fetchMatrixData, 4000); // Background Polling every 4s
+    const pollInterval = setInterval(fetchMatrixData, 4000); // REAL-TIME: Poll every 4 seconds!
 
+    // Visual Countdown
     const timer = setInterval(() => {
       setCountdown(prev => {
         let { h, m, s } = prev;
@@ -100,7 +118,7 @@ export default function AdminDashboard() {
       });
     }, 1000);
 
-    return () => { clearInterval(pollInterval); clearInterval(timer); };
+    return () => { isMounted = false; clearInterval(pollInterval); clearInterval(timer); };
   }, [router, adminProfile]);
 
   // SVG GRAPH BUILDER
@@ -119,7 +137,9 @@ export default function AdminDashboard() {
     setTimeout(() => {
       setIsExecuting(false);
       setActiveModal('NONE');
+      // Visual feedback of flush
       setHardwareHistory(Array(15).fill({cpu: 0, ram: 0}));
+      setLiveTraffic([]); 
     }, 2000);
   };
 
@@ -128,7 +148,7 @@ export default function AdminDashboard() {
 
   if (isLoading) {
     return (
-      <div className="flex h-[80vh] flex-col items-center justify-center relative overflow-hidden">
+      <div className="flex h-[80vh] flex-col items-center justify-center relative overflow-hidden bg-[#010205]">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(59,130,246,0.1)_0,transparent_50%)]" />
         <Loader2 className="animate-spin text-blue-500 mb-6 drop-shadow-[0_0_15px_rgba(59,130,246,0.8)]" size={48} />
         <span className="font-mono text-xs text-blue-400 tracking-[0.4em] uppercase animate-pulse">Synchronizing Core Telemetry...</span>
@@ -137,8 +157,18 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="relative font-sans min-h-screen">
+    <div className="relative font-sans min-h-screen bg-[#010205]">
       
+      {/* GLOBAL NOTIFICATION BELL TRIGGER */}
+      <div className="absolute top-6 right-6 lg:right-12 z-50 pointer-events-auto">
+        <button onClick={() => setActiveModal('NOTIFICATIONS')} className="relative p-3 bg-[#050A14] border border-blue-900/40 text-blue-500 hover:text-white transition-colors [clip-path:polygon(0_0,100%_0,100%_calc(100%-8px),calc(100%-8px)_100%,0_100%)]">
+          <Bell size={20} />
+          {notifications.some(n => n.priority === 'URGENT') && (
+            <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(239,68,68,1)]" />
+          )}
+        </button>
+      </div>
+
       {/* ========================================================= */}
       {/* FLOATING ACTION PANELS (MODALS) */}
       {/* ========================================================= */}
@@ -182,9 +212,9 @@ export default function AdminDashboard() {
                   </div>
                   <div className="p-6 grid gap-4">
                     {[
-                      { name: 'Next.js Frontend Edge', status: 'ONLINE', ping: '12ms', icon: Activity },
-                      { name: 'Node.js Core Backend', status: 'ONLINE', ping: '8ms', icon: Terminal },
-                      { name: 'MySQL Master Database', status: 'SYNCED', ping: '4ms', icon: Database },
+                      { name: 'Next.js Frontend Edge', status: 'ONLINE', ping: '0ms', icon: Activity },
+                      { name: 'Node.js Core Backend', status: envData.status, ping: envData.ping, icon: Terminal },
+                      { name: 'PostgreSQL Database', status: envData.status, ping: envData.dbPing, icon: Database },
                     ].map((env, idx) => (
                       <div key={idx} className="flex justify-between items-center bg-black border border-blue-900/30 p-4">
                         <div className="flex items-center space-x-4">
@@ -195,8 +225,8 @@ export default function AdminDashboard() {
                           </div>
                         </div>
                         <div className="flex items-center space-x-2">
-                          <span className="text-[9px] font-black tracking-widest text-green-500">{env.status}</span>
-                          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(34,197,94,0.8)]" />
+                          <span className={`text-[9px] font-black tracking-widest ${env.status === 'ONLINE' ? 'text-green-500' : 'text-red-500'}`}>{env.status}</span>
+                          <div className={`w-2 h-2 rounded-full shadow-[0_0_10px_currentColor] ${env.status === 'ONLINE' ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
                         </div>
                       </div>
                     ))}
@@ -204,36 +234,41 @@ export default function AdminDashboard() {
                 </motion.div>
               )}
 
-              {/* MODAL 3: NOTIFICATION CENTER (SLIDE OUT FROM RIGHT) */}
+              {/* MODAL 3: LIVE NOTIFICATIONS */}
               {activeModal === 'NOTIFICATIONS' && (
                 <motion.div initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} transition={{ type: 'spring', damping: 25, stiffness: 200 }} className="absolute right-0 top-0 h-full w-full max-w-md bg-[#050A14] border-l border-blue-500/50 shadow-[-30px_0_60px_rgba(0,0,0,0.9)] flex flex-col pointer-events-auto">
-                  <div className="h-24 border-b border-blue-900/50 bg-black flex items-center justify-between px-8 relative overflow-hidden">
+                  <div className="h-24 border-b border-blue-900/50 bg-black flex items-center justify-between px-8 relative overflow-hidden shrink-0">
                     <div className="absolute top-0 right-0 w-full h-full bg-[radial-gradient(ellipse_at_top_right,rgba(59,130,246,0.1),transparent_50%)] pointer-events-none" />
-                    <div className="flex items-center text-blue-500">
+                    <div className="flex items-center text-blue-500 relative z-10">
                       <Bell size={20} className="mr-3" />
                       <h2 className="text-xl font-black text-white tracking-[0.2em] uppercase">System Alerts</h2>
                     </div>
-                    <button type="button" onClick={() => window.dispatchEvent(new Event('open-notifications'))} title="Close notifications" className="text-slate-500 hover:text-red-500 transition-colors p-2 bg-black border border-slate-800"><X size={18} /></button>
+                    <button type="button" onClick={() => setActiveModal('NONE')} title="Close notifications" className="text-slate-500 hover:text-red-500 transition-colors p-2 bg-black border border-slate-800 relative z-10"><X size={18} /></button>
                   </div>
-                  <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-admin-scroll">
+                  <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
                     
-                    <div className="bg-red-950/20 border border-red-900/50 p-4">
-                      <div className="flex items-center mb-2"><AlertTriangle size={12} className="text-red-500 mr-2" /><span className="text-[9px] font-black text-red-500 tracking-widest uppercase">CRITICAL ALERT</span></div>
-                      <p className="text-[10px] text-white font-mono tracking-wider">Unrecognized connection attempt blocked from IP 192.168.1.44.</p>
-                      <p className="text-[8px] text-slate-500 mt-2 font-mono">10 MINS AGO</p>
-                    </div>
+                    {notifications.length > 0 ? notifications.map(notif => {
+                      const isUrgent = notif.priority === 'URGENT';
+                      const isHigh = notif.priority === 'HIGH';
+                      const styles = isUrgent 
+                        ? { bg: 'bg-red-950/20', border: 'border-red-900/50', text: 'text-red-500', icon: AlertTriangle }
+                        : isHigh 
+                        ? { bg: 'bg-yellow-950/20', border: 'border-yellow-900/50', text: 'text-yellow-500', icon: ShieldAlert }
+                        : { bg: 'bg-blue-950/20', border: 'border-blue-900/50', text: 'text-blue-500', icon: ShieldCheck };
 
-                    <div className="bg-blue-950/20 border border-blue-900/50 p-4">
-                      <div className="flex items-center mb-2"><ShieldCheck size={12} className="text-blue-500 mr-2" /><span className="text-[9px] font-black text-blue-500 tracking-widest uppercase">SYSTEM UPDATE</span></div>
-                      <p className="text-[10px] text-white font-mono tracking-wider">DataCore #9 synchronized perfectly across all 3 environments.</p>
-                      <p className="text-[8px] text-slate-500 mt-2 font-mono">2 HOURS AGO</p>
-                    </div>
-
-                    <div className="bg-green-950/20 border border-green-900/50 p-4">
-                      <div className="flex items-center mb-2"><UserIcon size={12} className="text-green-500 mr-2" /><span className="text-[9px] font-black text-green-500 tracking-widest uppercase">NODE VERIFIED</span></div>
-                      <p className="text-[10px] text-white font-mono tracking-wider">Node LOCHANA successfully verified identity cryptographic link.</p>
-                      <p className="text-[8px] text-slate-500 mt-2 font-mono">1 DAY AGO</p>
-                    </div>
+                      return (
+                        <div key={notif.id} className={`${styles.bg} border ${styles.border} p-4 relative overflow-hidden`}>
+                          <div className="flex items-center mb-2">
+                            <styles.icon size={12} className={`${styles.text} mr-2`} />
+                            <span className={`text-[9px] font-black ${styles.text} tracking-widest uppercase`}>{notif.category} ALERT</span>
+                          </div>
+                          <p className="text-[10px] text-white font-mono tracking-wider line-clamp-3">{notif.message}</p>
+                          <p className="text-[8px] text-slate-500 mt-2 font-mono uppercase">FROM: {notif.user?.username || 'GUEST_NODE'} | {new Date(notif.createdAt).toLocaleTimeString()}</p>
+                        </div>
+                      );
+                    }) : (
+                      <div className="text-center text-slate-600 text-[10px] font-mono tracking-[0.3em] uppercase pt-10">NO SYSTEM ALERTS</div>
+                    )}
 
                   </div>
                 </motion.div>
@@ -244,7 +279,7 @@ export default function AdminDashboard() {
         )}
       </AnimatePresence>
 
-      <motion.div variants={containerVariants} initial="hidden" animate="show" className="max-w-[1600px] mx-auto grid grid-cols-1 xl:grid-cols-12 gap-6 relative z-10 pt-6">
+      <motion.div variants={containerVariants} initial="hidden" animate="show" className="max-w-[1600px] mx-auto grid grid-cols-1 xl:grid-cols-12 gap-6 relative z-10 pt-20 px-6 lg:px-12 pb-12">
         
         {/* ========================================================= */}
         {/* LEFT COLUMN: IDENTITY & STATUS HUB */}
@@ -285,16 +320,16 @@ export default function AdminDashboard() {
           <motion.div variants={itemVariants} onClick={() => setActiveModal('ENVIRONMENTS')} className="bg-[#050A14] border border-blue-900/40 p-6 shadow-[inset_0_0_20px_rgba(59,130,246,0.05)] cursor-pointer hover:border-blue-500/50 transition-colors group">
             <div className="flex justify-between items-center border-b border-blue-900/30 pb-4 mb-4">
               <h3 className="text-xs font-black text-white uppercase tracking-widest group-hover:text-blue-400 transition-colors">[ ENVIRONMENTS ]</h3>
-              <span className="text-[9px] font-mono text-green-500 flex items-center"><RefreshCw size={10} className="mr-1 animate-spin" /> LIVE</span>
+              <span className={`text-[9px] font-mono flex items-center ${envData.status === 'ONLINE' ? 'text-green-500' : 'text-red-500'}`}><RefreshCw size={10} className="mr-1 animate-spin" /> {envData.status}</span>
             </div>
             <div className="space-y-2">
-              {['Next.js Frontend', 'Node.js Backend', 'MySQL Database'].map((env, i) => (
+              {['Next.js Frontend', 'Node.js Backend', 'PostgreSQL Database'].map((env, i) => (
                 <div key={i} className="flex justify-between items-center p-2 group-hover:bg-blue-900/10 transition-colors">
                   <div className="flex items-center space-x-3">
                     <Server size={12} className="text-blue-500 opacity-70" />
                     <span className="text-[10px] font-bold text-slate-300 tracking-widest uppercase">{env}</span>
                   </div>
-                  <div className="w-1.5 h-1.5 bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)] animate-pulse" />
+                  <div className={`w-1.5 h-1.5 shadow-[0_0_8px_currentColor] animate-pulse ${envData.status === 'ONLINE' ? 'bg-green-500 text-green-500' : 'bg-red-500 text-red-500'}`} />
                 </div>
               ))}
             </div>
@@ -398,15 +433,15 @@ export default function AdminDashboard() {
             <div className="space-y-3 overflow-hidden flex-1">
               <AnimatePresence>
                 {liveTraffic.length > 0 ? liveTraffic.map((item, i) => (
-                  <motion.div key={i + item.id + item.req} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, scale: 0.9 }} className="flex justify-between items-center bg-black border border-blue-900/20 p-2">
+                  <motion.div key={item.id + item.time + i} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, scale: 0.9 }} className="flex justify-between items-center bg-black border border-blue-900/20 p-2">
                     <div className="flex items-center space-x-2">
-                      <div className="w-1.5 h-1.5 bg-blue-500 rounded-none animate-ping" />
+                      <div className={`w-1.5 h-1.5 rounded-none ${item.status === 'ERROR' ? 'bg-red-500 animate-pulse' : 'bg-blue-500 animate-ping'}`} />
                       <div>
-                        <p className="text-[9px] font-bold text-slate-300 tracking-wider uppercase">{item.id}</p>
-                        <p className="text-[8px] font-mono text-slate-600">{item.endpoint}</p>
+                        <p className="text-[9px] font-bold text-slate-300 tracking-wider uppercase truncate max-w-[100px]">{item.id}</p>
+                        <p className="text-[8px] font-mono text-slate-600 truncate max-w-[120px]">{item.endpoint}</p>
                       </div>
                     </div>
-                    <span className="text-[10px] font-mono text-blue-400">{item.req}ms</span>
+                    <span className="text-[10px] font-mono text-blue-400">{item.time}</span>
                   </motion.div>
                 )) : (
                   <div className="text-center text-slate-600 text-[10px] font-mono pt-8 tracking-[0.3em] uppercase">AWAITING PACKETS...</div>
@@ -468,6 +503,13 @@ export default function AdminDashboard() {
 
         </div>
       </motion.div>
+
+      <style jsx global>{`
+        .custom-admin-scroll::-webkit-scrollbar { width: 4px; height: 4px; }
+        .custom-admin-scroll::-webkit-scrollbar-track { background: transparent; }
+        .custom-admin-scroll::-webkit-scrollbar-thumb { background: rgba(59, 130, 246, 0.4); border-radius: 10px; }
+        .custom-admin-scroll::-webkit-scrollbar-thumb:hover { background: rgba(59, 130, 246, 0.9); }
+      `}</style>
     </div>
   );
 }
