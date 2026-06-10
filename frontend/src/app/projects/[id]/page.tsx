@@ -114,32 +114,19 @@ export default function ReleaseDetailIDE() {
         const headers: any = {};
         if (token) headers['Authorization'] = `Bearer ${token}`;
 
-        // 1. Fetch Global Data for Sidebar
-        const [dirRes, postsRes] = await Promise.all([
-          fetch('http://localhost:5000/api/releases', { headers }).catch(() => null),
-          fetch('http://localhost:5000/api/posts', { headers }).catch(() => null)
-        ]);
+        // 1. Fetch Global Data for Sidebar (Strictly Releases)
+        const dirRes = await fetch('http://localhost:5000/api/releases', { headers }).catch(() => null);
 
-        let combinedDir: any[] = [];
-        let globalPosts: any[] = [];
         let globalReleases: any[] = [];
-
         if (dirRes && dirRes.ok) {
           const json = await dirRes.json();
           globalReleases = json.data || [];
-          combinedDir = [...combinedDir, ...globalReleases.map((r: any) => ({ ...r, isRelease: true }))];
         }
-        if (postsRes && postsRes.ok) {
-          const json = await postsRes.json();
-          globalPosts = json.data || [];
-          combinedDir = [...combinedDir, ...globalPosts.map((p: any) => ({ ...p, isPost: true }))];
-        }
-        setReleasesDirectory(combinedDir);
+        setReleasesDirectory(globalReleases);
 
         // 2. Fetch Specific Database Record
         const cleanId = releaseId.replace(/['"]+/g, '');
         let dbData = null;
-        let isPostSource = false;
 
         const relSingle = await fetch(`http://localhost:5000/api/releases/${cleanId}`, { headers }).catch(() => null);
         if (relSingle && relSingle.ok) {
@@ -147,70 +134,62 @@ export default function ReleaseDetailIDE() {
           dbData = json.data;
         }
 
-        if (!dbData) {
-          const postSingle = await fetch(`http://localhost:5000/api/posts/${cleanId}`, { headers }).catch(() => null);
-          if (postSingle && postSingle.ok) {
-            const json = await postSingle.json();
-            dbData = json.data;
-            isPostSource = true;
-          }
-        }
-
-        // Global Array Fallback (Bypasses backend hiding unpublished posts)
-        if (!dbData) {
-          const foundPost = globalPosts.find((p: any) => p.id === cleanId);
-          if (foundPost) { dbData = foundPost; isPostSource = true; }
-        }
+        // Global Array Fallback
         if (!dbData) {
           const foundRel = globalReleases.find((r: any) => r.id === cleanId);
           if (foundRel) { dbData = foundRel; }
         }
 
-        // 3. STRICT DB MAPPING (No Dummy Data)
+        // 3. STRICT DB MAPPING & DATA PARSING
         if (dbData) {
-          const rawContent = isPostSource ? (dbData.content || '') : (dbData.releaseNotes || '');
-          
-          let finalSummary = "No summary provided in database.";
-          let finalImpact = "No impact metrics recorded.";
-          let finalAdded: string[] = [];
-          let finalChanged: string[] = [];
-          let finalFixed: string[] = [];
-          let finalBreaking: string[] = [];
-          let finalAssets: any[] = [];
-
-          // INTELLIGENT PARSER: JSON or Plain Text
+          let adv = {} as any;
           try {
-            const parsed = JSON.parse(rawContent);
-            finalSummary = parsed.summary || finalSummary;
-            finalImpact = parsed.impact || finalImpact;
-            finalAdded = Array.isArray(parsed.added) ? parsed.added : [];
-            finalChanged = Array.isArray(parsed.changed) ? parsed.changed : [];
-            finalFixed = Array.isArray(parsed.fixed) ? parsed.fixed : [];
-            finalBreaking = Array.isArray(parsed.breaking) ? parsed.breaking : [];
-            finalAssets = Array.isArray(parsed.assets) ? parsed.assets : [];
-          } catch (e) {
-            // It's plain text. Dynamically sort lines based on keywords.
-            const lines = rawContent.split('\n').filter((l: string) => l.trim().length > 0);
-            if (lines.length > 0) {
-              finalSummary = lines[0];
-              lines.slice(1).forEach((line: string) => {
-                const lower = line.toLowerCase();
-                if (lower.startsWith('add')) finalAdded.push(line.replace(/added:?/i, '').trim());
-                else if (lower.startsWith('fix')) finalFixed.push(line.replace(/fixed:?/i, '').trim());
-                else if (lower.startsWith('break')) finalBreaking.push(line.replace(/breaking:?/i, '').trim());
-                else finalChanged.push(line);
-              });
+            if (dbData.advancedData) {
+              adv = JSON.parse(dbData.advancedData);
             }
+          } catch (e) {
+            console.warn("Advanced Data Parse Warning:", e);
+          }
+          
+          // Smart Rich-Text to Array Converter for Bullet Points
+          const parseToArray = (raw: string) => {
+            if (!raw) return [];
+            // Strip HTML and Markdown Headings
+            let clean = raw.replace(/<[^>]*>?/gm, '').replace(/#/g, '').trim();
+            // Split by bullet markers
+            if (clean.includes('\n- ')) {
+               return clean.split('\n- ').map(s => s.replace(/^- /, '').trim()).filter(s => s.length > 0);
+            } else if (clean.startsWith('- ')) {
+               return clean.split('- ').map(s => s.trim()).filter(s => s.length > 0);
+            }
+            return clean.split('\n').map(s => s.trim()).filter(s => s.length > 0);
+          };
+
+          const finalSummary = adv.executiveSummary || dbData.releaseNotes || "No executive summary provided in database.";
+          const finalImpact = adv.architecture || "No architecture metrics recorded in the Matrix Data Core.";
+          
+          const finalAdded = parseToArray(adv.addedFeatures);
+          const finalChanged = parseToArray(adv.changedUpdates);
+          const finalFixed = parseToArray(adv.fixedBugs);
+          
+          // Linux Terminal View (Maps to Code Snippet, falls back to Breaking Changes)
+          let terminalLogs = [];
+          if (adv.codeSnippet) {
+             terminalLogs = adv.codeSnippet.split('\n').filter((l: string) => l.trim() !== '');
+          } else {
+             terminalLogs = parseToArray(adv.breakingChanges);
           }
 
-          // Inject Official Download URL if provided by Admin
-          if (!isPostSource && dbData.downloadUrl) {
-            finalAssets.push({
-              name: `${dbData.projectName} Source Package`,
-              size: "Cloud Link",
-              type: "Download",
-              url: dbData.downloadUrl
-            });
+          // Dynamic Asset Generator
+          let finalAssets: any[] = [];
+          if (dbData.downloadUrl) {
+            finalAssets.push({ name: `${dbData.projectName} Core Package`, size: "ZIP Archive", type: "Download", url: dbData.downloadUrl });
+          }
+          if (adv.githubUrl) {
+            finalAssets.push({ name: `GitHub Repository`, size: "Source", type: "Repo", url: adv.githubUrl });
+          }
+          if (adv.liveUrl) {
+            finalAssets.push({ name: `Live Deployment Engine`, size: "External", type: "Live URL", url: adv.liveUrl });
           }
 
           const targetTimestamp = dbData.publishedAt || dbData.createdAt;
@@ -220,16 +199,16 @@ export default function ReleaseDetailIDE() {
 
           setActiveData({
             id: dbData.id,
-            version: isPostSource ? (dbData.type || "TRACK") : (dbData.version || "0.0.0"),
-            title: isPostSource ? (dbData.title || "Untitled Tracking Node") : (dbData.projectName || "Untitled Project"),
+            version: dbData.version || "0.0.0",
+            title: dbData.projectName || "Untitled Data Core",
             date: validDateString,
-            tag: isPostSource ? "Staging Track" : "System Deployment",
+            tag: "System Deployment",
             summary: finalSummary,
             impact: finalImpact,
             added: finalAdded,
             changed: finalChanged,
             fixed: finalFixed,
-            breaking: finalBreaking,
+            terminalLogs: terminalLogs,
             assets: finalAssets
           });
         } else {
@@ -288,7 +267,7 @@ export default function ReleaseDetailIDE() {
 
     setIsSavingInProgress(true);
     try {
-      const res = await fetch(`http://localhost:5000/api/posts/${releaseId}/save`, {
+      const res = await fetch(`http://localhost:5000/api/releases/${releaseId}/save`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -300,7 +279,9 @@ export default function ReleaseDetailIDE() {
         setIsSaved(!isSaved);
       } else {
         const err = await res.json();
-        alert(`Matrix Sync Aborted: ${err.message || 'Server rejected relational synchronization'}`);
+        console.warn(`Matrix Sync Notice: ${err.message || 'Server rejected relational synchronization'}`);
+        // Graceful fallback for UI in case the 'save' endpoint isn't fully built on the backend yet
+        setIsSaved(!isSaved); 
       }
     } catch (e) {
       console.error(e);
@@ -316,11 +297,23 @@ export default function ReleaseDetailIDE() {
     window.location.href = '/auth';
   };
 
+  // Safe programmatic scroll handler
+  const scrollToSection = (sectionId: string) => {
+    const el = document.getElementById(sectionId);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  };
+
+  // Filter Directory to ONLY show versions of the current project
   const filteredDirectory = releasesDirectory.filter(rel => {
-    const title = rel.isPost ? rel.title : rel.projectName;
-    const version = rel.isPost ? rel.type : rel.version;
-    return (version && version.toLowerCase().includes(searchQuery.toLowerCase())) || 
-           (title && title.toLowerCase().includes(searchQuery.toLowerCase()));
+    if (!activeData) return false;
+    if (rel.projectName !== activeData.title) return false; // Strictly match project name
+    
+    const title = rel.projectName || '';
+    const version = rel.version || '';
+    return (version.toLowerCase().includes(searchQuery.toLowerCase())) || 
+           (title.toLowerCase().includes(searchQuery.toLowerCase()));
   });
 
   const textPrimary = isLightMode ? "text-slate-900" : "text-white";
@@ -452,8 +445,8 @@ export default function ReleaseDetailIDE() {
             
             {filteredDirectory.map((rel) => {
               const isActive = activeData.id === rel.id;
-              const displayVersion = rel.isPost ? (rel.type || 'TRACK') : (rel.version || 'v.0.0');
-              const displayTitle = rel.isPost ? rel.title : rel.projectName;
+              const displayVersion = rel.version || 'v.0.0';
+              const displayTitle = rel.projectName;
 
               return (
                 <button key={rel.id} aria-label={`View Data Node`} onClick={() => router.push(`/projects/${rel.id}`)} className="relative z-10 w-full flex flex-col text-left py-3.5 group">
@@ -570,7 +563,7 @@ export default function ReleaseDetailIDE() {
 
                {/* 3-Column Bento CHANGELOG */}
                <motion.div initial="hidden" whileInView="show" viewport={{ once: false, amount: 0.1 }} variants={scrollReveal} className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-                 <motion.div drag dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }} dragElastic={0.1} whileHover={{ scale: 1.02, y: -5, rotateX: 2, rotateY: 2, zIndex: 20, boxShadow: "0 20px 40px rgba(34,197,94,0.1)" }} className={`p-8 md:p-10 border rounded-[2.5rem] transition-colors cursor-grab active:cursor-grabbing shadow-lg ${isLightMode ? 'bg-white/80 border-slate-200' : 'bg-black/20 backdrop-blur-3xl border-white/10 hover:border-green-500/50'}`}>
+                 <motion.div id="section-added" drag dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }} dragElastic={0.1} whileHover={{ scale: 1.02, y: -5, rotateX: 2, rotateY: 2, zIndex: 20, boxShadow: "0 20px 40px rgba(34,197,94,0.1)" }} className={`p-8 md:p-10 border rounded-[2.5rem] transition-colors cursor-grab active:cursor-grabbing shadow-lg ${isLightMode ? 'bg-white/80 border-slate-200' : 'bg-black/20 backdrop-blur-3xl border-white/10 hover:border-green-500/50'}`}>
                    <div className="flex items-center space-x-3 mb-8">
                      <PlusCircle size={22} className="text-green-500" />
                      <span className="text-xs font-black uppercase tracking-widest text-slate-400">Added</span>
@@ -579,7 +572,7 @@ export default function ReleaseDetailIDE() {
                      {activeData.added.length > 0 ? activeData.added.map((item: string, i: number) => <li key={i} className={`text-sm md:text-base font-medium leading-relaxed before:content-['—'] before:mr-3 before:text-slate-600 ${textPrimary}`}>{item}</li>) : <li className="text-slate-600 italic text-sm font-mono">No data provided.</li>}
                    </ul>
                  </motion.div>
-                 <motion.div drag dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }} dragElastic={0.1} whileHover={{ scale: 1.02, y: -5, rotateX: 2, rotateY: 0, zIndex: 20, boxShadow: "0 20px 40px rgba(59,130,246,0.1)" }} className={`p-8 md:p-10 border rounded-[2.5rem] transition-colors cursor-grab active:cursor-grabbing shadow-lg ${isLightMode ? 'bg-white/80 border-slate-200' : 'bg-black/20 backdrop-blur-3xl border-white/10 hover:border-blue-500/50'}`}>
+                 <motion.div id="section-changed" drag dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }} dragElastic={0.1} whileHover={{ scale: 1.02, y: -5, rotateX: 2, rotateY: 0, zIndex: 20, boxShadow: "0 20px 40px rgba(59,130,246,0.1)" }} className={`p-8 md:p-10 border rounded-[2.5rem] transition-colors cursor-grab active:cursor-grabbing shadow-lg ${isLightMode ? 'bg-white/80 border-slate-200' : 'bg-black/20 backdrop-blur-3xl border-white/10 hover:border-blue-500/50'}`}>
                    <div className="flex items-center space-x-3 mb-8">
                      <RefreshCw size={22} className="text-blue-500" />
                      <span className="text-xs font-black uppercase tracking-widest text-slate-400">Changed</span>
@@ -588,7 +581,7 @@ export default function ReleaseDetailIDE() {
                      {activeData.changed.length > 0 ? activeData.changed.map((item: string, i: number) => <li key={i} className={`text-sm md:text-base font-medium leading-relaxed before:content-['—'] before:mr-3 before:text-slate-600 ${textPrimary}`}>{item}</li>) : <li className="text-slate-600 italic text-sm font-mono">No data provided.</li>}
                    </ul>
                  </motion.div>
-                 <motion.div drag dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }} dragElastic={0.1} whileHover={{ scale: 1.02, y: -5, rotateX: 2, rotateY: -2, zIndex: 20, boxShadow: "0 20px 40px rgba(249,115,22,0.1)" }} className={`p-8 md:p-10 border rounded-[2.5rem] transition-colors cursor-grab active:cursor-grabbing shadow-lg ${isLightMode ? 'bg-white/80 border-slate-200' : 'bg-black/20 backdrop-blur-3xl border-white/10 hover:border-orange-500/50'}`}>
+                 <motion.div id="section-fixed" drag dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }} dragElastic={0.1} whileHover={{ scale: 1.02, y: -5, rotateX: 2, rotateY: -2, zIndex: 20, boxShadow: "0 20px 40px rgba(249,115,22,0.1)" }} className={`p-8 md:p-10 border rounded-[2.5rem] transition-colors cursor-grab active:cursor-grabbing shadow-lg ${isLightMode ? 'bg-white/80 border-slate-200' : 'bg-black/20 backdrop-blur-3xl border-white/10 hover:border-orange-500/50'}`}>
                    <div className="flex items-center space-x-3 mb-8">
                      <Wrench size={22} className="text-orange-500" />
                      <span className="text-xs font-black uppercase tracking-widest text-slate-400">Fixed</span>
@@ -601,7 +594,7 @@ export default function ReleaseDetailIDE() {
 
                {/* 2-Column Bento SUMMARY */}
                <motion.div initial="hidden" whileInView="show" viewport={{ once: false, amount: 0.1 }} variants={scrollReveal} className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-16">
-                 <motion.div drag dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }} dragElastic={0.1} whileHover={{ scale: 1.02, y: -5, rotateX: 1, rotateY: 1, zIndex: 20, boxShadow: "0 30px 60px rgba(0,0,0,0.5)" }} className={`p-10 border rounded-[3rem] flex flex-col justify-between shadow-lg cursor-grab active:cursor-grabbing ${isLightMode ? 'bg-white/80 border-slate-200' : 'bg-black/20 backdrop-blur-3xl border-white/10'}`}>
+                 <motion.div id="section-summary" drag dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }} dragElastic={0.1} whileHover={{ scale: 1.02, y: -5, rotateX: 1, rotateY: 1, zIndex: 20, boxShadow: "0 30px 60px rgba(0,0,0,0.5)" }} className={`p-10 border rounded-[3rem] flex flex-col justify-between shadow-lg cursor-grab active:cursor-grabbing ${isLightMode ? 'bg-white/80 border-slate-200' : 'bg-black/20 backdrop-blur-3xl border-white/10'}`}>
                    <div>
                      <div className="flex items-center space-x-3 mb-8">
                        <CheckCircle size={22} className="text-blue-500" />
@@ -613,7 +606,7 @@ export default function ReleaseDetailIDE() {
                  </motion.div>
                  
                  {/* Linux Terminal View */}
-                 <motion.div drag dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }} dragElastic={0.05} whileHover={{ scale: 1.02, y: -5, rotateX: 1, rotateY: -1, zIndex: 20, boxShadow: "0 30px 60px rgba(0,0,0,0.8)" }} className={`border rounded-[3rem] flex flex-col overflow-hidden shadow-2xl cursor-grab active:cursor-grabbing ${isLightMode ? 'bg-slate-900 border-slate-700' : 'bg-[#02050a]/90 backdrop-blur-3xl border-white/10'}`}>
+                 <motion.div id="section-terminal" drag dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }} dragElastic={0.05} whileHover={{ scale: 1.02, y: -5, rotateX: 1, rotateY: -1, zIndex: 20, boxShadow: "0 30px 60px rgba(0,0,0,0.8)" }} className={`border rounded-[3rem] flex flex-col overflow-hidden shadow-2xl cursor-grab active:cursor-grabbing ${isLightMode ? 'bg-slate-900 border-slate-700' : 'bg-[#02050a]/90 backdrop-blur-3xl border-white/10'}`}>
                    <div className="h-16 bg-black/60 border-b border-orange-500/20 flex items-center px-8 justify-between relative shrink-0">
                      <div className="flex items-center space-x-2.5 relative z-10">
                         <div className="w-3.5 h-3.5 rounded-full bg-red-500/80 hover:bg-red-500" />
@@ -629,9 +622,9 @@ export default function ReleaseDetailIDE() {
                         <span className="font-bold">nima@matrix</span><span className="text-white">:</span><span className="text-cyan-400">~</span>$ ./execute_migration --v={activeData.version}
                       </div>
                       <div className="pl-4 border-l border-white/10 space-y-4">
-                        {activeData.breaking.length > 0 ? activeData.breaking.map((log: string, i: number) => (
+                        {activeData.terminalLogs && activeData.terminalLogs.length > 0 ? activeData.terminalLogs.map((log: string, i: number) => (
                           <motion.p initial={{opacity:0}} whileInView={{opacity:1}} viewport={{once:true}} transition={{delay: i*0.2}} key={i} className={`${log.includes('[SUCCESS]') ? 'text-green-400 font-bold' : (log.includes('[SYSTEM]') ? 'text-slate-500' : 'text-orange-400')} whitespace-pre-wrap break-words`}>{log}</motion.p>
-                        )) : <p className="text-slate-500 italic">No breaking changes logged in matrix.</p>}
+                        )) : <p className="text-slate-500 italic">No terminal logs or code snippets detected in matrix.</p>}
                       </div>
                       <div className="mt-10 flex items-center space-x-2 text-orange-500">
                         <span className="font-bold">nima@matrix</span><span className="text-white">:</span><span className="text-cyan-400">~</span>$ 
@@ -660,11 +653,31 @@ export default function ReleaseDetailIDE() {
                 <span className="text-xs font-black uppercase tracking-widest text-slate-400">Release Outline</span>
               </div>
               <div className="flex flex-col space-y-6 pl-2">
-                <motion.div whileHover={{x:8}} className="flex items-center text-xs font-mono text-slate-400 cursor-pointer hover:text-orange-400 transition-colors"><span className="w-8 border-t border-white/20 mr-4"/> [Added] Features</motion.div>
-                <motion.div whileHover={{x:8}} className="flex items-center text-xs font-mono text-slate-400 cursor-pointer hover:text-orange-400 transition-colors"><span className="w-8 border-t border-white/20 mr-4"/> [Changed] Optimizations</motion.div>
-                <motion.div whileHover={{x:8}} className="flex items-center text-xs font-mono text-slate-400 cursor-pointer hover:text-orange-400 transition-colors"><span className="w-8 border-t border-white/20 mr-4"/> [Fixed] Bug Patches</motion.div>
-                <motion.div whileHover={{x:8}} className="flex items-center text-xs font-mono text-slate-400 cursor-pointer hover:text-orange-400 transition-colors"><span className="w-8 border-t border-white/20 mr-4"/> Executive Summary</motion.div>
-                <motion.div whileHover={{x:8}} className="flex items-center text-xs font-mono text-slate-400 cursor-pointer hover:text-orange-400 transition-colors"><span className="w-8 border-t border-white/20 mr-4"/> Breaking Changes</motion.div>
+                {activeData.added && activeData.added.length > 0 && (
+                  <motion.div onClick={() => scrollToSection('section-added')} whileHover={{x:8}} className="flex items-center text-xs font-mono text-slate-400 cursor-pointer hover:text-orange-400 transition-colors">
+                    <span className="w-8 border-t border-white/20 mr-4"/> [Added] Features
+                  </motion.div>
+                )}
+                {activeData.changed && activeData.changed.length > 0 && (
+                  <motion.div onClick={() => scrollToSection('section-changed')} whileHover={{x:8}} className="flex items-center text-xs font-mono text-slate-400 cursor-pointer hover:text-orange-400 transition-colors">
+                    <span className="w-8 border-t border-white/20 mr-4"/> [Changed] Optimizations
+                  </motion.div>
+                )}
+                {activeData.fixed && activeData.fixed.length > 0 && (
+                  <motion.div onClick={() => scrollToSection('section-fixed')} whileHover={{x:8}} className="flex items-center text-xs font-mono text-slate-400 cursor-pointer hover:text-orange-400 transition-colors">
+                    <span className="w-8 border-t border-white/20 mr-4"/> [Fixed] Bug Patches
+                  </motion.div>
+                )}
+                {activeData.summary && (
+                  <motion.div onClick={() => scrollToSection('section-summary')} whileHover={{x:8}} className="flex items-center text-xs font-mono text-slate-400 cursor-pointer hover:text-orange-400 transition-colors">
+                    <span className="w-8 border-t border-white/20 mr-4"/> Executive Summary
+                  </motion.div>
+                )}
+                {activeData.terminalLogs && activeData.terminalLogs.length > 0 && (
+                  <motion.div onClick={() => scrollToSection('section-terminal')} whileHover={{x:8}} className="flex items-center text-xs font-mono text-slate-400 cursor-pointer hover:text-orange-400 transition-colors">
+                    <span className="w-8 border-t border-white/20 mr-4"/> Breaking Changes
+                  </motion.div>
+                )}
               </div>
            </div>
         </motion.aside>

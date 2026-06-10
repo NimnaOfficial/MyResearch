@@ -249,6 +249,50 @@ export default function MasterProjectForge() {
     setIsForgeOpen(true);
   };
 
+  // 🔥 NEW FEATURE: Branch a new version from an existing project
+  const branchNewVersion = (release: any) => {
+    let advanced = {};
+    try { if (release.advancedData) advanced = JSON.parse(release.advancedData); } catch (e) {}
+
+    setProjectForm({
+      id: undefined, // CRITICAL: Forces a POST request to create a new row
+      projectName: release.projectName || '', // EXACT same name to link it in the UI
+      version: '', // Clear version so admin is forced to type the new one
+      heroImg: release.heroImg || (advanced as any).heroImg || 'from-[#f97316]/20 to-black',
+      published: false, // Always start drafts for new versions
+      
+      architecture: (advanced as any).architecture || '', // Carry over core architecture
+      addedFeatures: '', // Clear changelogs for the clean state
+      changedUpdates: '',
+      fixedBugs: '',
+      executiveSummary: (advanced as any).executiveSummary || release.releaseNotes || '',
+      breakingChanges: '',
+      migrationLog: '',
+      codeSnippet: (advanced as any).codeSnippet || '',
+      
+      codeTrace: [], // Clear trace logs
+      versionTrack: (advanced as any).versionTrack || [], // Keep version history
+      techStack: (advanced as any).techStack || [],
+      features: (advanced as any).features || [],
+      stats: (advanced as any).stats || [],
+      timeline: (advanced as any).timeline || [],
+      
+      githubUrl: (advanced as any).githubUrl || '',
+      liveUrl: (advanced as any).liveUrl || '',
+      downloadUrl: release.downloadUrl || '',
+      videoUrl: (advanced as any).videoUrl || '',
+      
+      leadDev: (advanced as any).leadDev || 'SYS_ADMIN',
+      license: (advanced as any).license || 'MIT',
+      explorerRating: (advanced as any).explorerRating || '4.9',
+      explorerViews: (advanced as any).explorerViews || '15.2k',
+      publishedAt: new Date().toISOString().split('T')[0],
+      routing: (advanced as any).routing || DEFAULT_PROJECT.routing
+    });
+    setActiveProjectTab('IDENTITY');
+    setIsForgeOpen(true);
+  };
+
   const openMediaForge = (media?: any) => { setMediaForm(media ? { ...media } : { title: '', videoUrl: '', thumbnailUrl: '', description: '' } as any); setIsForgeOpen(true); };
   const openFaqForge = (faq?: any) => { setFaqForm(faq ? { ...faq } : { query: '', response: '' } as any); setIsForgeOpen(true); };
   const closeForge = () => setIsForgeOpen(false);
@@ -543,6 +587,7 @@ export default function MasterProjectForge() {
                             </div>
                           </div>
                           <div className="col-span-2 flex justify-end items-center space-x-2 pr-2">
+                            <button title="Branch New Version" aria-label="Branch New Version" onClick={() => branchNewVersion(p)} className="p-2.5 text-slate-500 hover:text-green-400 hover:bg-green-400/10 border border-transparent hover:border-green-400/50 transition-all opacity-0 group-hover:opacity-100 [clip-path:polygon(0_0,100%_0,100%_calc(100%-5px),calc(100%-5px)_100%,0_100%)]"><FolderGit2 size={16} /></button>
                             <button title="Edit Node" aria-label="Edit Node" onClick={() => openProjectForge(p)} className="p-2.5 text-slate-500 hover:text-[#fb923c] hover:bg-[#f97316]/10 border border-transparent hover:border-[#f97316]/50 transition-all opacity-0 group-hover:opacity-100 [clip-path:polygon(0_0,100%_0,100%_calc(100%-5px),calc(100%-5px)_100%,0_100%)]"><Edit3 size={16} /></button>
                             <button title="Delete Node" aria-label="Delete Node" onClick={() => deleteProject(p.id)} className="p-2.5 text-slate-500 hover:text-white hover:bg-red-600 border border-transparent hover:border-red-500 transition-all opacity-0 group-hover:opacity-100 [clip-path:polygon(0_0,100%_0,100%_calc(100%-5px),calc(100%-5px)_100%,0_100%)]"><Trash2 size={16} /></button>
                           </div>

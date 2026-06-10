@@ -22,14 +22,6 @@ import Footer from '@/components/Footer';
 const COLORS = ["from-orange-500 to-amber-400", "from-orange-600 to-red-500", "from-amber-400 to-orange-500", "from-red-500 to-orange-600", "from-orange-500 to-pink-500"];
 const ICONS = [Layers, Terminal, Database, Zap, ShieldAlert, Cpu, Code2, Box];
 
-const FAQS = [
-  { q: "What is your primary architectural stack?", a: "I specialize in Next.js, React, and Framer Motion for the frontend, coupled with PHP, Node.js, and complex MySQL databases on the backend." },
-  { q: "How do you handle system scaling and latency?", a: "By implementing strict 3D DOM recycling, memoization techniques, and utilizing advanced state management to drop frame rendering times to zero." },
-  { q: "Can you integrate AI into existing platforms?", a: "Yes. I have experience bridging Gemini APIs, Google AI Studio, and local LLMs directly into active production environments." },
-  { q: "What is the process for deploying a new feature?", a: "Every feature goes through rigorous UI/UX prototyping, followed by local sandbox testing, before being pushed to the live matrix server." },
-  { q: "How is security handled across your projects?", a: "I deploy strict CORS policies, encrypted data payloads via AJAX, and role-based matrix authentication to secure the perimeter." }
-];
-
 // ==========================================
 // UNIFIED MATRIX BACKGROUND
 // ==========================================
@@ -57,13 +49,6 @@ function UnifiedMatrixBackground({ isLight }: { isLight: boolean }) {
 const ultraSmoothSpring = { type: "spring" as const, stiffness: 100, damping: 20, mass: 1 };
 const slowExpandSpring = { type: "spring" as const, stiffness: 50, damping: 25, mass: 1.5 };
 
-// Extract potential URLs from a string (Helper)
-const extractUrl = (text: string) => {
-  if (!text) return null;
-  const match = text.match(/(https?:\/\/[^\s]+)/g);
-  return match ? match[0] : null;
-};
-
 // ==========================================
 // MAIN MATRIX PAGE
 // ==========================================
@@ -78,6 +63,9 @@ export default function ProjectMatrix() {
   const [recentProjects, setRecentProjects] = useState<any[]>([]);
   const [incomings, setIncomings] = useState<any[]>([]);
   const [allProjects, setAllProjects] = useState<any[]>([]);
+  const [nodeProjects, setNodeProjects] = useState<any[]>([]);
+  const [faqs, setFaqs] = useState<any[]>([]);
+  const [showcases, setShowcases] = useState<any[]>([]);
 
   // Section 1: "Standing File Drawer"
   const [activeStackIndex, setActiveStackIndex] = useState(0);
@@ -95,10 +83,9 @@ export default function ProjectMatrix() {
   const holoMouseX = useMotionValue(0);
   const holoRotY = useMotionValue(0);
   const [isCarouselHovered, setIsCarouselHovered] = useState(false);
-  const [activeVideoNode, setActiveVideoNode] = useState<any>(null); // Controls Video Pop-up
+  const [activeVideoNode, setActiveVideoNode] = useState<any>(null);
 
   useAnimationFrame(() => {
-    // Only spin if not hovering AND no video is currently active!
     if (!isCarouselHovered && !activeVideoNode) {
       holoRotY.set(holoRotY.get() + 0.03 + (holoMouseX.get() * 0.15)); 
     }
@@ -117,15 +104,9 @@ export default function ProjectMatrix() {
   const [currentUserRole, setCurrentUserRole] = useState<'guest' | 'user' | 'admin'>('guest');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  // ==========================================
-  // SCROLL LOCK ENGINE
-  // ==========================================
   useEffect(() => {
-    if (activeVideoNode) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-    }
+    if (activeVideoNode) { document.body.style.overflow = 'hidden'; } 
+    else { document.body.style.overflow = 'unset'; }
     return () => { document.body.style.overflow = 'unset'; };
   }, [activeVideoNode]);
 
@@ -135,69 +116,86 @@ export default function ProjectMatrix() {
   useEffect(() => {
     const hydrateMatrix = async () => {
       try {
-        const [releasesRes, postsRes] = await Promise.all([
+        const [relRes, showRes, faqRes] = await Promise.all([
           fetch('http://localhost:5000/api/releases').catch(() => null),
-          fetch('http://localhost:5000/api/posts').catch(() => null)
+          fetch('http://localhost:5000/api/showcase').catch(() => null),
+          fetch('http://localhost:5000/api/faqs').catch(() => null)
         ]);
 
-        let releases = releasesRes?.ok ? (await releasesRes.json()).data || [] : [];
-        let posts = postsRes?.ok ? (await postsRes.json()).data || [] : [];
+        // Safely parse JSON to prevent crashes if a route 404s
+        let releases = [];
+        let showcasesData = [];
+        let faqsData = [];
 
-        // 1. Gather ALL "Completed" Projects (Releases + Published Posts)
-        const publishedPosts = posts.filter((p: any) => p.published !== false);
-        const allCompleted = [
-          ...releases.map((r: any) => ({ ...r, isRelease: true, dateObj: new Date(r.publishedAt || r.createdAt || 0) })),
-          ...publishedPosts.map((p: any) => ({ ...p, isPost: true, dateObj: new Date(p.createdAt || 0) }))
-        ].sort((a, b) => b.dateObj.getTime() - a.dateObj.getTime()); // Newest First!
+        if (relRes && relRes.ok) { try { releases = (await relRes.json()).data || []; } catch(e) {} }
+        if (showRes && showRes.ok) { try { showcasesData = (await showRes.json()).data || []; } catch(e) {} }
+        if (faqRes && faqRes.ok) { try { faqsData = (await faqRes.json()).data || []; } catch(e) {} }
 
-        // 2. Map Top 5 Recent Projects
-        if (allCompleted.length > 0) {
-          const mappedRecent = allCompleted.slice(0, 5).map((item: any, i: number) => {
-            const rawNotes = item.isRelease ? item.releaseNotes : item.content;
-            const changes = (rawNotes || '').split('\n').filter((c: string) => c.trim() !== '').slice(0, 3);
-            
-            return {
-              id: item.isRelease ? (item.version || `v${i+1}.0.0`) : (item.type || 'SYSTEM'),
-              rawId: item.id,
-              date: item.dateObj.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }).toUpperCase(),
-              title: item.isRelease ? item.projectName : item.title,
-              type: item.isRelease ? "Release Core" : "Verified Post",
-              color: COLORS[i % COLORS.length],
-              icon: ICONS[i % ICONS.length],
-              changes: changes.length > 0 ? changes : ["System architecture finalized.", "Database relationships active.", "UI parameters locked."],
-              url: item.downloadUrl || null
-            };
+        // 1. Process Core Releases (Projects ONLY)
+        const parsedReleases = releases.map((r: any, i: number) => {
+          let adv = {} as any;
+          try { if (r.advancedData) adv = JSON.parse(r.advancedData); } catch(e) {}
+          const techStr = Array.isArray(adv.techStack) ? adv.techStack.join(" ") : "";
+          return {
+            id: r.id,
+            rawId: r.id,
+            title: r.projectName,
+            version: r.version,
+            published: r.published,
+            dateObj: new Date(r.publishedAt || r.createdAt || 0),
+            date: new Date(r.publishedAt || r.createdAt || 0).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }).toUpperCase(),
+            type: `System Release ${techStr}`, 
+            color: COLORS[i % COLORS.length],
+            icon: ICONS[i % ICONS.length],
+            routing: adv.routing || { targetExplorer: true, targetVault: true, targetUpcoming: false, targetPrototypes: true },
+            adv
+          };
+        }).sort((a: any, b: any) => b.dateObj.getTime() - a.dateObj.getTime());
+
+        // 2. Recent Projects (Standing Drawer)
+        const recent = parsedReleases
+          .filter((p: any) => p.published && p.routing.targetVault)
+          .slice(0, 5)
+          .map((p: any) => {
+             let changes: string[] = [];
+             const strip = (html: string) => (html || '').replace(/<[^>]*>?/gm, '').replace(/([*~_`#])/g, '').split('\n').filter(l => l.trim().length > 0);
+             const added = strip(p.adv.addedFeatures);
+             const changed = strip(p.adv.changedUpdates);
+             const fixed = strip(p.adv.fixedBugs);
+             if (added.length) changes.push(`[ADDED] ${added[0]}`);
+             if (changed.length) changes.push(`[CHANGED] ${changed[0]}`);
+             if (fixed.length) changes.push(`[FIXED] ${fixed[0]}`);
+             if (changes.length === 0) changes = ["System architecture finalized.", "Database relationships active.", "UI parameters locked."];
+
+             return { ...p, changes: changes.slice(0, 3) };
           });
-          setRecentProjects(mappedRecent);
-        }
+        setRecentProjects(recent);
 
-        // 3. Map Incomings (Drafts ONLY)
-        const draftPosts = posts.filter((p: any) => p.published === false);
-        if (draftPosts.length > 0) {
-          const mappedIncomings = draftPosts.slice(0, 5).map((post: any, i: number) => ({
-            id: post.id,
-            title: post.title || 'Unknown Draft',
-            desc: (post.type || 'Development').toUpperCase(),
-            icon: ICONS[(i + 3) % ICONS.length]
+        // 3. Incomings (Arc Carousel)
+        const upcoming = parsedReleases
+          .filter((p: any) => !p.published || p.routing.targetUpcoming)
+          .slice(0, 5)
+          .map((p: any) => ({
+            id: p.id,
+            title: p.title,
+            desc: "IN DEVELOPMENT / LOCAL BUILD",
+            icon: p.icon
           }));
-          setIncomings(mappedIncomings);
-        }
+        setIncomings(upcoming);
 
-        // 4. Map All Completed Projects for Marquee (With Admin Video Search!)
-        if (allCompleted.length > 0) {
-          const mappedAll = allCompleted.map((item: any) => {
-            // Attempt to extract an admin-provided video link from the DB string
-            const potentialVideo = item.videoUrl || extractUrl(item.isRelease ? item.releaseNotes : item.content);
-            return { 
-              id: item.id, 
-              title: item.isRelease ? item.projectName : item.title,
-              type: item.isRelease ? 'Release' : item.type,
-              videoUrl: potentialVideo // Will be null if none found
-            };
-          }).filter(p => p.title);
-          
-          setAllProjects(mappedAll);
-        }
+        // 4. All Projects (Marquee)
+        setAllProjects(parsedReleases.filter((p: any) => p.published));
+
+        // 5. Node Graph (Hero Connectors)
+        setNodeProjects(parsedReleases.filter((p: any) => p.routing.targetPrototypes));
+
+        // 6. Showcases (Hologram Carousel)
+        setShowcases(showcasesData.map((s: any) => ({
+          id: s.id, title: s.title, videoUrl: s.videoUrl, thumbnailUrl: s.thumbnailUrl, description: s.description
+        })));
+
+        // 7. System Queries (FAQs)
+        setFaqs(faqsData.map((f: any) => ({ q: f.query, a: f.response })));
 
       } catch (error) {
         console.error("Matrix Hydration Failed:", error);
@@ -210,7 +208,7 @@ export default function ProjectMatrix() {
   // Auto-Cycle Timers
   useEffect(() => {
     const faqTimer = setInterval(() => {
-      if (!isFaqHovered) setOpenFaq((prev) => (prev !== null ? (prev + 1) % FAQS.length : 0));
+      if (!isFaqHovered && faqs.length > 0) setOpenFaq((prev) => (prev !== null ? (prev + 1) % faqs.length : 0));
     }, 5000); 
 
     const stackTimer = setInterval(() => {
@@ -222,7 +220,7 @@ export default function ProjectMatrix() {
     }, 3500);
 
     return () => { clearInterval(faqTimer); clearInterval(stackTimer); clearInterval(incomingTimer); };
-  }, [isFaqHovered, isHoveringStack, isHoveringIncomings, recentProjects.length, incomings.length]);
+  }, [isFaqHovered, isHoveringStack, isHoveringIncomings, recentProjects.length, incomings.length, faqs.length]);
 
   // Auth & Clock Init
   useEffect(() => {
@@ -280,7 +278,7 @@ export default function ProjectMatrix() {
     if (filterType === 'Frontend') return searchStr.match(/frontend|ui|web|app|react|next/i);
     if (filterType === 'Backend') return searchStr.match(/backend|server|api|database|sql|php|node/i);
     if (filterType === 'AI Models') return searchStr.match(/ai|model|llm|neural|gemini|vision/i);
-    return true; // Fallback
+    return true; 
   });
 
   const textPrimary = isLightMode ? "text-slate-900" : "text-white";
@@ -643,7 +641,7 @@ export default function ProjectMatrix() {
           {/* 3D Spinning Nodes */}
           <div className="relative w-full h-32 mt-20 flex justify-center [perspective:1200px]">
             <motion.div style={{ rotateY: holoRotY }} className="absolute w-[300px] h-[200px] [transform-style:preserve-3d] flex items-center justify-center">
-              {allProjects.slice(0, 5).map((node: any, i: number) => {
+              {showcases.slice(0, 5).map((node: any, i: number) => {
                 const isVideo = !!node.videoUrl;
                 return (
                   <button 
@@ -679,7 +677,7 @@ export default function ProjectMatrix() {
             </div>
             
             <div className="lg:w-2/3 border-t border-current relative" onMouseEnter={() => setIsFaqHovered(true)} onMouseLeave={() => setIsFaqHovered(false)}>
-              {FAQS.map((faq, i) => (
+              {faqs.map((faq, i) => (
                 <div key={i} className={`relative border-b ${isLightMode ? 'border-slate-300' : 'border-white/20'}`}>
                   {openFaq === i && (
                     <motion.div layoutId="faqHighlight" className="absolute inset-0 bg-gradient-to-r from-orange-500/10 to-transparent -z-10" initial={false} transition={slowExpandSpring} />
@@ -807,7 +805,7 @@ function NavNode({ id, label, angle, radius, delay = 0, onClick }: { id: string,
 
   return (
     <motion.button
-      type="button" aria-label={`Navigate to ${label}`} onClick={() => onClick(id)}
+      type="button" aria-label={`Maps to ${label}`} onClick={() => onClick(id)}
       initial={{ opacity: 0, x: 0, y: 0, scale: 0 }}
       animate={{ opacity: 1, x, y, scale: 1 }}
       exit={{ opacity: 0, x: 0, y: 0, scale: 0 }}

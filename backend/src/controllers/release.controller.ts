@@ -86,15 +86,9 @@ export const deleteRelease = catchAsync(async (req: Request, res: Response) => {
 // 4. FETCH RELEASE DIRECTORY (ADMIN OR PUBLIC)
 // ==========================================
 export const getReleases = catchAsync(async (req: Request, res: Response) => {
-  // If request comes from public gateway, only show published. If Admin, show all.
-  const isPublic = req.baseUrl.includes('public') || !req.user || req.user.role !== 'admin';
-  
-  // 🔥 FIX: Correctly mapping the public filter to the "published" boolean flag
-  const where = isPublic ? { published: true } : {}; 
-  
+  // Let the Matrix Frontend handle the routing logic (Drafts -> Incoming, Published -> Vault)
   const releases = await prisma.release.findMany({
-    where,
-    orderBy: { publishedAt: 'desc' } // Order by deployment date chronologically
+    orderBy: { publishedAt: 'desc' } 
   });
 
   res.status(200).json({ status: 'success', results: releases.length, data: releases });

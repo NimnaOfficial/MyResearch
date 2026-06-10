@@ -16,7 +16,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { name: 'NODE_ROSTER', path: '/admin/users', icon: Users },
     { name: 'BLUEPRINTS', path: '/admin/research', icon: Database },
     { name: 'API_VAULT', path: '/admin/projects', icon: Server },
-    { name: 'SYS_CONFIG', path: '/admin/comms', icon: Radio },
+    { name: 'SYS_CONFIG', path: '/admin/system', icon: Radio },
   ];
 
   return (

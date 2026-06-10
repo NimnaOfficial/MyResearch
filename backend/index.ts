@@ -11,8 +11,11 @@ import { errorHandler } from './src/middleware/errorHandler';
 import path from 'path';
 
 import feedbackRoutes from './src/routes/feedback.routes';
-
 import adminRoutes from './src/routes/admin.routes';
+
+// 🔥 THE FIX: Pointed these into the /src/ directory and removed the .ts extension!
+import showcaseRoutes from './src/routes/showcase.routes';
+import faqRoutes from './src/routes/faq.routes';
 
 dotenv.config();
 
@@ -47,6 +50,8 @@ app.use('/api/releases', releaseRoutes);
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 app.use('/api/feedback', feedbackRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/showcase', showcaseRoutes);
+app.use('/api/faqs', faqRoutes);
 
 // Global Error Handler
 app.use(errorHandler);

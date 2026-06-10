@@ -4,7 +4,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  // The 'url' property is removed here for Prisma 7 compatibility (ensure it's in your .env)
+  // URL is strictly forbidden here in Prisma 7. It is handled by the Adapter.
 }
 
 // ==========================================
@@ -113,7 +113,7 @@ model Release {
   // Standard Lifecycle Tracking
   publishedAt  DateTime @default(now())
   createdAt    DateTime @default(now())
-  updatedAt    DateTime @default(now()) @updatedAt
+  updatedAt    DateTime @updatedAt
 }
 
 // ==========================================
