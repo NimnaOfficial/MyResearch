@@ -61,3 +61,11 @@ To run the CSx Matrix on your local development environment, follow this strict 
 git clone [https://github.com/NimnaOfficial/MyResearch.git](https://github.com/NimnaOfficial/MyResearch.git)
 cd MyResearch
 ```
+
+### 2. Ignite the Backend Logic Engine
+Execute the following commands to initialize the Node.js runtime environment, install dependencies, and synchronize the ORM with your local PostgreSQL instance.
+
+```bash
+cd backend
+npm install
+```
