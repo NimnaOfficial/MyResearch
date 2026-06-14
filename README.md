@@ -109,4 +109,11 @@ Status: <i>The Next.js React tree is successfully compiled. Access the secure GU
 
 The CSx Core utilizes a highly automated, distributed Continuous Integration and Continuous Deployment (CI/CD) pipeline. Committing to the `main` GitHub branch triggers asynchronous webhook payloads to our cloud infrastructure:
 * **Logic Tier (Render):** Intercepts the backend payload, provisions the server environment, automatically generates the Prisma client bindings, and reboots the Node.js Express server to ensure zero-downtime API serving.
+  
 * **Presentation Tier (Vercel):** Intercepts the frontend payload, compiles the Next.js React tree, and distributes the static/server-rendered assets across a global Edge CDN. Custom Vercel configurations (`next.config.mjs`) are implemented to gracefully bypass strict TypeScript compilation blocks, guaranteeing continuous uptime during rapid deployment cycles.
+
+<i>End of Document. System Standing By.</i>
+
+## 🕸️ Network Topology & Architecture Map
+
+The following schematic visualizes the active data flow, hardware-level security protocols, and cloud infrastructure logic between the client edge and the Supabase data core.
