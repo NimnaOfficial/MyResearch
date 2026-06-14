@@ -1,4 +1,5 @@
 # ⚡ CSx CORE | Master Command Matrix 
+<br>
 
 <div align="center">
   <img src="https://img.shields.io/badge/STATUS-ONLINE-green?style=for-the-badge" alt="Status" />
@@ -84,3 +85,12 @@ npx prisma db seed
 npm run dev
 ```
 Status: <i>The Express API runtime is now actively listening and serving traffic on Port 5000.</i>
+
+### 3. Bootstrap the Frontend Client Matrix
+Open an independent terminal instance to isolate the Next.js client-side build process.
+```bash
+cd frontend
+npm install
+```
+Environment Configuration:
+Create a .env.local file in the /frontend directory. This variable routes all client-side telemetry and dynamic data fetches to your local backend engine.
