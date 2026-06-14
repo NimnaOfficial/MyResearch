@@ -71,7 +71,7 @@ cd backend
 npm install
 ```
 Environment Variable Configuration:
-Create a strict .env file at the root of the /backend directory. This securely holds your database connection strings and cryptographic keys for JWT generation.
+Create a strict `.env` file at the root of the `/backend` directory. This securely holds your database connection strings and cryptographic keys for JWT generation.
 ```bash
 PORT=5000
 DATABASE_URL="postgresql://postgres:[PASSWORD]@localhost:5432/csx_core"
@@ -93,4 +93,8 @@ cd frontend
 npm install
 ```
 Environment Configuration:
-Create a .env.local file in the /frontend directory. This variable routes all client-side telemetry and dynamic data fetches to your local backend engine.
+Create a `.env.local file` in the `/frontend` directory. This variable routes all client-side telemetry and dynamic data fetches to your local backend engine.
+
+```bash
+NEXT_PUBLIC_API_URL="http://localhost:5000"
+```
