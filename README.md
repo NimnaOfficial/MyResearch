@@ -1,4 +1,4 @@
-# ⚡ CSx CORE | Master Command Matrix
+# <center>⚡ CSx CORE | Master Command Matrix </center>
 
 <div align="center">
   <img src="https://img.shields.io/badge/STATUS-ONLINE-green?style=for-the-badge" alt="Status" />
