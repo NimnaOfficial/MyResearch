@@ -4,7 +4,7 @@ END-USER LICENSE AGREEMENT (EULA) AND PROPRIETARY RIGHTS DIRECTIVE
 ==================================================================
 
 1. EXCLUSIVE OWNERSHIP
-This software, known as "CSx CORE", including all frontend React components, backend Express architecture, database schemas, animations, and proprietary security algorithms (collectively, the "Software"), is the exclusive intellectual property of the original author (Nima). 
+This software, known as "CSx CORE", including all frontend React components, backend Express architecture, database schemas, and proprietary security algorithms is the exclusive intellectual property of the original author (Nima). Furthermore, all aesthetic engineering—including custom cursor tracking mechanics, interactive states, momentum scrolling profiles, and distinctive UI/UX motion design—are strictly owned by the author.
 
 2. SOURCE CODE VISIBILITY
 The source code of this Software is provided publicly for the sole purpose of code review, architectural demonstration, and professional evaluation (e.g., portfolio showcasing). Public visibility on GitHub (or any other repository) does NOT constitute an open-source license.
@@ -14,7 +14,8 @@ Under this license, you are strictly PROHIBITED from:
   a) Cloning, copying, or duplicating this Software for personal, academic, or commercial use.
   b) Modifying, adapting, translating, or creating derivative works based on this Software.
   c) Redistributing, sublicensing, renting, or leasing this Software.
-  d) Extracting and reusing specific architectural components, UI designs, or security middleware (such as the Hardware Security Firewall).
+  d) Extracting and reusing specific architectural components, UI designs, or security middleware.
+  e) Replicating, extracting, or repurposing the custom cursor implementations, visual micro-interactions, layout geometries, and motion design signatures that formulate the system's user experience.
 
 4. SECURITY EVASION
 Attempting to bypass the integrated Hardware Security Firewall, Level-5 Cipher Gate, or reverse-engineer the API telemetry polling engine for unauthorized access is strictly prohibited and constitutes a violation of this agreement.
