@@ -145,3 +145,5 @@ graph TD
     RenderAPI <-->|Schema Validation| PrismaORM
     PrismaORM <-->|TCP/IP Connection Pool| SupabaseDB
 ```
+---
+> **Dev by Sandanimne K.G.L.**
