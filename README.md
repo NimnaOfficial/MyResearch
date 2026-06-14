@@ -1,9 +1,9 @@
 <div align="center">
+  
 # ⚡ CSx CORE | Master Command Matrix
-</div>
+
 <br>
 
-<div align="center">
   <img src="https://img.shields.io/badge/STATUS-ONLINE-green?style=for-the-badge" alt="Status" />
   <img src="https://img.shields.io/badge/TIER-ENTERPRISE-blue?style=for-the-badge" alt="Tier" />
   <img src="https://img.shields.io/badge/ENVIRONMENT-DESKTOP_ONLY-red?style=for-the-badge" alt="Environment" />
