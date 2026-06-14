@@ -184,7 +184,7 @@ export default function MasterResearchVault() {
       }
 
       try {
-        const authRes = await fetch('http://localhost:5000/api/auth/me', {
+        const authRes = await fetch('https://myresearch-bclz.onrender.com/api/auth/me', {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (authRes.ok) {
@@ -196,8 +196,8 @@ export default function MasterResearchVault() {
         }
 
         const [postsRes, releasesRes] = await Promise.all([
-          fetch('http://localhost:5000/api/posts'),
-          fetch('http://localhost:5000/api/releases')
+          fetch('https://myresearch-bclz.onrender.com/api/posts'),
+          fetch('https://myresearch-bclz.onrender.com/api/releases')
         ]);
         
         const postsData = await postsRes.json();

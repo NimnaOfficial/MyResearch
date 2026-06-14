@@ -119,7 +119,7 @@ export default function MasterResearchForge() {
       const token = localStorage.getItem('matrix_token');
       if(!token) return router.push('/auth');
 
-      const res = await fetch('http://localhost:5000/api/posts', {
+      const res = await fetch('https://myresearch-bclz.onrender.com/api/posts', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) {
@@ -223,7 +223,7 @@ export default function MasterResearchForge() {
 
     try {
       const token = localStorage.getItem('matrix_token');
-      const url = formData.id ? `http://localhost:5000/api/posts/${formData.id}` : 'http://localhost:5000/api/posts';
+      const url = formData.id ? `https://myresearch-bclz.onrender.com/api/posts/${formData.id}` : 'https://myresearch-bclz.onrender.com/api/posts';
       const method = formData.id ? 'PUT' : 'POST';
 
       const res = await fetch(url, {
@@ -250,7 +250,7 @@ export default function MasterResearchForge() {
     if (!confirm("CRITICAL WARNING: Permanent Deletion of Research Node. Proceed?")) return;
     try {
       const token = localStorage.getItem('matrix_token');
-      const res = await fetch(`http://localhost:5000/api/posts/${id}`, {
+      const res = await fetch(`https://myresearch-bclz.onrender.com/api/posts/${id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });

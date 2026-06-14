@@ -74,7 +74,7 @@ export default function UserDashboard() {
         return;
       }
       try {
-        const response = await fetch('http://localhost:5000/api/auth/me', {
+        const response = await fetch('https://myresearch-bclz.onrender.com/api/auth/me', {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,

@@ -87,7 +87,7 @@ export default function AdvancedSettingsMatrix() {
       if (!token) { router.push('/auth'); return; }
 
       try {
-        const userRes = await fetch('http://localhost:5000/api/auth/me', { headers: { 'Authorization': `Bearer ${token}` } });
+        const userRes = await fetch('https://myresearch-bclz.onrender.com/api/auth/me', { headers: { 'Authorization': `Bearer ${token}` } });
         if (userRes.ok) {
           const { data } = await userRes.json();
           setUserData(data);
@@ -119,7 +119,7 @@ export default function AdvancedSettingsMatrix() {
     const token = localStorage.getItem('matrix_token');
 
     try {
-      const res = await fetch('http://localhost:5000/api/auth/update', {
+      const res = await fetch('https://myresearch-bclz.onrender.com/api/auth/update', {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -617,7 +617,7 @@ export default function AdvancedSettingsMatrix() {
                       uploadFormData.append('profilePic', croppedBlob, 'profile.jpg');
 
                       const token = localStorage.getItem('matrix_token');
-                      const res = await fetch('http://localhost:5000/api/auth/upload-pic', {
+                      const res = await fetch('https://myresearch-bclz.onrender.com/api/auth/upload-pic', {
                         method: 'POST',
                         headers: { 'Authorization': `Bearer ${token}` },
                         body: uploadFormData

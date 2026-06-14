@@ -18,7 +18,7 @@ export default function AdminGuard({ children }: { children: React.ReactNode }) 
       }
 
       try {
-        const res = await fetch('http://localhost:5000/api/auth/me', {
+        const res = await fetch('https://myresearch-bclz.onrender.com/api/auth/me', {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         

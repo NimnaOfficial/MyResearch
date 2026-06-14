@@ -171,7 +171,7 @@ export default function MasterFeedbackVault() {
       if (!token) return;
 
       try {
-        const userRes = await fetch('http://localhost:5000/api/auth/me', { headers: { 'Authorization': `Bearer ${token}` } });
+        const userRes = await fetch('https://myresearch-bclz.onrender.com/api/auth/me', { headers: { 'Authorization': `Bearer ${token}` } });
         if (userRes.ok) {
           const { data } = await userRes.json();
           setUserData(data);
@@ -278,7 +278,7 @@ export default function MasterFeedbackVault() {
     const token = localStorage.getItem('matrix_token');
 
     try {
-      const res = await fetch("http://localhost:5000/api/feedback/submit", {
+      const res = await fetch("https://myresearch-bclz.onrender.com/api/feedback/submit", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

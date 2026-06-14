@@ -117,9 +117,9 @@ export default function ProjectMatrix() {
     const hydrateMatrix = async () => {
       try {
         const [relRes, showRes, faqRes] = await Promise.all([
-          fetch('http://localhost:5000/api/releases').catch(() => null),
-          fetch('http://localhost:5000/api/showcase').catch(() => null),
-          fetch('http://localhost:5000/api/faqs').catch(() => null)
+          fetch('https://myresearch-bclz.onrender.com/api/releases').catch(() => null),
+          fetch('https://myresearch-bclz.onrender.com/api/showcase').catch(() => null),
+          fetch('https://myresearch-bclz.onrender.com/api/faqs').catch(() => null)
         ]);
 
         // Safely parse JSON to prevent crashes if a route 404s
@@ -229,7 +229,7 @@ export default function ProjectMatrix() {
       if (token) {
         setIsAuthenticated(true);
         setCurrentUserRole('user');
-        fetch('http://localhost:5000/api/auth/me', { headers: { 'Authorization': `Bearer ${token}` } })
+        fetch('https://myresearch-bclz.onrender.com/api/auth/me', { headers: { 'Authorization': `Bearer ${token}` } })
           .then(res => res.json())
           .then(json => { if (json.data) setUserData(json.data); })
           .catch(() => {});

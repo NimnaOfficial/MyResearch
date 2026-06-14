@@ -310,7 +310,7 @@ export default function ResearchDetailPage() {
         setIsAuthenticated(true);
         setCurrentUserRole('user');
         try {
-          const res = await fetch('http://localhost:5000/api/auth/me', { headers: { 'Authorization': `Bearer ${token}` } });
+          const res = await fetch('https://myresearch-bclz.onrender.com/api/auth/me', { headers: { 'Authorization': `Bearer ${token}` } });
           if (res.ok) {
             const userJson = await res.json();
             setUserData(userJson.data);
@@ -334,7 +334,7 @@ export default function ResearchDetailPage() {
     const fetchResearch = async () => {
       setIsLoading(true);
       try {
-        const res = await fetch(`http://localhost:5000/api/posts/${researchId}`);
+        const res = await fetch(`https://myresearch-bclz.onrender.com/api/posts/${researchId}`);
         if (res.ok) {
           const json = await res.json();
           const dbData = json.data;
@@ -416,7 +416,7 @@ export default function ResearchDetailPage() {
     }
 
     try {
-      const res = await fetch(`http://localhost:5000/api/posts/${researchId}/save`, {
+      const res = await fetch(`https://myresearch-bclz.onrender.com/api/posts/${researchId}/save`, {
         method: 'POST', 
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -447,7 +447,7 @@ export default function ResearchDetailPage() {
 
     try {
       const token = localStorage.getItem('matrix_token');
-      const res = await fetch(`http://localhost:5000/api/posts/${researchId}/pdf`, {
+      const res = await fetch(`https://myresearch-bclz.onrender.com/api/posts/${researchId}/pdf`, {
         method: 'GET',
         headers: { ...(token && { 'Authorization': `Bearer ${token}` }) }
       });

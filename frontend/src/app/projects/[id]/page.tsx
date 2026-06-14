@@ -115,7 +115,7 @@ export default function ReleaseDetailIDE() {
         if (token) headers['Authorization'] = `Bearer ${token}`;
 
         // 1. Fetch Global Data for Sidebar (Strictly Releases)
-        const dirRes = await fetch('http://localhost:5000/api/releases', { headers }).catch(() => null);
+        const dirRes = await fetch('https://myresearch-bclz.onrender.com/api/releases', { headers }).catch(() => null);
 
         let globalReleases: any[] = [];
         if (dirRes && dirRes.ok) {
@@ -128,7 +128,7 @@ export default function ReleaseDetailIDE() {
         const cleanId = releaseId.replace(/['"]+/g, '');
         let dbData = null;
 
-        const relSingle = await fetch(`http://localhost:5000/api/releases/${cleanId}`, { headers }).catch(() => null);
+        const relSingle = await fetch(`https://myresearch-bclz.onrender.com/api/releases/${cleanId}`, { headers }).catch(() => null);
         if (relSingle && relSingle.ok) {
           const json = await relSingle.json();
           dbData = json.data;
@@ -232,7 +232,7 @@ export default function ReleaseDetailIDE() {
       if (token) {
         setIsAuthenticated(true);
         setCurrentUserRole('user');
-        fetch('http://localhost:5000/api/auth/me', { headers: { 'Authorization': `Bearer ${token}` } })
+        fetch('https://myresearch-bclz.onrender.com/api/auth/me', { headers: { 'Authorization': `Bearer ${token}` } })
           .then(res => res.json())
           .then(json => { 
             if (json.data) {
@@ -267,7 +267,7 @@ export default function ReleaseDetailIDE() {
 
     setIsSavingInProgress(true);
     try {
-      const res = await fetch(`http://localhost:5000/api/releases/${releaseId}/save`, {
+      const res = await fetch(`https://myresearch-bclz.onrender.com/api/releases/${releaseId}/save`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

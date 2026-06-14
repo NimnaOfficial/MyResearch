@@ -52,7 +52,7 @@ export default function UltimateUserRoster() {
   const fetchUsers = async () => {
     try {
       const token = localStorage.getItem('matrix_token');
-      const res = await fetch('http://localhost:5000/api/admin/users', {
+      const res = await fetch('https://myresearch-bclz.onrender.com/api/admin/users', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
@@ -76,7 +76,7 @@ export default function UltimateUserRoster() {
     if (!confirm(`Elevate/Demote operator clearance to [${newRole.toUpperCase()}]?`)) return;
     setActionLoading(userId);
     try {
-      const res = await fetch(`http://localhost:5000/api/admin/users/${userId}/role`, {
+      const res = await fetch(`https://myresearch-bclz.onrender.com/api/admin/users/${userId}/role`, {
         method: 'PUT',
         headers: { 'Authorization': `Bearer ${localStorage.getItem('matrix_token')}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ role: newRole })
@@ -92,7 +92,7 @@ export default function UltimateUserRoster() {
     if (!confirm("CRITICAL: Permanent Node Termination. Proceed?")) return;
     setActionLoading(userId);
     try {
-      const res = await fetch(`http://localhost:5000/api/admin/users/${userId}`, {
+      const res = await fetch(`https://myresearch-bclz.onrender.com/api/admin/users/${userId}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${localStorage.getItem('matrix_token')}` }
       });
@@ -109,14 +109,14 @@ export default function UltimateUserRoster() {
     try {
       const token = localStorage.getItem('matrix_token');
       
-      const res = await fetch(`http://localhost:5000/api/admin/users/${inspectUser.id}/identity`, {
+      const res = await fetch(`https://myresearch-bclz.onrender.com/api/admin/users/${inspectUser.id}/identity`, {
         method: 'PUT',
         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify(editForm)
       });
       
       if (editForm.password && editForm.password.length >= 6) {
-        await fetch(`http://localhost:5000/api/admin/users/${inspectUser.id}/cipher`, {
+        await fetch(`https://myresearch-bclz.onrender.com/api/admin/users/${inspectUser.id}/cipher`, {
           method: 'PUT',
           headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({ newCipher: editForm.password })
@@ -139,7 +139,7 @@ export default function UltimateUserRoster() {
     if (!confirm(`WARNING: Overwriting Node Cipher. Proceed?`)) return;
     setActionLoading('override_cipher');
     try {
-      const res = await fetch(`http://localhost:5000/api/admin/users/${inspectUser!.id}/cipher`, {
+      const res = await fetch(`https://myresearch-bclz.onrender.com/api/admin/users/${inspectUser!.id}/cipher`, {
         method: 'PUT',
         headers: { 'Authorization': `Bearer ${localStorage.getItem('matrix_token')}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ newCipher })
@@ -157,7 +157,7 @@ export default function UltimateUserRoster() {
     setActionLoading('suspend_node');
     
     try {
-      const res = await fetch(`http://localhost:5000/api/admin/users/${inspectUser.id}/status`, {
+      const res = await fetch(`https://myresearch-bclz.onrender.com/api/admin/users/${inspectUser.id}/status`, {
         method: 'PUT',
         headers: { 'Authorization': `Bearer ${localStorage.getItem('matrix_token')}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus })

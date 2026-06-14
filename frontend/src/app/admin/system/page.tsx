@@ -101,8 +101,8 @@ export default function SystemCommandCenter() {
         const headers = { 'Authorization': `Bearer ${token}` };
 
         const [fbRes, logRes] = await Promise.all([
-          fetch('http://localhost:5000/api/feedback', { headers }).catch(() => null),
-          fetch('http://localhost:5000/api/admin/logs', { headers }).catch(() => null)
+          fetch('https://myresearch-bclz.onrender.com/api/feedback', { headers }).catch(() => null),
+          fetch('https://myresearch-bclz.onrender.com/api/admin/logs', { headers }).catch(() => null)
         ]);
 
         const fbData = fbRes && fbRes.ok ? (await fbRes.json()).data : MOCK_MESSAGES;

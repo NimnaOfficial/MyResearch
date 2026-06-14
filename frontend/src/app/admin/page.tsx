@@ -47,17 +47,17 @@ export default function AdminDashboard() {
 
       try {
         if (!adminProfile) {
-          const meRes = await fetch('http://localhost:5000/api/auth/me', { headers: { Authorization: `Bearer ${token}` } }).catch(()=>null);
+          const meRes = await fetch('https://myresearch-bclz.onrender.com/api/auth/me', { headers: { Authorization: `Bearer ${token}` } }).catch(()=>null);
           if (meRes && meRes.ok) setAdminProfile((await meRes.json()).data);
         }
 
         // Parallel Fetch for Absolute Zero Latency
         const startPing = Date.now();
         const [statsRes, logsRes, fbRes, healthRes] = await Promise.all([
-          fetch('http://localhost:5000/api/admin/stats', { headers: { Authorization: `Bearer ${token}` } }).catch(() => null),
-          fetch('http://localhost:5000/api/admin/logs', { headers: { Authorization: `Bearer ${token}` } }).catch(() => null),
-          fetch('http://localhost:5000/api/feedback', { headers: { Authorization: `Bearer ${token}` } }).catch(() => null),
-          fetch('http://localhost:5000/api/health').catch(() => null)
+          fetch('https://myresearch-bclz.onrender.com/api/admin/stats', { headers: { Authorization: `Bearer ${token}` } }).catch(() => null),
+          fetch('https://myresearch-bclz.onrender.com/api/admin/logs', { headers: { Authorization: `Bearer ${token}` } }).catch(() => null),
+          fetch('https://myresearch-bclz.onrender.com/api/feedback', { headers: { Authorization: `Bearer ${token}` } }).catch(() => null),
+          fetch('https://myresearch-bclz.onrender.com/api/health').catch(() => null)
         ]);
         const endPing = Date.now();
 

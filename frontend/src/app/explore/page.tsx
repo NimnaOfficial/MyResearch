@@ -131,8 +131,8 @@ export default function ExplorePage() {
     const fetchMatrixData = async () => {
       try {
         const [postsRes, releasesRes] = await Promise.all([
-          fetch('http://localhost:5000/api/posts').catch(() => null),
-          fetch('http://localhost:5000/api/releases').catch(() => null)
+          fetch('https://myresearch-bclz.onrender.com/api/posts').catch(() => null),
+          fetch('https://myresearch-bclz.onrender.com/api/releases').catch(() => null)
         ]);
 
         let combinedData: any[] = [];
