@@ -1,4 +1,4 @@
-<center> # ⚡ CSx CORE | Master Command Matrix </center>
+# ⚡ CSx CORE | Master Command Matrix 
 
 <div align="center">
   <img src="https://img.shields.io/badge/STATUS-ONLINE-green?style=for-the-badge" alt="Status" />
@@ -76,3 +76,11 @@ PORT=5000
 DATABASE_URL="postgresql://postgres:[PASSWORD]@localhost:5432/csx_core"
 JWT_SECRET="your_super_secret_cipher_key"
 ```
+Database Schema Synchronization & Seeding:
+Compile the SQL tables directly from the Prisma schema and inject the baseline architectural data into the local data core.
+```bash
+npx prisma db push
+npx prisma db seed
+npm run dev
+```
+Status: <i>The Express API runtime is now actively listening and serving traffic on Port 5000.</i>
