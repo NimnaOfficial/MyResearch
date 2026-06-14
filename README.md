@@ -1,4 +1,6 @@
-# ⚡ CSx CORE | Master Command Matrix 
+<div align="center">
+# ⚡ CSx CORE | Master Command Matrix
+</div>
 <br>
 
 <div align="center">
