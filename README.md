@@ -117,3 +117,31 @@ The CSx Core utilizes a highly automated, distributed Continuous Integration and
 ## 🕸️ Network Topology & Architecture Map
 
 The following schematic visualizes the active data flow, hardware-level security protocols, and cloud infrastructure logic between the client edge and the Supabase data core.
+
+```mermaid
+graph TD
+    %% Styling Profile
+    classDef client fill:#0f172a,stroke:#3b82f6,stroke-width:2px,color:#fff
+    classDef vercel fill:#000000,stroke:#ffffff,stroke-width:2px,color:#fff
+    classDef render fill:#4623eb,stroke:#ffffff,stroke-width:2px,color:#fff
+    classDef database fill:#1c1c1c,stroke:#3ecf8e,stroke-width:2px,color:#fff
+    classDef security fill:#450a0a,stroke:#dc2626,stroke-width:2px,color:#fff
+
+    %% Nodes
+    User(("Desktop Client Browser")):::client
+    MobileBlocker["Hardware Security Firewall (Next.js Middleware/UI)"]:::security
+    VercelEdge["Vercel Edge CDN (Frontend Hosting)"]:::vercel
+    RenderAPI["Render Web Service (Node/Express API)"]:::render
+    PrismaORM["Prisma Client (Data Mapper)"]:::render
+    SupabaseDB[("Supabase PostgreSQL (Data Core)")]:::database
+
+    %% Flows
+    User -->|HTTPS GET Request| VercelEdge
+    VercelEdge -->|Delivers UI| MobileBlocker
+    MobileBlocker -->|Allows Connection| User
+    MobileBlocker -.->|Blocks / Severs| Mobile(("Mobile/Tablet Client"))
+    
+    User <-->|REST API / JSON| RenderAPI
+    RenderAPI <-->|Schema Validation| PrismaORM
+    PrismaORM <-->|TCP/IP Connection Pool| SupabaseDB
+```
