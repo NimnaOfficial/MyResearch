@@ -70,14 +70,14 @@ Execute the following commands to initialize the Node.js runtime environment, in
 cd backend
 npm install
 ```
-Environment Variable Configuration:
+#### Environment Variable Configuration:
 Create a strict `.env` file at the root of the `/backend` directory. This securely holds your database connection strings and cryptographic keys for JWT generation.
 ```bash
 PORT=5000
 DATABASE_URL="postgresql://postgres:[PASSWORD]@localhost:5432/csx_core"
 JWT_SECRET="your_super_secret_cipher_key"
 ```
-Database Schema Synchronization & Seeding:
+#### Database Schema Synchronization & Seeding:
 Compile the SQL tables directly from the Prisma schema and inject the baseline architectural data into the local data core.
 ```bash
 npx prisma db push
@@ -92,9 +92,15 @@ Open an independent terminal instance to isolate the Next.js client-side build p
 cd frontend
 npm install
 ```
-Environment Configuration:
+#### Environment Configuration:
 Create a `.env.local file` in the `/frontend` directory. This variable routes all client-side telemetry and dynamic data fetches to your local backend engine.
 
 ```bash
 NEXT_PUBLIC_API_URL="http://localhost:5000"
 ```
+#### Start the Development Matrix:
+```bash
+npm run dev
+```
+
+Status: <i>The Next.js React tree is successfully compiled. Access the secure GUI at `http://localhost:3000`.</i>
