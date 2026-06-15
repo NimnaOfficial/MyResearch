@@ -1,14 +1,23 @@
 import nodemailer from 'nodemailer';
+import dotenv from 'dotenv';
+dotenv.config(); // Force load the environment variables!
 
-// ============================================================================
-// 1. CORE TRANSMISSION ENGINE (GMAIL APP PASSWORD OPTIMIZED)
-// ============================================================================
 const transporter = nodemailer.createTransport({
-  service: 'gmail', // This automatically configures the exact safe ports/hosts for Google
+  service: 'gmail',
   auth: {
     user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS, // MUST be your new 16-character Google App Password
+    pass: process.env.EMAIL_PASS,
   },
+});
+
+// 🔥 THE DIAGNOSTIC PING
+transporter.verify(function (error, success) {
+  if (error) {
+    console.log("🚨 CRITICAL SMTP CONNECTION ERROR 🚨");
+    console.log(error); // This will print the raw Google error code!
+  } else {
+    console.log("✅ GOOGLE SMTP SERVER IS ONLINE AND READY");
+  }
 });
 
 // ============================================================================
