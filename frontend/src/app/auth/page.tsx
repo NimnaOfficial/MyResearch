@@ -69,6 +69,9 @@ export default function AuthGateway() {
   const [secretCode, setSecretCode] = useState('');
   const [regData, setRegData] = useState({ name: '', email: '', phone: '', age: '', backupPass: '', confirmPass: '' });
 
+  // 🔥 THE RACE CONDITION LOCK
+  const [isLoading, setIsLoading] = useState(false);
+
   useEffect(() => {
     setIsMounted(true);
     const timer = setTimeout(() => setIsBooting(false), 2500);
@@ -77,7 +80,11 @@ export default function AuthGateway() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setAuthState('scanning'); setAuthError('');
+    if (isLoading) return; // Stop phantom double-clicks
+    setIsLoading(true);
+
+    setAuthState('scanning'); 
+    setAuthError('');
 
     try {
       const response = await fetch('https://myresearch-bclz.onrender.com/api/auth/login', {
@@ -99,16 +106,24 @@ export default function AuthGateway() {
     } catch (err) {
       setAuthState('error'); setAuthError('Matrix connection failed. Check server status.');
       setTimeout(() => setAuthState('idle'), 3000);
+    } finally {
+      setIsLoading(false); // Release the lock
     }
   };
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    setAuthState('scanning'); setAuthError('');
+    if (isLoading) return; // Stop phantom double-clicks
+    setIsLoading(true);
+
+    setAuthState('scanning'); 
+    setAuthError('');
 
     if (regData.backupPass !== regData.confirmPass) {
       setAuthState('error'); setAuthError('Backup Passwords do not match!');
-      setTimeout(() => setAuthState('idle'), 3000); return;
+      setTimeout(() => setAuthState('idle'), 3000); 
+      setIsLoading(false); // Release lock early on error
+      return;
     }
 
     try {
@@ -128,6 +143,8 @@ export default function AuthGateway() {
     } catch (err) {
       setAuthState('error'); setAuthError('Matrix connection failed. Check server status.');
       setTimeout(() => setAuthState('idle'), 3000);
+    } finally {
+      setIsLoading(false); // Release the lock
     }
   };
 
@@ -184,10 +201,10 @@ export default function AuthGateway() {
                     <motion.form key="login" onSubmit={handleLogin} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
                       <div className="relative group">
                         <KeySquare size={16} className={`absolute right-2 top-1/2 -translate-y-1/2 ${authState === 'error' ? 'text-red-500' : (isLightMode ? 'text-slate-400' : 'text-slate-600')}`} />
-                        <input type="text" required maxLength={10} placeholder="Secret Code (e.g. AEX4921B7C)" disabled={authState !== 'idle'} value={secretCode} onChange={(e) => setSecretCode(e.target.value.toUpperCase())} className={`${inputStyle} ${authState === 'error' ? 'border-red-500/50 text-red-500 bg-red-500/10' : ''}`} />
+                        <input type="text" required maxLength={10} placeholder="Secret Code (e.g. AEX4921B7C)" disabled={authState !== 'idle' || isLoading} value={secretCode} onChange={(e) => setSecretCode(e.target.value.toUpperCase())} className={`${inputStyle} ${authState === 'error' ? 'border-red-500/50 text-red-500 bg-red-500/10' : ''}`} />
                       </div>
                       {authError && <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-red-500 text-xs font-bold uppercase tracking-widest flex items-center justify-center pt-2"><AlertTriangle size={14} className="mr-2" /> {authError}</motion.p>}
-                      <button type="submit" disabled={authState !== 'idle'} className={`w-full flex items-center justify-center py-4 font-black uppercase tracking-[0.2em] text-xs transition-all disabled:opacity-50 disabled:cursor-not-allowed rounded-xl ${authState === 'success' ? 'bg-[#9333ea] text-white shadow-[0_0_30px_rgba(168,85,247,0.6)]' : 'bg-[#a855f7] hover:bg-[#9333ea] text-white shadow-[0_0_20px_rgba(168,85,247,0.3)] hover:shadow-[0_0_30px_rgba(168,85,247,0.5)]'}`}>
+                      <button type="submit" disabled={authState !== 'idle' || isLoading} className={`w-full flex items-center justify-center py-4 font-black uppercase tracking-[0.2em] text-xs transition-all disabled:opacity-50 disabled:cursor-not-allowed rounded-xl ${authState === 'success' ? 'bg-[#9333ea] text-white shadow-[0_0_30px_rgba(168,85,247,0.6)]' : 'bg-[#a855f7] hover:bg-[#9333ea] text-white shadow-[0_0_20px_rgba(168,85,247,0.3)] hover:shadow-[0_0_30px_rgba(168,85,247,0.5)]'}`}>
                         {authState === 'scanning' ? <ScanFace className="animate-pulse text-white" size={18} /> : authState === 'error' ? 'Access Denied' : authState === 'success' ? 'Link Established' : 'Execute Login'}
                       </button>
                     </motion.form>
@@ -196,17 +213,17 @@ export default function AuthGateway() {
                   {mode === 'register' && (
                     <motion.form key="register" onSubmit={handleRegister} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-5">
                       <div className="grid grid-cols-2 gap-6">
-                        <input type="text" required placeholder="Full Name" className={inputStyle} value={regData.name} onChange={(e) => setRegData({...regData, name: e.target.value})} />
-                        <input type="number" required placeholder="Age" className={inputStyle} value={regData.age} onChange={(e) => setRegData({...regData, age: e.target.value})} />
+                        <input type="text" required placeholder="Full Name" className={inputStyle} value={regData.name} onChange={(e) => setRegData({...regData, name: e.target.value})} disabled={isLoading} />
+                        <input type="number" required placeholder="Age" className={inputStyle} value={regData.age} onChange={(e) => setRegData({...regData, age: e.target.value})} disabled={isLoading} />
                       </div>
-                      <input type="email" required placeholder="Email Address (Required)" className={inputStyle} value={regData.email} onChange={(e) => setRegData({...regData, email: e.target.value})} />
-                      <input type="tel" placeholder="Phone Number (Optional)" className={inputStyle} value={regData.phone} onChange={(e) => setRegData({...regData, phone: e.target.value})} />
+                      <input type="email" required placeholder="Email Address (Required)" className={inputStyle} value={regData.email} onChange={(e) => setRegData({...regData, email: e.target.value})} disabled={isLoading} />
+                      <input type="tel" placeholder="Phone Number (Optional)" className={inputStyle} value={regData.phone} onChange={(e) => setRegData({...regData, phone: e.target.value})} disabled={isLoading} />
                       <div className="grid grid-cols-2 gap-6">
-                        <input type="password" required placeholder="Backup Password" className={inputStyle} value={regData.backupPass} onChange={(e) => setRegData({...regData, backupPass: e.target.value})} />
-                        <input type="password" required placeholder="Confirm Password" className={inputStyle} value={regData.confirmPass} onChange={(e) => setRegData({...regData, confirmPass: e.target.value})} />
+                        <input type="password" required placeholder="Backup Password" className={inputStyle} value={regData.backupPass} onChange={(e) => setRegData({...regData, backupPass: e.target.value})} disabled={isLoading} />
+                        <input type="password" required placeholder="Confirm Password" className={inputStyle} value={regData.confirmPass} onChange={(e) => setRegData({...regData, confirmPass: e.target.value})} disabled={isLoading} />
                       </div>
                       {authError && <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-red-500 text-xs font-bold uppercase tracking-widest flex items-center justify-center pt-2"><AlertTriangle size={14} className="mr-2" /> {authError}</motion.p>}
-                      <button type="submit" disabled={authState !== 'idle'} className={`w-full flex items-center justify-center py-4 mt-4 font-black uppercase tracking-[0.2em] text-xs transition-all disabled:opacity-50 disabled:cursor-not-allowed rounded-xl ${authState === 'success' ? 'bg-[#9333ea] text-white shadow-[0_0_30px_rgba(168,85,247,0.6)]' : 'bg-[#a855f7] hover:bg-[#9333ea] text-white shadow-[0_0_20px_rgba(168,85,247,0.3)] hover:shadow-[0_0_30px_rgba(168,85,247,0.5)]'}`}>
+                      <button type="submit" disabled={authState !== 'idle' || isLoading} className={`w-full flex items-center justify-center py-4 mt-4 font-black uppercase tracking-[0.2em] text-xs transition-all disabled:opacity-50 disabled:cursor-not-allowed rounded-xl ${authState === 'success' ? 'bg-[#9333ea] text-white shadow-[0_0_30px_rgba(168,85,247,0.6)]' : 'bg-[#a855f7] hover:bg-[#9333ea] text-white shadow-[0_0_20px_rgba(168,85,247,0.3)] hover:shadow-[0_0_30px_rgba(168,85,247,0.5)]'}`}>
                         {authState === 'scanning' ? <ScanFace className="animate-pulse text-white" size={18} /> : authState === 'success' ? 'Identity Initialized' : 'Initialize Profile'}
                       </button>
                     </motion.form>
@@ -214,7 +231,7 @@ export default function AuthGateway() {
                 </AnimatePresence>
 
                 <div className="mt-8 text-center pb-12 lg:pb-0">
-                  <button onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setAuthError(''); setAuthState('idle'); }} className={`text-xs uppercase tracking-widest font-bold transition-colors pointer-events-auto ${isLightMode ? 'text-slate-500 hover:text-slate-900' : 'text-slate-500 hover:text-white'}`}>
+                  <button onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setAuthError(''); setAuthState('idle'); }} disabled={isLoading} className={`text-xs uppercase tracking-widest font-bold transition-colors pointer-events-auto disabled:opacity-50 disabled:cursor-not-allowed ${isLightMode ? 'text-slate-500 hover:text-slate-900' : 'text-slate-500 hover:text-white'}`}>
                     {mode === 'login' ? 'Request Network Access (Register)' : 'Return to Gateway (Login)'}
                   </button>
                 </div>
