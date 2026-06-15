@@ -1,18 +1,17 @@
 import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
-import dns from 'dns';
 import SMTPTransport from 'nodemailer/lib/smtp-transport';
 
 dotenv.config(); // Force load the environment variables!
 
 // ============================================================================
-// 1. CORE TRANSMISSION ENGINE (PORT 587 / IPV4 OPTIMIZED)
+// 1. CORE TRANSMISSION ENGINE (PORT 587 / FAIL-FAST OPTIMIZED)
 // ============================================================================
 const transporter = nodemailer.createTransport({
   host: 'smtp.gmail.com',
-  port: 587,         // 🔥 THE FIX: Render blocks 465. 587 is the standard safe port.
-  secure: false,     // 🔥 MUST be false for port 587 (it upgrades to secure automatically)
-  requireTLS: true,  // 🔥 Forces the connection to encrypt
+  port: 587,         // Standard secure port.
+  secure: false,     // MUST be false for port 587 (it upgrades to secure automatically)
+  requireTLS: true,  // Forces the connection to encrypt
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
@@ -20,19 +19,17 @@ const transporter = nodemailer.createTransport({
   tls: {
     rejectUnauthorized: false,
   },
-  // 🔥 THE SHIELD: Forces IPv4 to bypass Render's ENETUNREACH bug
-  lookup: (hostname: string, options: any, callback: any) => {
-    dns.lookup(hostname, { family: 4 }, (err, address, family) => {
-      callback(err, address, family);
-    });
-  }
+  // 🔥 THE FAIL-FAST SHIELD: Prevents 60-second UI freezes if cloud firewall blocks SMTP
+  connectionTimeout: 3000, 
+  greetingTimeout: 3000,
+  socketTimeout: 3000,
 } as SMTPTransport.Options);
 
 // 🔥 THE DIAGNOSTIC PING
 transporter.verify(function (error, success) {
   if (error) {
-    console.log("🚨 CRITICAL SMTP CONNECTION ERROR 🚨");
-    console.log(error); 
+    console.log("🚨 SMTP PING FAILED (Expected if Cloud Firewall is Active) 🚨");
+    console.log(error.message); 
   } else {
     console.log("✅ GOOGLE SMTP SERVER IS ONLINE AND SECURED VIA PORT 587");
   }
@@ -90,12 +87,13 @@ export const sendSecretCodeEmail = async (toEmail: string, secretCode: string, v
   };
 
   try {
+    console.log(`[NETWORK] Attempting to breach cloud firewall for ${toEmail}...`);
     await transporter.sendMail(mailOptions);
     console.log(`[NETWORK] ✅ Cryptographic Email successfully transmitted to ${toEmail}`);
   } catch (error: any) {
-    console.error(`[NETWORK BLOCKED] ⚠️ Mailer Error:`, error.message);
+    console.error(`[FIREWALL BLOCKED] ⚠️ Mailer Error:`, error.message);
     console.log(`\n======================================================`);
-    console.log(`🚀 DEV ENVIRONMENT BYPASS ACTIVE`);
+    console.log(`🚀 DEV ENVIRONMENT / CLOUD BYPASS ACTIVE`);
     console.log(`[YOUR SECRET CODE IS] -> ${secretCode}`);
     console.log(`======================================================\n`);
   }
@@ -175,6 +173,6 @@ export const sendFeedbackNotificationEmail = async (
     await transporter.sendMail(mailOptions);
     console.log(`[NETWORK] ✅ Telemetry Email Notification successfully transmitted to Admin.`);
   } catch (error: any) {
-    console.error(`[NETWORK BLOCKED] ⚠️ Telemetry Email failed to send:`, error.message);
+    console.error(`[FIREWALL BLOCKED] ⚠️ Telemetry Email failed to send:`, error.message);
   }
 };
