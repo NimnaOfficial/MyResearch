@@ -5,13 +5,13 @@ import SMTPTransport from 'nodemailer/lib/smtp-transport';
 dotenv.config(); // Force load the environment variables!
 
 // ============================================================================
-// 1. CORE TRANSMISSION ENGINE (PORT 587 / FAIL-FAST OPTIMIZED)
+// 1. CORE TRANSMISSION ENGINE (NATIVE IPV4 SOCKET ENFORCEMENT)
 // ============================================================================
 const transporter = nodemailer.createTransport({
   host: 'smtp.gmail.com',
-  port: 587,         // Standard secure port.
-  secure: false,     // MUST be false for port 587 (it upgrades to secure automatically)
-  requireTLS: true,  // Forces the connection to encrypt
+  port: 587,
+  secure: false, 
+  requireTLS: true,
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
@@ -19,7 +19,10 @@ const transporter = nodemailer.createTransport({
   tls: {
     rejectUnauthorized: false,
   },
-  // 🔥 THE FAIL-FAST SHIELD: Prevents 60-second UI freezes if cloud firewall blocks SMTP
+  // 🔥 THE ULTIMATE SHIELD: Tells the Node.js 'net' module to strictly 
+  // reject IPv6 sockets and only bind to IPv4 at the OS level.
+  family: 4, 
+  // Fail-fast timeout configuration
   connectionTimeout: 3000, 
   greetingTimeout: 3000,
   socketTimeout: 3000,
@@ -28,10 +31,10 @@ const transporter = nodemailer.createTransport({
 // 🔥 THE DIAGNOSTIC PING
 transporter.verify(function (error, success) {
   if (error) {
-    console.log("🚨 SMTP PING FAILED (Expected if Cloud Firewall is Active) 🚨");
+    console.log("🚨 SMTP PING FAILED 🚨");
     console.log(error.message); 
   } else {
-    console.log("✅ GOOGLE SMTP SERVER IS ONLINE AND SECURED VIA PORT 587");
+    console.log("✅ GOOGLE SMTP SERVER IS ONLINE (IPV4 NATIVE SOCKET BOUND)");
   }
 });
 
@@ -87,9 +90,9 @@ export const sendSecretCodeEmail = async (toEmail: string, secretCode: string, v
   };
 
   try {
-    console.log(`[NETWORK] Attempting to breach cloud firewall for ${toEmail}...`);
+    console.log(`[NETWORK] Transmitting payload to ${toEmail} via IPv4 Socket...`);
     await transporter.sendMail(mailOptions);
-    console.log(`[NETWORK] ✅ Cryptographic Email successfully transmitted to ${toEmail}`);
+    console.log(`[NETWORK] ✅ Cryptographic Email successfully transmitted.`);
   } catch (error: any) {
     console.error(`[FIREWALL BLOCKED] ⚠️ Mailer Error:`, error.message);
     console.log(`\n======================================================`);
@@ -171,7 +174,7 @@ export const sendFeedbackNotificationEmail = async (
 
   try {
     await transporter.sendMail(mailOptions);
-    console.log(`[NETWORK] ✅ Telemetry Email Notification successfully transmitted to Admin.`);
+    console.log(`[NETWORK] ✅ Telemetry Email successfully transmitted.`);
   } catch (error: any) {
     console.error(`[FIREWALL BLOCKED] ⚠️ Telemetry Email failed to send:`, error.message);
   }
