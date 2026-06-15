@@ -1,33 +1,40 @@
 import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
+import dns from 'dns';
+import SMTPTransport from 'nodemailer/lib/smtp-transport';
 
 dotenv.config(); // Force load the environment variables!
 
 // ============================================================================
-// 1. CORE TRANSMISSION ENGINE (NUCLEAR IPV4 OVERRIDE)
+// 1. CORE TRANSMISSION ENGINE (PORT 587 / IPV4 OPTIMIZED)
 // ============================================================================
 const transporter = nodemailer.createTransport({
-  // 🔥 Bypasses all DNS resolution to strictly avoid Render's IPv6 ENETUNREACH blockade
-  host: '142.251.2.108', // Google's direct primary IPv4 SMTP relay
-  port: 465,
-  secure: true, 
+  host: 'smtp.gmail.com',
+  port: 587,         // 🔥 THE FIX: Render blocks 465. 587 is the standard safe port.
+  secure: false,     // 🔥 MUST be false for port 587 (it upgrades to secure automatically)
+  requireTLS: true,  // 🔥 Forces the connection to encrypt
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
   },
   tls: {
     rejectUnauthorized: false,
-    servername: 'smtp.gmail.com' // Explicitly maps the IP back to Google for TLS verification
+  },
+  // 🔥 THE SHIELD: Forces IPv4 to bypass Render's ENETUNREACH bug
+  lookup: (hostname: string, options: any, callback: any) => {
+    dns.lookup(hostname, { family: 4 }, (err, address, family) => {
+      callback(err, address, family);
+    });
   }
-});
+} as SMTPTransport.Options);
 
 // 🔥 THE DIAGNOSTIC PING
-transporter.verify((error, success) => {
+transporter.verify(function (error, success) {
   if (error) {
     console.log("🚨 CRITICAL SMTP CONNECTION ERROR 🚨");
-    console.log(error); // This will print the raw error code if it still fails
+    console.log(error); 
   } else {
-    console.log("✅ GOOGLE SMTP SERVER IS ONLINE (DIRECT IPV4 CONNECTION ESTABLISHED)");
+    console.log("✅ GOOGLE SMTP SERVER IS ONLINE AND SECURED VIA PORT 587");
   }
 });
 
@@ -87,7 +94,6 @@ export const sendSecretCodeEmail = async (toEmail: string, secretCode: string, v
     console.log(`[NETWORK] ✅ Cryptographic Email successfully transmitted to ${toEmail}`);
   } catch (error: any) {
     console.error(`[NETWORK BLOCKED] ⚠️ Mailer Error:`, error.message);
-    // Dev bypass fallback
     console.log(`\n======================================================`);
     console.log(`🚀 DEV ENVIRONMENT BYPASS ACTIVE`);
     console.log(`[YOUR SECRET CODE IS] -> ${secretCode}`);
@@ -107,7 +113,6 @@ export const sendFeedbackNotificationEmail = async (
   tags: string
 ) => {
   
-  // Determine Priority Color
   const priorityColor = priority === 'Critical' ? '#ef4444' : priority === 'Medium' ? '#f59e0b' : '#00f0ff';
 
   const mailOptions = {

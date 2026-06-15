@@ -69,9 +69,7 @@ export default function AuthGateway() {
   const [secretCode, setSecretCode] = useState('');
   const [regData, setRegData] = useState({ name: '', email: '', phone: '', age: '', backupPass: '', confirmPass: '' });
 
-  // 🔥 THE UI VISUAL LOCK
   const [isLoading, setIsLoading] = useState(false);
-  // 🔥 THE INSTANT SYNCHRONOUS HARD-LOCK (Prevents 409 Ghost Submissions)
   const isSubmittingRef = useRef(false);
 
   useEffect(() => {
@@ -82,9 +80,7 @@ export default function AuthGateway() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Instant Hard Lock
-    if (isSubmittingRef.current) return;
+    if (isSubmittingRef.current) return; 
     isSubmittingRef.current = true;
     setIsLoading(true);
 
@@ -105,26 +101,21 @@ export default function AuthGateway() {
         localStorage.setItem('userRole', 'user');
         setTimeout(() => router.push('/'), 1500);
       } else {
-        setAuthState('error'); 
-        setAuthError(data.message || 'Invalid Cryptographic Handshake');
+        setAuthState('error'); setAuthError(data.message || 'Invalid Cryptographic Handshake');
         setTimeout(() => setAuthState('idle'), 3000);
       }
     } catch (err) {
-      setAuthState('error'); 
-      setAuthError('Matrix connection failed. Check server status.');
+      setAuthState('error'); setAuthError('Matrix connection failed. Check server status.');
       setTimeout(() => setAuthState('idle'), 3000);
     } finally {
-      setIsLoading(false);
-      // Wait 500ms before releasing the hard lock to prevent bounce clicks
+      setIsLoading(false); 
       setTimeout(() => { isSubmittingRef.current = false; }, 500);
     }
   };
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Instant Hard Lock
-    if (isSubmittingRef.current) return;
+    if (isSubmittingRef.current) return; 
     isSubmittingRef.current = true;
     setIsLoading(true);
 
@@ -132,11 +123,10 @@ export default function AuthGateway() {
     setAuthError('');
 
     if (regData.backupPass !== regData.confirmPass) {
-      setAuthState('error'); 
-      setAuthError('Backup Passwords do not match!');
+      setAuthState('error'); setAuthError('Backup Passwords do not match!');
       setTimeout(() => setAuthState('idle'), 3000); 
-      setIsLoading(false);
-      isSubmittingRef.current = false; // Release lock early
+      setIsLoading(false); 
+      isSubmittingRef.current = false;
       return;
     }
 
@@ -151,16 +141,14 @@ export default function AuthGateway() {
       if (response.ok) {
         setAuthState('success');
       } else {
-        setAuthState('error'); 
-        setAuthError(data.message || 'Initialization Failed');
+        setAuthState('error'); setAuthError(data.message || 'Initialization Failed');
         setTimeout(() => setAuthState('idle'), 3000);
       }
     } catch (err) {
-      setAuthState('error'); 
-      setAuthError('Matrix connection failed. Check server status.');
+      setAuthState('error'); setAuthError('Matrix connection failed. Check server status.');
       setTimeout(() => setAuthState('idle'), 3000);
     } finally {
-      setIsLoading(false);
+      setIsLoading(false); 
       setTimeout(() => { isSubmittingRef.current = false; }, 500);
     }
   };
@@ -176,7 +164,6 @@ export default function AuthGateway() {
       <CustomCursor />
       <ThemeToggle isLight={isLightMode} toggleTheme={() => setIsLightMode(!isLightMode)} />
 
-      {/* 3D BACKGROUND LAYER */}
       <div className="fixed inset-0 z-0 pointer-events-none">
         <Canvas camera={{ position: [0, 0, 8], fov: 45 }}>
           <OrbitControls enableZoom={false} enablePan={false} enableRotate={false} dampingFactor={0.05} />
@@ -191,7 +178,6 @@ export default function AuthGateway() {
         </Canvas>
       </div>
 
-      {/* FOREGROUND UI LAYER */}
       <AnimatePresence>
         {!isBooting && (
           <div className="relative z-10 w-full flex-1 flex flex-col lg:flex-row pointer-events-none min-h-[85vh]">
@@ -257,7 +243,6 @@ export default function AuthGateway() {
         )}
       </AnimatePresence>
 
-      {/* OVERLAY FOR SUCCESSFUL REGISTRATION */}
       <AnimatePresence>
         {mode === 'register' && authState === 'success' && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className={`fixed inset-0 z-[60] backdrop-blur-md flex flex-col items-center justify-center pointer-events-auto ${isLightMode ? 'bg-slate-50/90' : 'bg-[#010309]/90'}`}>
