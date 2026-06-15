@@ -69,8 +69,10 @@ export default function AuthGateway() {
   const [secretCode, setSecretCode] = useState('');
   const [regData, setRegData] = useState({ name: '', email: '', phone: '', age: '', backupPass: '', confirmPass: '' });
 
-  // 🔥 THE RACE CONDITION LOCK
+  // 🔥 THE UI VISUAL LOCK
   const [isLoading, setIsLoading] = useState(false);
+  // 🔥 THE INSTANT SYNCHRONOUS HARD-LOCK (Prevents 409 Ghost Submissions)
+  const isSubmittingRef = useRef(false);
 
   useEffect(() => {
     setIsMounted(true);
@@ -80,7 +82,10 @@ export default function AuthGateway() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isLoading) return; // Stop phantom double-clicks
+    
+    // Instant Hard Lock
+    if (isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
     setIsLoading(true);
 
     setAuthState('scanning'); 
@@ -100,29 +105,38 @@ export default function AuthGateway() {
         localStorage.setItem('userRole', 'user');
         setTimeout(() => router.push('/'), 1500);
       } else {
-        setAuthState('error'); setAuthError(data.message || 'Invalid Cryptographic Handshake');
+        setAuthState('error'); 
+        setAuthError(data.message || 'Invalid Cryptographic Handshake');
         setTimeout(() => setAuthState('idle'), 3000);
       }
     } catch (err) {
-      setAuthState('error'); setAuthError('Matrix connection failed. Check server status.');
+      setAuthState('error'); 
+      setAuthError('Matrix connection failed. Check server status.');
       setTimeout(() => setAuthState('idle'), 3000);
     } finally {
-      setIsLoading(false); // Release the lock
+      setIsLoading(false);
+      // Wait 500ms before releasing the hard lock to prevent bounce clicks
+      setTimeout(() => { isSubmittingRef.current = false; }, 500);
     }
   };
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isLoading) return; // Stop phantom double-clicks
+    
+    // Instant Hard Lock
+    if (isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
     setIsLoading(true);
 
     setAuthState('scanning'); 
     setAuthError('');
 
     if (regData.backupPass !== regData.confirmPass) {
-      setAuthState('error'); setAuthError('Backup Passwords do not match!');
+      setAuthState('error'); 
+      setAuthError('Backup Passwords do not match!');
       setTimeout(() => setAuthState('idle'), 3000); 
-      setIsLoading(false); // Release lock early on error
+      setIsLoading(false);
+      isSubmittingRef.current = false; // Release lock early
       return;
     }
 
@@ -137,14 +151,17 @@ export default function AuthGateway() {
       if (response.ok) {
         setAuthState('success');
       } else {
-        setAuthState('error'); setAuthError(data.message || 'Initialization Failed');
+        setAuthState('error'); 
+        setAuthError(data.message || 'Initialization Failed');
         setTimeout(() => setAuthState('idle'), 3000);
       }
     } catch (err) {
-      setAuthState('error'); setAuthError('Matrix connection failed. Check server status.');
+      setAuthState('error'); 
+      setAuthError('Matrix connection failed. Check server status.');
       setTimeout(() => setAuthState('idle'), 3000);
     } finally {
-      setIsLoading(false); // Release the lock
+      setIsLoading(false);
+      setTimeout(() => { isSubmittingRef.current = false; }, 500);
     }
   };
 
@@ -152,7 +169,6 @@ export default function AuthGateway() {
   const bgPrimary = isLightMode ? "bg-slate-50" : "bg-[#010309]";
   const inputStyle = `w-full bg-transparent border-b px-2 py-3 focus:outline-none focus:border-[#a855f7] transition-all font-mono tracking-widest ${isLightMode ? 'border-slate-300 text-slate-900 placeholder-slate-400 focus:bg-[#a855f7]/5' : 'border-slate-800 text-white placeholder-slate-600 focus:bg-[#a855f7]/10'}`;
 
-  // Prevent SSR Hydration Mismatch
   if (!isMounted) return <div className={`min-h-screen ${bgPrimary}`} />;
 
   return (
@@ -160,7 +176,7 @@ export default function AuthGateway() {
       <CustomCursor />
       <ThemeToggle isLight={isLightMode} toggleTheme={() => setIsLightMode(!isLightMode)} />
 
-      {/* 3D BACKGROUND LAYER - Forced pointer-events-none to prevent bypassing */}
+      {/* 3D BACKGROUND LAYER */}
       <div className="fixed inset-0 z-0 pointer-events-none">
         <Canvas camera={{ position: [0, 0, 8], fov: 45 }}>
           <OrbitControls enableZoom={false} enablePan={false} enableRotate={false} dampingFactor={0.05} />
