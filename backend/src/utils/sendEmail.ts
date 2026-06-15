@@ -1,64 +1,24 @@
-import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
-import SMTPTransport from 'nodemailer/lib/smtp-transport';
+dotenv.config();
 
-dotenv.config(); // Force load the environment variables!
-
-// ============================================================================
-// 1. CORE TRANSMISSION ENGINE (NATIVE IPV4 SOCKET ENFORCEMENT)
-// ============================================================================
-const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 587,
-  secure: false, 
-  requireTLS: true,
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-  tls: {
-    rejectUnauthorized: false,
-  },
-  // 🔥 THE ULTIMATE SHIELD: Tells the Node.js 'net' module to strictly 
-  // reject IPv6 sockets and only bind to IPv4 at the OS level.
-  family: 4, 
-  // Fail-fast timeout configuration
-  connectionTimeout: 3000, 
-  greetingTimeout: 3000,
-  socketTimeout: 3000,
-} as SMTPTransport.Options);
-
-// 🔥 THE DIAGNOSTIC PING
-transporter.verify(function (error, success) {
-  if (error) {
-    console.log("🚨 SMTP PING FAILED 🚨");
-    console.log(error.message); 
-  } else {
-    console.log("✅ GOOGLE SMTP SERVER IS ONLINE (IPV4 NATIVE SOCKET BOUND)");
-  }
-});
+// 🔥 THE ULTIMATE BYPASS: Paste your Google Apps Script Web App URL here!
+const GOOGLE_RELAY_URL = "https://script.google.com/macros/s/AKfycbwbPWENsU1co5MdQfB6PLjClsAmUa1fgoL-6sltghRNIat3SPUm0btlsA0pqANJZjoGbA/exec"; 
 
 // ============================================================================
-// 2. IDENTITY VERIFICATION MODULE
+// 1. IDENTITY VERIFICATION MODULE (HTTP RELAY)
 // ============================================================================
 export const sendSecretCodeEmail = async (toEmail: string, secretCode: string, verifyUrl: string) => {
-  const mailOptions = {
-    from: `"CSxPEDIA SECURE" <${process.env.EMAIL_USER}>`,
-    to: toEmail,
-    subject: 'System Initialization: Verify Your Identity',
-    html: `
+  const htmlContent = `
       <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #01030a; padding: 40px 0; width: 100%; font-family: 'Courier New', Courier, monospace;">
         <tr>
           <td align="center">
             <table width="600" cellpadding="0" cellspacing="0" style="background-color: #050b14; border: 1px solid #1e293b; border-radius: 8px; overflow: hidden;">
-              
               <tr>
                 <td align="center" style="padding: 40px 20px 20px 20px; border-bottom: 1px solid #1e293b; background-color: #020617;">
                   <h2 style="color: #a855f7; letter-spacing: 4px; margin: 0; font-size: 24px; text-transform: uppercase;">IDENTITY MATRIX SECURED</h2>
                   <p style="color: #94a3b8; font-size: 14px; margin-top: 10px;">Your neural link is pending verification.</p>
                 </td>
               </tr>
-
               <tr>
                 <td align="center" style="padding: 40px 20px;">
                   <div style="background-color: rgba(168, 85, 247, 0.05); border: 1px dashed #a855f7; border-radius: 8px; padding: 30px; display: inline-block;">
@@ -67,7 +27,6 @@ export const sendSecretCodeEmail = async (toEmail: string, secretCode: string, v
                   </div>
                 </td>
               </tr>
-
               <tr>
                 <td align="center" style="padding: 0 20px 40px 20px;">
                   <p style="color: #94a3b8; font-size: 14px; margin-bottom: 25px;">Click the secure link below to verify your email and activate your code.</p>
@@ -76,7 +35,6 @@ export const sendSecretCodeEmail = async (toEmail: string, secretCode: string, v
                   </a>
                 </td>
               </tr>
-              
               <tr>
                 <td align="center" style="padding: 20px; background-color: #020617; border-top: 1px solid #1e293b;">
                   <p style="color: #475569; font-size: 10px; margin: 0; letter-spacing: 1px;">CSx CORE SYSTEMS // DO NOT REPLY</p>
@@ -86,24 +44,38 @@ export const sendSecretCodeEmail = async (toEmail: string, secretCode: string, v
           </td>
         </tr>
       </table>
-    `,
-  };
+  `;
 
   try {
-    console.log(`[NETWORK] Transmitting payload to ${toEmail} via IPv4 Socket...`);
-    await transporter.sendMail(mailOptions);
-    console.log(`[NETWORK] ✅ Cryptographic Email successfully transmitted.`);
+    console.log(`[NETWORK] Bypassing SMTP. Transmitting payload via Google HTTP Relay to ${toEmail}...`);
+    
+    // Standard HTTPS Web Request (Port 443). Render cannot block this!
+    const response = await fetch(GOOGLE_RELAY_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        to: toEmail,
+        subject: 'System Initialization: Verify Your Identity',
+        html: htmlContent
+      })
+    });
+
+    if (response.ok) {
+      console.log(`[NETWORK] ✅ Cryptographic Email successfully delivered!`);
+    } else {
+      throw new Error("HTTP Relay rejected the payload.");
+    }
   } catch (error: any) {
-    console.error(`[FIREWALL BLOCKED] ⚠️ Mailer Error:`, error.message);
+    console.error(`[RELAY ERROR] ⚠️ HTTP Email failed:`, error.message);
     console.log(`\n======================================================`);
-    console.log(`🚀 DEV ENVIRONMENT / CLOUD BYPASS ACTIVE`);
+    console.log(`🚀 DEV ENVIRONMENT BYPASS ACTIVE`);
     console.log(`[YOUR SECRET CODE IS] -> ${secretCode}`);
     console.log(`======================================================\n`);
   }
 };
 
 // ============================================================================
-// 3. ADMIN TELEMETRY NOTIFICATION MODULE
+// 2. ADMIN TELEMETRY NOTIFICATION MODULE
 // ============================================================================
 export const sendFeedbackNotificationEmail = async (
   senderInfo: string,
@@ -113,26 +85,22 @@ export const sendFeedbackNotificationEmail = async (
   message: string,
   tags: string
 ) => {
-  
   const priorityColor = priority === 'Critical' ? '#ef4444' : priority === 'Medium' ? '#f59e0b' : '#00f0ff';
+  
+  // We send alerts to your main email address
+  const adminEmail = process.env.EMAIL_USER || 'nimna909@gmail.com'; 
 
-  const mailOptions = {
-    from: `"CSxPEDIA Matrix" <${process.env.EMAIL_USER}>`,
-    to: process.env.EMAIL_USER, 
-    subject: `[TELEMETRY] ${priority.toUpperCase()} ALERTS - ${category}`,
-    html: `
+  const htmlContent = `
       <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #01030a; padding: 40px 0; width: 100%; font-family: 'Courier New', Courier, monospace;">
         <tr>
           <td align="center">
             <table width="600" cellpadding="0" cellspacing="0" style="background-color: #050b14; border: 1px solid #1e293b; border-radius: 8px; overflow: hidden; text-align: left;">
-              
               <tr>
                 <td style="padding: 30px; border-bottom: 1px solid #1e293b; background-color: #020617;">
                   <h2 style="color: #00ff66; letter-spacing: 2px; margin: 0; font-size: 20px;">NEW TELEMETRY INTERCEPTED</h2>
                   <p style="color: #94a3b8; font-size: 14px; margin-top: 5px;">A new log has been injected into the PostgreSQL Matrix.</p>
                 </td>
               </tr>
-
               <tr>
                 <td style="padding: 30px;">
                   <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse;">
@@ -157,25 +125,30 @@ export const sendFeedbackNotificationEmail = async (
                       <td style="padding: 12px 0; border-bottom: 1px solid #1e293b; color: #a855f7; font-size: 14px;">${tags || 'None Selected'}</td>
                     </tr>
                   </table>
-
                   <div style="margin-top: 30px; padding: 20px; background-color: rgba(0, 240, 255, 0.05); border-left: 4px solid #00f0ff; border-radius: 4px;">
                     <p style="color: #94a3b8; font-size: 12px; margin: 0 0 10px 0; letter-spacing: 1px;">DECRYPTED MESSAGE:</p>
                     <p style="color: #ffffff; font-size: 15px; margin: 0; line-height: 1.6; white-space: pre-wrap;">${message}</p>
                   </div>
                 </td>
               </tr>
-              
             </table>
           </td>
         </tr>
       </table>
-    `,
-  };
+  `;
 
   try {
-    await transporter.sendMail(mailOptions);
-    console.log(`[NETWORK] ✅ Telemetry Email successfully transmitted.`);
+    await fetch(GOOGLE_RELAY_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        to: adminEmail,
+        subject: `[TELEMETRY] ${priority.toUpperCase()} ALERTS - ${category}`,
+        html: htmlContent
+      })
+    });
+    console.log(`[NETWORK] ✅ Telemetry Email Notification successfully delivered!`);
   } catch (error: any) {
-    console.error(`[FIREWALL BLOCKED] ⚠️ Telemetry Email failed to send:`, error.message);
+    console.error(`[RELAY ERROR] ⚠️ Telemetry Email failed to send:`, error.message);
   }
 };
