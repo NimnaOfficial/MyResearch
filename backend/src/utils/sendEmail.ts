@@ -1,22 +1,40 @@
 import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
+import dns from 'dns';
+import SMTPTransport from 'nodemailer/lib/smtp-transport';
+
 dotenv.config(); // Force load the environment variables!
 
+// ============================================================================
+// 1. CORE TRANSMISSION ENGINE (IPV4 & TYPESCRIPT OPTIMIZED)
+// ============================================================================
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  host: 'smtp.gmail.com',
+  port: 465,
+  secure: true, 
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
   },
-});
+  tls: {
+    rejectUnauthorized: false,
+  },
+  // 🔥 THE SHIELD: Explicitly typed parameters to satisfy TypeScript 
+  // while forcing the server to use IPv4 to bypass cloud blocks.
+  lookup: (hostname: string, options: any, callback: any) => {
+    dns.lookup(hostname, { family: 4 }, (err, address, family) => {
+      callback(err, address, family);
+    });
+  }
+} as SMTPTransport.Options);
 
 // 🔥 THE DIAGNOSTIC PING
 transporter.verify(function (error, success) {
   if (error) {
     console.log("🚨 CRITICAL SMTP CONNECTION ERROR 🚨");
-    console.log(error); // This will print the raw Google error code!
+    console.log(error); // This will print the raw Google error code
   } else {
-    console.log("✅ GOOGLE SMTP SERVER IS ONLINE AND READY");
+    console.log("✅ GOOGLE SMTP SERVER IS ONLINE AND SECURED VIA IPV4");
   }
 });
 
