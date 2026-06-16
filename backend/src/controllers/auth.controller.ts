@@ -39,7 +39,7 @@ export const registerUser = catchAsync(async (req: Request, res: Response) => {
   const jwtSecret = process.env.JWT_SECRET || 'super_secret_matrix_key_override_in_production';
   const verifyToken = jwt.sign({ id: newUser.id }, jwtSecret, { expiresIn: '1h' });
 
-  const frontendUrl = process.env.FRONTEND_URL || 'https://csxpidia.vercel.app/auth';
+  const frontendUrl = process.env.FRONTEND_URL || 'https://csxpidia.vercel.app';
   const verifyUrl = `${frontendUrl}/verify?token=${verifyToken}`;
 
   try {
