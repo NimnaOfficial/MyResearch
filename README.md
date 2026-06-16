@@ -62,7 +62,7 @@ To run the CSx Matrix on your local development environment, follow this strict 
 
 ### 1. Clone the Repository
 ```bash
-git clone [https://github.com/NimnaOfficial/MyResearch.git](https://github.com/NimnaOfficial/MyResearch.git)
+git clone https://github.com/NimnaOfficial/MyResearch.git
 cd MyResearch
 ```
 
