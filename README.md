@@ -73,6 +73,7 @@ Execute the following commands to initialize the Node.js runtime environment, in
 cd backend
 npm install
 ```
+
 #### Environment Variable Configuration:
 Create a strict `.env` file at the root of the `/backend` directory. This securely holds your database connection strings and cryptographic keys for JWT generation.
 ```bash
@@ -80,6 +81,7 @@ PORT=5000
 DATABASE_URL="postgresql://postgres:[PASSWORD]@localhost:5432/csx_core"
 JWT_SECRET="your_super_secret_cipher_key"
 ```
+
 #### Database Schema Synchronization & Seeding:
 Compile the SQL tables directly from the Prisma schema and inject the baseline architectural data into the local data core.
 ```bash
