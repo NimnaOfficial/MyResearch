@@ -103,6 +103,7 @@ Create a `.env.local file` in the `/frontend` directory. This variable routes al
 ```bash
 NEXT_PUBLIC_API_URL="http://localhost:5000"
 ```
+
 #### Start the Development Matrix:
 ```bash
 npm run dev
