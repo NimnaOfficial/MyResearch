@@ -35,19 +35,6 @@ This system was engineered to break the mold of standard web portfolios. It demo
 
 ---
 
-## 🛠️ The Technology Stack
-
-### Frontend (The UI/UX Shell)
-* **Framework:** Next.js 14 (App Router)
-* **Styling:** Tailwind CSS + custom CSS Matrix animations
-* **Animation:** Framer Motion
-* **Hosting:** Vercel Global Edge Network
-
-### Backend (The Logic Engine)
-* **Runtime:** Node.js + Express
-* **Database:** PostgreSQL (Supabase Connection Pooler)
-* **ORM:** Prisma
-* **Hosting:** Render Web Services
 
 ---
 
