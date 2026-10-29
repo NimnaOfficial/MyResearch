@@ -340,6 +340,33 @@ export default function AdvancedSettingsMatrix() {
                       </motion.div>
                       <div className="text-center md:text-left mt-4 md:mt-2">
                         <h2 className={`text-4xl md:text-5xl font-black uppercase tracking-tighter ${textPrimary}`}>{displayName}</h2>
+                        {userData?.profilePic && (
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              if (!confirm("Remove current profile picture?")) return;
+                              const token = localStorage.getItem('matrix_token');
+                              try {
+                                const res = await fetch(`${API_URL}/api/auth/update`, {
+                                  method: 'PUT',
+                                  headers: {
+                                    'Authorization': `Bearer ${token}`,
+                                    'Content-Type': 'application/json'
+                                  },
+                                  body: JSON.stringify({ profilePic: null })
+                                });
+                                if (res.ok) {
+                                  setUserData((prev: any) => ({ ...prev, profilePic: null }));
+                                }
+                              } catch (err) {
+                                console.error(err);
+                              }
+                            }}
+                            className="mt-2 text-[10px] font-mono uppercase tracking-widest text-red-500 hover:text-red-400 transition-colors cursor-pointer flex items-center justify-center md:justify-start"
+                          >
+                            <X size={12} className="mr-1" /> Reset to Default
+                          </button>
+                        )}
                       </div>
                     </div>
 
@@ -654,7 +681,7 @@ export default function AdvancedSettingsMatrix() {
                       }
                     } catch (error) {
                       console.error(error);
-                      alert("Transmission Failed. Ensure Cloudinary is configured.");
+                      alert("Avatar upload failed. Please try a valid JPG, PNG, or WEBP image.");
                     } finally {
                       setIsUploading(false);
                     }

@@ -6,7 +6,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Users, Trash2, ShieldCheck, User as UserIcon, Loader2, AlertTriangle, 
   Search, Download, ShieldAlert, Lock, Ban, Activity, X, Mail, Phone, Calendar, 
-  Edit3, Save, History, Radio, Cpu, Network, CheckCircle, Key, Terminal, Copy, Check
+  Edit3, Save, History, Radio, Cpu, Network, CheckCircle, Key, Terminal, Copy, Check,
+  UserPlus, Bookmark, BookOpen, Layers, RefreshCw
 } from 'lucide-react';
 
 interface MatrixUser {
@@ -24,6 +25,11 @@ interface MatrixUser {
   lastIp?: string;
   lastDevice?: string;
   lastLogin?: string;
+  _count?: {
+    savedPosts: number;
+    savedReleases: number;
+    feedbacks: number;
+  };
 }
 
 export default function UltimateUserRoster() {
@@ -39,11 +45,30 @@ export default function UltimateUserRoster() {
   
   // Inspection & Editing States
   const [inspectUser, setInspectUser] = useState<MatrixUser | null>(null);
-  const [activeTab, setActiveTab] = useState<'IDENTITY' | 'SECURITY' | 'TELEMETRY'>('IDENTITY');
+  const [activeTab, setActiveTab] = useState<'IDENTITY' | 'SECURITY' | 'VAULT' | 'TELEMETRY'>('IDENTITY');
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState<Partial<MatrixUser>>({});
   const [newCipher, setNewCipher] = useState('');
+  const [regeneratedCode, setRegeneratedCode] = useState<string | null>(null);
   
+  // Vault Data State
+  const [userVault, setUserVault] = useState<{ savedPosts: any[]; savedReleases: any[] } | null>(null);
+  const [loadingVault, setLoadingVault] = useState(false);
+
+  // Provisioning Modal State
+  const [isProvisionOpen, setIsProvisionOpen] = useState(false);
+  const [provisionForm, setProvisionForm] = useState({
+    fullName: '',
+    username: '',
+    email: '',
+    password: '',
+    role: 'user',
+    phone: '',
+    age: '',
+    isVerified: true
+  });
+  const [provisionResult, setProvisionResult] = useState<any | null>(null);
+
   // COPY TO CLIPBOARD STATE
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
@@ -68,6 +93,31 @@ export default function UltimateUserRoster() {
   };
 
   useEffect(() => { fetchUsers(); }, []);
+
+  // Fetch Vault Data when user inspects VAULT tab
+  const fetchVault = async (userId: string) => {
+    setLoadingVault(true);
+    try {
+      const token = localStorage.getItem('matrix_token');
+      const res = await fetch(`${API_URL}/api/admin/users/${userId}/vault`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setUserVault(data.data);
+      }
+    } catch (err) {
+      console.error("Failed to load user vault", err);
+    } finally {
+      setLoadingVault(false);
+    }
+  };
+
+  useEffect(() => {
+    if (inspectUser && activeTab === 'VAULT') {
+      fetchVault(inspectUser.id);
+    }
+  }, [inspectUser, activeTab]);
 
   // ==========================================
   // LIVE DATABASE: SYSTEM ACTIONS
@@ -104,6 +154,28 @@ export default function UltimateUserRoster() {
     } catch (err) { alert("Network Failure."); } finally { setActionLoading(null); }
   };
 
+  const handleBatchPurge = async () => {
+    if (selectedNodes.length === 0) return;
+    if (!confirm(`CRITICAL: Permanently purge ${selectedNodes.length} selected node(s)? This action cannot be undone.`)) return;
+    setActionLoading('batch_purge');
+    try {
+      const token = localStorage.getItem('matrix_token');
+      for (const id of selectedNodes) {
+        await fetch(`${API_URL}/api/admin/users/${id}`, {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${token}` }
+        });
+      }
+      setUsers(prev => prev.filter(u => !selectedNodes.includes(u.id)));
+      setSelectedNodes([]);
+      alert("Purge operation concluded successfully.");
+    } catch (e) {
+      alert("Failed during batch purge.");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   const saveIdentityChanges = async () => {
     if (!inspectUser) return;
     setActionLoading('save_identity');
@@ -118,14 +190,13 @@ export default function UltimateUserRoster() {
       
       if (editForm.password) {
         if (editForm.password.length < 8) {
-          alert("CIPHER MUST BE AT LEAST 8 CHARACTERS. Identity fields were saved; the cipher was not changed.");
+          alert("CIPHER MUST BE AT LEAST 8 CHARACTERS.");
         } else {
-          const cipherRes = await fetch(`${API_URL}/api/admin/users/${inspectUser.id}/cipher`, {
+          await fetch(`${API_URL}/api/admin/users/${inspectUser.id}/cipher`, {
             method: 'PUT',
             headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
             body: JSON.stringify({ newCipher: editForm.password })
           });
-          if (!cipherRes.ok) alert("Cipher override was rejected by the server.");
         }
       }
 
@@ -138,6 +209,30 @@ export default function UltimateUserRoster() {
         setEditForm({}); 
       } else alert(data.message || "Failed to update identity.");
     } catch (err) { alert("Network Failure."); } finally { setActionLoading(null); }
+  };
+
+  const handleRegenerateSecretCode = async () => {
+    if (!inspectUser) return;
+    if (!confirm("Regenerate fresh 10-character secret cipher code for this user? Previous code will become invalid.")) return;
+    setActionLoading('regen_code');
+    try {
+      const token = localStorage.getItem('matrix_token');
+      const res = await fetch(`${API_URL}/api/admin/users/${inspectUser.id}/regenerate-code`, {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setRegeneratedCode(data.secretCode);
+        alert(`New Secret Code Generated: ${data.secretCode}`);
+      } else {
+        alert(data.message || "Failed to regenerate secret code.");
+      }
+    } catch (e) {
+      alert("Network failure.");
+    } finally {
+      setActionLoading(null);
+    }
   };
 
   const forceCipherOverride = async () => {
@@ -182,6 +277,50 @@ export default function UltimateUserRoster() {
     } catch (err) { alert("CRITICAL: Network Failure."); } finally { setActionLoading(null); }
   };
 
+  // PROVISION OPERATOR SUBMIT
+  const handleProvisionSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!provisionForm.fullName || !provisionForm.email || !provisionForm.password) {
+      return alert("Full Name, Email, and Password/Cipher are required.");
+    }
+    setActionLoading('provision');
+    try {
+      const token = localStorage.getItem('matrix_token');
+      const res = await fetch(`${API_URL}/api/admin/users`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          ...provisionForm,
+          age: provisionForm.age ? parseInt(provisionForm.age) : undefined
+        })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setProvisionResult(data.data);
+        setUsers(prev => [data.data, ...prev]);
+        setProvisionForm({
+          fullName: '',
+          username: '',
+          email: '',
+          password: '',
+          role: 'user',
+          phone: '',
+          age: '',
+          isVerified: true
+        });
+      } else {
+        alert(data.message || "Failed to provision operator.");
+      }
+    } catch (e) {
+      alert("Network failure.");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   const handleCopy = (text: string, field: string) => {
     if (!text || text === 'NO_RECORD') return;
     navigator.clipboard.writeText(text);
@@ -208,6 +347,7 @@ export default function UltimateUserRoster() {
 
   const filteredUsers = users.filter(user => {
     const matchesSearch = (user.fullName || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          (user.username || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                           user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           user.id.includes(searchTerm);
     const matchesRole = filterRole === 'ALL' || user.role.toUpperCase() === filterRole;
@@ -231,119 +371,190 @@ export default function UltimateUserRoster() {
   }
 
   return (
-    <div className="font-sans relative min-h-screen">
+    <div className="font-sans relative min-h-screen text-slate-100">
       
       {/* HEADER & CONTROL DECK */}
-      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-10 relative z-10">
-        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-8 border-b border-blue-900/30 pb-6">
+      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-8 relative z-10">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6 border-b border-blue-900/40 pb-6">
           <div>
-            <div className="flex items-center space-x-4 mb-2">
-              <div className="relative flex items-center justify-center w-12 h-12 bg-[#050A14] border border-blue-500/50 [clip-path:polygon(30%_0%,_100%_0%,_70%_100%,_0%_100%)] shadow-[0_0_20px_rgba(59,130,246,0.2)]">
-                <Network size={20} className="text-blue-500" />
+            <div className="flex items-center space-x-3 mb-1">
+              <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-blue-950/80 border border-blue-500/50 shadow-md shadow-blue-500/20">
+                <Network size={20} className="text-blue-400" />
               </div>
-              <h1 className="text-4xl font-black uppercase tracking-[0.2em] text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]">
-                NODE <span className="text-blue-500">ROSTER</span>
+              <h1 className="text-2xl font-black uppercase tracking-wider text-white">
+                Global Node <span className="text-blue-500">Roster</span>
               </h1>
             </div>
-            <p className="text-[10px] text-slate-500 tracking-[0.4em] uppercase ml-16 flex items-center">
-              <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse mr-2" /> Live Database Synchronization
+            <p className="text-xs text-slate-400 font-mono flex items-center ml-13">
+              <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse mr-2" /> Live Database Synchronization | {users.length} Registered Operators
             </p>
           </div>
-          <AnimatePresence>
-            {selectedNodes.length > 0 && (
-              <motion.div initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 50 }} className="flex items-center space-x-4 bg-red-950/40 border border-red-500/50 p-2 backdrop-blur-md">
-                <span className="text-[10px] text-red-400 font-mono tracking-[0.2em] px-3">[{selectedNodes.length} TARGETS LOCKED]</span>
-                <button className="text-[9px] bg-red-600 text-white px-6 py-2.5 uppercase tracking-widest font-black hover:bg-red-500 transition-colors flex items-center shadow-[0_0_15px_rgba(220,38,38,0.4)]">
-                  <Trash2 size={12} className="mr-2" /> Execute Purge
-                </button>
-              </motion.div>
-            )}
-          </AnimatePresence>
+
+          <div className="flex items-center space-x-3">
+            <button 
+              onClick={() => { setProvisionResult(null); setIsProvisionOpen(true); }}
+              className="flex items-center px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-mono font-bold uppercase tracking-wider transition-all shadow-lg shadow-blue-600/30"
+            >
+              <UserPlus size={15} className="mr-2" /> Provision Operator
+            </button>
+            <button 
+              onClick={fetchUsers} 
+              className="p-2.5 rounded-xl bg-blue-950/40 border border-blue-900/50 text-blue-400 hover:text-white hover:border-blue-500 transition-colors"
+              title="Refresh Roster"
+            >
+              <RefreshCw size={15} className={actionLoading ? 'animate-spin' : ''} />
+            </button>
+          </div>
         </div>
 
-        <div className="flex flex-col xl:flex-row gap-4 bg-[#050A14]/80 backdrop-blur-xl border border-blue-900/40 p-2 shadow-[inset_0_0_30px_rgba(59,130,246,0.05)] [clip-path:polygon(0_0,100%_0,100%_calc(100%-15px),calc(100%-15px)_100%,0_100%)]">
+        {/* SEARCH & FILTERS BAR */}
+        <div className="flex flex-col xl:flex-row gap-3 bg-[#050A14] border border-blue-900/40 p-3 rounded-2xl shadow-xl">
           <div className="relative flex-1">
-            <Search size={16} className="absolute left-5 top-1/2 -translate-y-1/2 text-blue-500" />
+            <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-400" />
             <input 
-              type="text" placeholder="LOCATE BY IDENTIFIER, EMAIL, OR SYSTEM ID..." 
+              type="text" placeholder="Locate by identifier, username, email, or system id..." 
               value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-black/50 border-none text-white text-[11px] font-mono tracking-[0.2em] uppercase py-4 pl-14 pr-4 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all placeholder-slate-600"
+              className="w-full bg-black/60 border border-blue-900/30 rounded-xl text-white text-xs font-mono tracking-wider py-3 pl-11 pr-4 focus:outline-none focus:border-blue-500 transition-all placeholder-slate-500"
             />
-            <div className="absolute bottom-0 left-0 w-full h-[1px] bg-gradient-to-r from-blue-500/50 to-transparent" />
           </div>
-          <div className="flex items-center space-x-2 px-2">
-            <div className="flex bg-black/50 p-1 border border-slate-800">
+          <div className="flex items-center space-x-2">
+            <div className="flex bg-black/60 p-1 rounded-xl border border-blue-900/30">
               {['ALL', 'ADMIN', 'USER'].map(role => (
-                <button key={role} onClick={() => setFilterRole(role as any)} className={`px-6 py-2.5 text-[9px] font-black uppercase tracking-widest transition-all ${filterRole === role ? 'bg-blue-600 text-white shadow-[0_0_15px_rgba(59,130,246,0.5)]' : 'text-slate-500 hover:text-white'}`}>
+                <button 
+                  key={role} onClick={() => setFilterRole(role as any)} 
+                  className={`px-4 py-2 text-xs font-mono font-bold uppercase rounded-lg transition-all ${
+                    filterRole === role ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:text-white'
+                  }`}
+                >
                   {role}
                 </button>
               ))}
             </div>
-            <button onClick={extractCSV} className="flex items-center justify-center px-6 py-3.5 bg-blue-950/30 border border-blue-900/50 text-blue-400 hover:bg-blue-600 hover:text-white transition-all group">
-              <Download size={14} className="mr-2 group-hover:animate-bounce" />
-              <span className="text-[9px] font-black uppercase tracking-widest">Extract</span>
+            <button 
+              onClick={extractCSV} 
+              className="flex items-center px-4 py-2.5 bg-blue-950/40 border border-blue-900/50 text-blue-400 hover:bg-blue-600 hover:text-white rounded-xl text-xs font-mono font-bold transition-all"
+            >
+              <Download size={14} className="mr-1.5" /> Extract CSV
             </button>
           </div>
         </div>
+
+        {/* BATCH ACTION BAR */}
+        <AnimatePresence>
+          {selectedNodes.length > 0 && (
+            <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="mt-3 flex items-center justify-between bg-red-950/40 border border-red-500/50 p-3 rounded-xl backdrop-blur-md">
+              <span className="text-xs text-red-300 font-mono tracking-wider font-bold">
+                [{selectedNodes.length} NODE(S) TARGETED]
+              </span>
+              <button 
+                onClick={handleBatchPurge}
+                disabled={actionLoading === 'batch_purge'}
+                className="text-xs bg-red-600 hover:bg-red-500 text-white px-5 py-2 rounded-lg uppercase tracking-wider font-mono font-bold transition-colors flex items-center shadow-lg shadow-red-600/30 disabled:opacity-50"
+              >
+                {actionLoading === 'batch_purge' ? <Loader2 size={13} className="animate-spin mr-2" /> : <Trash2 size={13} className="mr-2" />} 
+                Execute Batch Purge
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </motion.div>
 
       {/* FLOATING DATA-GRID */}
       <div className="w-full relative z-10">
-        <div className="hidden lg:grid grid-cols-12 gap-4 px-6 py-3 mb-4 border-b border-blue-900/30 text-[9px] text-blue-500 font-mono tracking-[0.3em] uppercase">
+        <div className="hidden lg:grid grid-cols-12 gap-4 px-6 py-3 mb-2 bg-[#050A14] border border-blue-900/40 rounded-xl text-[10px] text-blue-400 font-mono tracking-wider uppercase font-bold">
           <div className="col-span-1 flex items-center justify-center">
-            <input type="checkbox" title="Select all users" checked={selectedNodes.length === filteredUsers.length && filteredUsers.length > 0} onChange={toggleSelectAll} className="accent-blue-600 w-3 h-3 cursor-pointer" />
+            <input type="checkbox" title="Select all users" checked={selectedNodes.length === filteredUsers.length && filteredUsers.length > 0} onChange={toggleSelectAll} className="accent-blue-600 w-3.5 h-3.5 cursor-pointer rounded" />
           </div>
           <div className="col-span-2">SYS_ID</div>
-          <div className="col-span-3">IDENTIFIER_MATRIX</div>
-          <div className="col-span-2">CLEARANCE_LEVEL</div>
-          <div className="col-span-2">NETWORK_STATUS</div>
-          <div className="col-span-2 text-right">COMMAND_OVERRIDES</div>
+          <div className="col-span-3">IDENTIFIER MATRIX</div>
+          <div className="col-span-2">CLEARANCE</div>
+          <div className="col-span-2">NETWORK STATUS</div>
+          <div className="col-span-2 text-right">COMMAND OVERRIDES</div>
         </div>
 
-        <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-3 pb-24">
+        <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-2.5 pb-24">
           <AnimatePresence>
             {filteredUsers.map((user) => (
-              <motion.div layout variants={rowVariants} initial="hidden" animate="show" exit={{ opacity: 0, scale: 0.95 }} key={user.id} className={`grid grid-cols-1 lg:grid-cols-12 gap-4 items-center p-4 bg-[#050A14]/90 backdrop-blur-md border transition-all duration-300 group ${selectedNodes.includes(user.id) ? 'border-blue-500 shadow-[inset_0_0_20px_rgba(59,130,246,0.2)]' : 'border-blue-900/30 hover:border-blue-500/50 hover:bg-[#0A1224]'}`}>
+              <motion.div 
+                layout variants={rowVariants} initial="hidden" animate="show" exit={{ opacity: 0, scale: 0.95 }} 
+                key={user.id} 
+                className={`grid grid-cols-1 lg:grid-cols-12 gap-4 items-center p-4 bg-[#050A14]/90 backdrop-blur-md rounded-2xl border transition-all duration-200 group ${
+                  selectedNodes.includes(user.id) ? 'border-blue-500 shadow-lg shadow-blue-500/10' : 'border-blue-900/30 hover:border-blue-500/50 hover:bg-[#0A1224]'
+                }`}
+              >
                 <div className="col-span-1 flex items-center justify-center">
-                  <input type="checkbox" title="Select user" checked={selectedNodes.includes(user.id)} onChange={() => toggleSelectNode(user.id)} className="accent-blue-600 w-4 h-4 cursor-pointer" />
+                  <input type="checkbox" title="Select user" checked={selectedNodes.includes(user.id)} onChange={() => toggleSelectNode(user.id)} className="accent-blue-600 w-4 h-4 cursor-pointer rounded" />
                 </div>
                 <div className="col-span-2 flex items-center">
-                  <Cpu size={12} className="text-slate-600 mr-2 opacity-50" />
-                  <span className="text-[10px] font-mono text-slate-500 tracking-wider">{user.id.substring(0, 8)}<span className="text-slate-700">...</span></span>
+                  <Cpu size={14} className="text-slate-500 mr-2 opacity-60" />
+                  <span className="text-xs font-mono text-slate-400">#{user.id.substring(0, 8)}...</span>
                 </div>
-                <div className="col-span-3 flex items-center space-x-4 cursor-pointer" onClick={() => { setInspectUser(user); setEditForm(user); setIsEditing(false); setActiveTab('IDENTITY'); }}>
-                  <div className="relative">
-                    <div className="absolute inset-0 bg-blue-500 blur-[10px] opacity-0 group-hover:opacity-30 transition-opacity" />
-                    <div className="w-10 h-10 bg-black border border-slate-800 group-hover:border-blue-500 flex items-center justify-center [clip-path:polygon(0_0,100%_0,100%_calc(100%-10px),calc(100%-10px)_100%,0_100%)] transition-colors relative z-10">
-                      <UserIcon size={16} className="text-slate-400 group-hover:text-blue-400 transition-colors" />
-                    </div>
+                <div 
+                  className="col-span-3 flex items-center space-x-3.5 cursor-pointer" 
+                  onClick={() => { setInspectUser(user); setEditForm(user); setIsEditing(false); setActiveTab('IDENTITY'); setRegeneratedCode(null); }}
+                >
+                  <div className="w-10 h-10 rounded-xl bg-black border border-blue-900/50 group-hover:border-blue-500 flex items-center justify-center transition-colors shrink-0">
+                    <UserIcon size={18} className="text-blue-400" />
                   </div>
-                  <div className="flex flex-col">
-                    <span className="text-sm font-bold text-white tracking-widest uppercase group-hover:text-blue-400 transition-colors">{user.fullName || user.username}</span>
-                    <span className="text-[9px] font-mono text-slate-500 tracking-widest mt-0.5 flex items-center"><Mail size={10} className="mr-1 opacity-50" /> {user.email}</span>
+                  <div className="flex flex-col truncate">
+                    <span className="text-sm font-bold text-white tracking-wide uppercase group-hover:text-blue-400 transition-colors truncate">
+                      {user.fullName || user.username}
+                    </span>
+                    <span className="text-[10px] font-mono text-slate-400 mt-0.5 flex items-center truncate">
+                      <Mail size={10} className="mr-1 opacity-60" /> {user.email}
+                    </span>
                   </div>
                 </div>
                 <div className="col-span-2">
                   {user.role === 'admin' ? (
-                    <span className="inline-flex items-center px-3 py-1.5 bg-red-950/40 border-l-2 border-red-600 text-red-500 text-[9px] tracking-[0.2em] font-black font-mono uppercase shadow-[0_0_10px_rgba(220,38,38,0.1)]"><ShieldCheck size={12} className="mr-2" /> LEVEL_5</span>
+                    <span className="inline-flex items-center px-3 py-1 rounded-lg bg-red-950/40 border border-red-600/50 text-red-400 text-[10px] tracking-wider font-mono font-bold uppercase shadow-sm">
+                      <ShieldCheck size={12} className="mr-1.5" /> MASTER ADMIN
+                    </span>
                   ) : (
-                    <span className="inline-flex items-center px-3 py-1.5 bg-slate-900/50 border-l-2 border-slate-600 text-slate-400 text-[9px] tracking-[0.2em] font-black font-mono uppercase"><UserIcon size={12} className="mr-2" /> GUEST</span>
+                    <span className="inline-flex items-center px-3 py-1 rounded-lg bg-slate-900/60 border border-slate-700 text-slate-300 text-[10px] tracking-wider font-mono font-bold uppercase">
+                      <UserIcon size={12} className="mr-1.5" /> STANDARD
+                    </span>
                   )}
                 </div>
-                <div className="col-span-2 flex flex-col items-start space-y-1.5">
-                  <div className={`inline-flex items-center px-3 py-1 border text-[8px] font-black tracking-[0.2em] uppercase ${user.status === 'SUSPENDED' ? 'bg-orange-950/20 border-orange-900/50 text-orange-500' : 'bg-green-950/20 border-green-900/50 text-green-500'}`}>
-                    <span className={`w-1.5 h-1.5 rounded-none mr-2 ${user.status === 'SUSPENDED' ? 'bg-orange-500 animate-pulse' : 'bg-green-500 shadow-[0_0_8px_#22c55e]'}`} />{user.status || 'ACTIVE'}
-                  </div>
-                  {!user.isVerified && <div className="inline-flex items-center text-[8px] font-mono tracking-widest text-orange-500 opacity-70"><AlertTriangle size={10} className="mr-1" /> UNVERIFIED</div>}
+                <div className="col-span-2 flex flex-col items-start space-y-1">
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-md border text-[9px] font-mono font-bold tracking-wider uppercase ${
+                    user.status === 'SUSPENDED' ? 'bg-amber-950/30 border-amber-900/50 text-amber-400' : 'bg-emerald-950/30 border-emerald-900/50 text-emerald-400'
+                  }`}>
+                    <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${user.status === 'SUSPENDED' ? 'bg-amber-400 animate-pulse' : 'bg-emerald-400'}`} />
+                    {user.status || 'ACTIVE'}
+                  </span>
+                  {!user.isVerified && (
+                    <span className="inline-flex items-center text-[9px] font-mono tracking-wider text-amber-400 opacity-80">
+                      <AlertTriangle size={10} className="mr-1" /> UNVERIFIED
+                    </span>
+                  )}
                 </div>
                 <div className="col-span-2 flex justify-end items-center space-x-1 pr-2">
                   {actionLoading === user.id ? (
                     <Loader2 size={18} className="animate-spin text-blue-500 mr-4" />
                   ) : (
                     <>
-                      <button onClick={() => { setInspectUser(user); setEditForm(user); setIsEditing(false); setActiveTab('IDENTITY'); }} className="p-2.5 text-slate-500 hover:text-blue-400 hover:bg-blue-900/20 border border-transparent hover:border-blue-500/50 transition-all opacity-0 group-hover:opacity-100" title="Inspect Node"><Activity size={16} /></button>
-                      <button onClick={() => handleRoleChange(user.id, user.role)} className="p-2.5 text-slate-500 hover:text-orange-400 hover:bg-orange-900/20 border border-transparent hover:border-orange-500/50 transition-all opacity-0 group-hover:opacity-100" title="Toggle Clearance"><ShieldAlert size={16} /></button>
-                      <button onClick={() => handleTerminateUser(user.id)} className="p-2.5 text-slate-500 hover:text-white hover:bg-red-600 border border-transparent hover:border-red-500 transition-all opacity-0 group-hover:opacity-100 shadow-[0_0_15px_rgba(220,38,38,0)] hover:shadow-[0_0_15px_rgba(220,38,38,0.5)]" title="Terminate Node"><Trash2 size={16} /></button>
+                      <button 
+                        onClick={() => { setInspectUser(user); setEditForm(user); setIsEditing(false); setActiveTab('IDENTITY'); setRegeneratedCode(null); }} 
+                        className="p-2 text-slate-400 hover:text-white hover:bg-blue-900/30 rounded-lg transition-all" 
+                        title="Inspect Node"
+                      >
+                        <Activity size={16} />
+                      </button>
+                      <button 
+                        onClick={() => handleRoleChange(user.id, user.role)} 
+                        className="p-2 text-slate-400 hover:text-amber-400 hover:bg-amber-900/30 rounded-lg transition-all" 
+                        title="Toggle Clearance"
+                      >
+                        <ShieldAlert size={16} />
+                      </button>
+                      <button 
+                        onClick={() => handleTerminateUser(user.id)} 
+                        className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-950/40 rounded-lg transition-all" 
+                        title="Terminate Node"
+                      >
+                        <Trash2 size={16} />
+                      </button>
                     </>
                   )}
                 </div>
@@ -351,65 +562,222 @@ export default function UltimateUserRoster() {
             ))}
           </AnimatePresence>
           {filteredUsers.length === 0 && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="p-16 flex flex-col items-center justify-center border border-dashed border-blue-900/50 bg-[#050A14]/50">
+            <div className="p-16 flex flex-col items-center justify-center border border-dashed border-blue-900/40 rounded-2xl bg-[#050A14]/50">
               <Search size={32} className="text-slate-600 mb-4" />
-              <p className="text-slate-500 text-[11px] uppercase tracking-[0.4em] font-mono">NO DATA CORES MATCH QUERY.</p>
-            </motion.div>
+              <p className="text-slate-400 text-xs uppercase tracking-wider font-mono">No nodes match current query criteria.</p>
+            </div>
           )}
         </motion.div>
       </div>
+
+      {/* PROVISION NEW OPERATOR MODAL */}
+      <AnimatePresence>
+        {isProvisionOpen && (
+          <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsProvisionOpen(false)} className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md cursor-pointer" />
+            <div className="fixed inset-0 z-[101] flex items-center justify-center p-4 pointer-events-none">
+              <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }} className="bg-[#050A14] border border-blue-500/50 w-full max-w-xl shadow-2xl rounded-2xl pointer-events-auto overflow-hidden">
+                <div className="flex justify-between items-center bg-blue-950/40 p-5 border-b border-blue-900/50">
+                  <div className="flex items-center text-blue-400 font-bold uppercase text-sm tracking-wider">
+                    <UserPlus size={18} className="mr-2" /> Provision New Operator
+                  </div>
+                  <button type="button" onClick={() => setIsProvisionOpen(false)} className="text-slate-400 hover:text-white transition-colors">
+                    <X size={18} />
+                  </button>
+                </div>
+                
+                <form onSubmit={handleProvisionSubmit} className="p-6 space-y-4">
+                  {provisionResult ? (
+                    <div className="bg-emerald-950/40 border border-emerald-500/50 p-5 rounded-xl space-y-3">
+                      <div className="flex items-center text-emerald-400 font-bold text-sm">
+                        <CheckCircle size={18} className="mr-2" /> Operator Successfully Provisioned!
+                      </div>
+                      <p className="text-xs text-slate-300 font-mono">
+                        User ID: #{provisionResult.id.substring(0, 8)}...
+                      </p>
+                      {provisionResult.secretCode && (
+                        <div className="bg-black/60 p-3 rounded-lg border border-emerald-500/30 flex justify-between items-center">
+                          <div>
+                            <p className="text-[10px] text-slate-400 font-mono uppercase">User Secret Login Cipher:</p>
+                            <p className="text-base font-black font-mono text-emerald-400 tracking-widest">{provisionResult.secretCode}</p>
+                          </div>
+                          <button 
+                            type="button" 
+                            onClick={() => handleCopy(provisionResult.secretCode, 'new_user_code')}
+                            className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-xs font-mono font-bold"
+                          >
+                            {copiedField === 'new_user_code' ? 'Copied!' : 'Copy Key'}
+                          </button>
+                        </div>
+                      )}
+                      <button 
+                        type="button" 
+                        onClick={() => { setProvisionResult(null); setIsProvisionOpen(false); }}
+                        className="w-full mt-4 bg-blue-600 hover:bg-blue-500 text-white font-mono font-bold text-xs uppercase py-3 rounded-xl transition-all"
+                      >
+                        Close Window
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-[10px] font-mono text-slate-400 uppercase tracking-wider mb-1 block">Full Name *</label>
+                          <input 
+                            type="text" required value={provisionForm.fullName} onChange={e => setProvisionForm({...provisionForm, fullName: e.target.value})}
+                            placeholder="John Doe" className="w-full bg-black/60 border border-blue-900/40 rounded-lg p-2.5 text-xs font-mono text-white focus:outline-none focus:border-blue-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-mono text-slate-400 uppercase tracking-wider mb-1 block">Username (Optional)</label>
+                          <input 
+                            type="text" value={provisionForm.username} onChange={e => setProvisionForm({...provisionForm, username: e.target.value})}
+                            placeholder="johndoe_ops" className="w-full bg-black/60 border border-blue-900/40 rounded-lg p-2.5 text-xs font-mono text-white focus:outline-none focus:border-blue-500"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-[10px] font-mono text-slate-400 uppercase tracking-wider mb-1 block">Email Comms *</label>
+                          <input 
+                            type="email" required value={provisionForm.email} onChange={e => setProvisionForm({...provisionForm, email: e.target.value})}
+                            placeholder="operator@nima.io" className="w-full bg-black/60 border border-blue-900/40 rounded-lg p-2.5 text-xs font-mono text-white focus:outline-none focus:border-blue-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-mono text-slate-400 uppercase tracking-wider mb-1 block">Cipher / Password *</label>
+                          <input 
+                            type="text" required minLength={8} value={provisionForm.password} onChange={e => setProvisionForm({...provisionForm, password: e.target.value})}
+                            placeholder="Min 8 characters" className="w-full bg-black/60 border border-blue-900/40 rounded-lg p-2.5 text-xs font-mono text-white focus:outline-none focus:border-blue-500"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-4">
+                        <div>
+                          <label className="text-[10px] font-mono text-slate-400 uppercase tracking-wider mb-1 block">Clearance Level</label>
+                          <select 
+                            value={provisionForm.role} onChange={e => setProvisionForm({...provisionForm, role: e.target.value})}
+                            className="w-full bg-black/60 border border-blue-900/40 rounded-lg p-2.5 text-xs font-mono text-white focus:outline-none focus:border-blue-500"
+                          >
+                            <option value="user">User (Standard)</option>
+                            <option value="admin">Admin (Level 5)</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-mono text-slate-400 uppercase tracking-wider mb-1 block">Frequency Phone</label>
+                          <input 
+                            type="text" value={provisionForm.phone} onChange={e => setProvisionForm({...provisionForm, phone: e.target.value})}
+                            placeholder="+1 555-0199" className="w-full bg-black/60 border border-blue-900/40 rounded-lg p-2.5 text-xs font-mono text-white focus:outline-none focus:border-blue-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-mono text-slate-400 uppercase tracking-wider mb-1 block">Age Index</label>
+                          <input 
+                            type="number" value={provisionForm.age} onChange={e => setProvisionForm({...provisionForm, age: e.target.value})}
+                            placeholder="28" className="w-full bg-black/60 border border-blue-900/40 rounded-lg p-2.5 text-xs font-mono text-white focus:outline-none focus:border-blue-500"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex items-center space-x-2 pt-2">
+                        <input 
+                          type="checkbox" id="verify_new" checked={provisionForm.isVerified} onChange={e => setProvisionForm({...provisionForm, isVerified: e.target.checked})}
+                          className="accent-blue-600 rounded"
+                        />
+                        <label htmlFor="verify_new" className="text-xs font-mono text-slate-300">Mark operator as immediately verified</label>
+                      </div>
+
+                      <div className="pt-4 flex space-x-3">
+                        <button 
+                          type="button" onClick={() => setIsProvisionOpen(false)}
+                          className="flex-1 bg-black/60 border border-slate-800 text-slate-400 hover:text-white py-3 rounded-xl font-mono text-xs font-bold uppercase transition-all"
+                        >
+                          Cancel
+                        </button>
+                        <button 
+                          type="submit" disabled={actionLoading === 'provision'}
+                          className="flex-1 bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-xl font-mono text-xs font-bold uppercase transition-all shadow-lg shadow-blue-600/30 flex items-center justify-center disabled:opacity-50"
+                        >
+                          {actionLoading === 'provision' ? <Loader2 size={16} className="animate-spin" /> : 'Provision Operator'}
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </form>
+              </motion.div>
+            </div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* TACTICAL HUD TERMINAL */}
       <AnimatePresence>
         {inspectUser && (
           <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setInspectUser(null)} className="fixed inset-0 z-[100] bg-[#020617]/90 backdrop-blur-md cursor-pointer">
-               <div className="absolute inset-0 bg-[linear-gradient(rgba(59,130,246,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,0.03)_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none" />
-            </motion.div>
-            <motion.div initial={{ x: '100%', opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: '100%', opacity: 0 }} transition={{ type: 'spring', damping: 25, stiffness: 200 }} className="fixed top-0 right-0 bottom-0 w-full max-w-2xl bg-[#050A14] border-l border-blue-500/50 z-[101] shadow-[-30px_0_60px_rgba(0,0,0,0.9)] flex flex-col cursor-default">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setInspectUser(null)} className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md cursor-pointer" />
+            
+            <motion.div initial={{ x: '100%', opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: '100%', opacity: 0 }} transition={{ type: 'spring', damping: 25, stiffness: 200 }} className="fixed top-0 right-0 bottom-0 w-full max-w-2xl bg-[#050A14] border-l border-blue-900/50 z-[101] shadow-2xl flex flex-col">
               
-              <div className="h-32 border-b border-blue-900/50 bg-black flex flex-col justify-end p-8 relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-full h-full bg-[radial-gradient(ellipse_at_top_right,rgba(59,130,246,0.15),transparent_50%)] pointer-events-none" />
-                <div className="flex items-start justify-between relative z-10">
-                  <div className="flex items-center space-x-6">
-                    <div className="w-16 h-16 bg-[#020617] border border-blue-500 flex items-center justify-center [clip-path:polygon(15px_0,100%_0,100%_calc(100%-15px),calc(100%-15px)_100%,0_100%,0_15px)] shadow-[0_0_20px_rgba(59,130,246,0.3)]">
-                      <span className="text-3xl font-black text-blue-400 drop-shadow-[0_0_10px_rgba(59,130,246,0.8)]">{inspectUser.fullName ? inspectUser.fullName.charAt(0).toUpperCase() : inspectUser.username?.charAt(0).toUpperCase() || 'U'}</span>
-                    </div>
-                    <div>
-                      <div className="flex items-center text-blue-500 mb-1">
-                        <Terminal size={12} className="mr-2" />
-                        <span className="text-[9px] font-black tracking-[0.4em] uppercase">Target Profile Acquired</span>
-                      </div>
-                      <h2 className="text-2xl font-black text-white tracking-[0.2em] uppercase">{inspectUser.fullName || inspectUser.username}</h2>
-                    </div>
+              <div className="h-28 border-b border-blue-900/50 bg-black/60 flex items-center justify-between p-6 shrink-0">
+                <div className="flex items-center space-x-4">
+                  <div className="w-14 h-14 rounded-2xl bg-blue-950/80 border border-blue-500/50 flex items-center justify-center shadow-lg shadow-blue-500/20">
+                    <span className="text-2xl font-black text-blue-400">
+                      {inspectUser.fullName ? inspectUser.fullName.charAt(0).toUpperCase() : inspectUser.username?.charAt(0).toUpperCase() || 'U'}
+                    </span>
                   </div>
-                  <button onClick={() => setInspectUser(null)} title="Close profile" className="text-slate-500 hover:text-red-500 transition-colors p-2 border border-transparent hover:border-red-900/50 bg-black"><X size={20} /></button>
+                  <div>
+                    <h2 className="text-lg font-black text-white tracking-wider uppercase">{inspectUser.fullName || inspectUser.username}</h2>
+                    <p className="text-[10px] font-mono text-blue-400 mt-0.5">SYS_ID: #{inspectUser.id.substring(0, 12)}</p>
+                  </div>
                 </div>
+                <button onClick={() => setInspectUser(null)} title="Close profile" className="text-slate-400 hover:text-white transition-colors p-2 rounded-lg bg-black/50 border border-slate-800">
+                  <X size={18} />
+                </button>
               </div>
 
-              <div className="flex border-b border-blue-900/40 bg-[#020617] px-8">
-                {[{ id: 'IDENTITY', icon: UserIcon }, { id: 'SECURITY', icon: ShieldAlert }, { id: 'TELEMETRY', icon: Radio }].map(tab => (
-                  <button key={tab.id} type="button" onClick={() => { setActiveTab(tab.id as any); setIsEditing(false); }} className={`flex items-center py-5 px-6 text-[10px] font-black uppercase tracking-[0.2em] transition-all relative ${activeTab === tab.id ? 'text-blue-400 bg-blue-900/10' : 'text-slate-600 hover:text-slate-300 hover:bg-white/[0.02]'}`}>
-                    <tab.icon size={14} className="mr-2" /> {tab.id}
-                    {activeTab === tab.id && <motion.div layoutId="tab-indicator" className="absolute bottom-0 left-0 w-full h-[2px] bg-blue-500 shadow-[0_-5px_10px_rgba(59,130,246,0.5)]" />}
+              {/* TABS */}
+              <div className="flex border-b border-blue-900/40 bg-[#020617] px-6">
+                {[
+                  { id: 'IDENTITY', icon: UserIcon, label: 'Identity' },
+                  { id: 'SECURITY', icon: ShieldAlert, label: 'Security' },
+                  { id: 'VAULT', icon: Bookmark, label: 'Saved Vault' },
+                  { id: 'TELEMETRY', icon: Radio, label: 'Telemetry' }
+                ].map(tab => (
+                  <button 
+                    key={tab.id} type="button" 
+                    onClick={() => { setActiveTab(tab.id as any); setIsEditing(false); }} 
+                    className={`flex items-center py-4 px-4 text-xs font-mono font-bold uppercase tracking-wider transition-all relative ${
+                      activeTab === tab.id ? 'text-blue-400 bg-blue-950/20' : 'text-slate-500 hover:text-slate-300'
+                    }`}
+                  >
+                    <tab.icon size={14} className="mr-2" /> {tab.label}
+                    {activeTab === tab.id && <div className="absolute bottom-0 left-0 w-full h-[2px] bg-blue-500 shadow-[0_0_8px_#3b82f6]" />}
                   </button>
                 ))}
               </div>
 
-              <div className="flex-1 overflow-y-auto p-8 custom-admin-scroll relative">
+              {/* TAB CONTENT */}
+              <div className="flex-1 overflow-y-auto p-6 custom-admin-scroll relative">
                 <AnimatePresence mode="wait">
+                  
                   {/* IDENTITY TAB */}
                   {activeTab === 'IDENTITY' && (
                     <motion.div key="identity" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-6">
-                      <div className="flex justify-between items-center mb-6">
-                        <h3 className="text-[11px] font-black tracking-[0.3em] uppercase text-blue-500">Node Parameters</h3>
+                      <div className="flex justify-between items-center">
+                        <h3 className="text-xs font-mono font-bold tracking-wider uppercase text-blue-400">Node Parameters</h3>
                         {!isEditing ? (
-                          <button onClick={() => setIsEditing(true)} className="flex items-center text-[9px] bg-blue-950/30 border border-blue-900 text-blue-400 hover:bg-blue-900 hover:text-white px-4 py-2 tracking-widest uppercase font-black transition-colors"><Edit3 size={12} className="mr-2" /> Execute Override</button>
+                          <button onClick={() => setIsEditing(true)} className="flex items-center text-xs bg-blue-950/40 border border-blue-900 text-blue-400 hover:bg-blue-600 hover:text-white px-4 py-2 rounded-lg font-mono font-bold uppercase transition-all">
+                            <Edit3 size={13} className="mr-1.5" /> Edit Parameters
+                          </button>
                         ) : (
                           <div className="flex space-x-2">
-                            <button onClick={() => setIsEditing(false)} className="text-[9px] bg-black border border-slate-800 text-slate-400 hover:text-white px-4 py-2 tracking-widest uppercase font-black">Abort</button>
-                            <button onClick={saveIdentityChanges} className="flex items-center text-[9px] bg-blue-600 text-white px-4 py-2 tracking-widest uppercase font-black hover:bg-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.4)]">
-                              {actionLoading === 'save_identity' ? <Loader2 size={12} className="animate-spin" /> : <><Save size={12} className="mr-2" /> Inject Data</>}
+                            <button onClick={() => setIsEditing(false)} className="text-xs bg-black/60 border border-slate-800 text-slate-400 hover:text-white px-4 py-2 rounded-lg font-mono font-bold uppercase">
+                              Abort
+                            </button>
+                            <button onClick={saveIdentityChanges} className="flex items-center text-xs bg-blue-600 text-white px-4 py-2 rounded-lg font-mono font-bold uppercase hover:bg-blue-500 shadow-lg shadow-blue-600/30">
+                              {actionLoading === 'save_identity' ? <Loader2 size={13} className="animate-spin" /> : <><Save size={13} className="mr-1.5" /> Save Changes</>}
                             </button>
                           </div>
                         )}
@@ -422,45 +790,45 @@ export default function UltimateUserRoster() {
                           { label: 'Frequency (Phone)', key: 'phone', type: 'text', icon: Phone },
                           { label: 'Chrono-Index (Age)', key: 'age', type: 'number', icon: Calendar }
                         ].map(field => (
-                          <div key={field.key} className={`bg-black border ${isEditing ? 'border-blue-500/50 shadow-[inset_0_0_15px_rgba(59,130,246,0.1)]' : 'border-blue-900/30'} p-5 relative [clip-path:polygon(0_0,100%_0,100%_calc(100%-10px),calc(100%-10px)_100%,0_100%)] transition-all`}>
-                            <div className="flex items-center mb-3">
-                              <field.icon size={12} className="text-blue-500 mr-2 opacity-70" />
-                              <label className="text-[8px] text-slate-500 uppercase tracking-[0.2em]">{field.label}</label>
+                          <div key={field.key} className="bg-black/50 border border-blue-900/30 p-4 rounded-xl">
+                            <div className="flex items-center mb-2">
+                              <field.icon size={13} className="text-blue-400 mr-2 opacity-70" />
+                              <label className="text-[10px] font-mono text-slate-400 uppercase">{field.label}</label>
                             </div>
                             {isEditing ? (
-                              <input type={field.type} value={(editForm as any)[field.key] || ''} onChange={(e) => setEditForm({...editForm, [field.key]: e.target.value})} className="w-full bg-[#020617] border-b border-blue-500 text-white text-sm font-mono tracking-wider p-2 focus:outline-none focus:bg-blue-950/20" placeholder="ENTER_DATA" />
+                              <input 
+                                type={field.type} value={(editForm as any)[field.key] || ''} onChange={(e) => setEditForm({...editForm, [field.key]: e.target.value})} 
+                                className="w-full bg-[#020617] border border-blue-900/50 rounded p-2 text-white text-xs font-mono focus:outline-none focus:border-blue-500" 
+                              />
                             ) : (
-                              <p className="text-sm text-white font-mono tracking-wider">{(inspectUser as any)[field.key] || <span className="text-slate-600">NOT_PROVIDED</span>}</p>
+                              <p className="text-sm text-white font-mono font-bold">{(inspectUser as any)[field.key] || <span className="text-slate-600">NOT_PROVIDED</span>}</p>
                             )}
                           </div>
                         ))}
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-blue-900/30">
-                        <div className={`bg-black border ${isEditing ? 'border-blue-500/50' : 'border-blue-900/30'} p-5`}>
-                          <div className="flex items-center mb-3">
-                            <CheckCircle size={12} className="text-blue-500 mr-2 opacity-70" />
-                            <label className="text-[8px] text-slate-500 uppercase tracking-[0.2em]">Verification Status</label>
-                          </div>
+                      <div className="grid grid-cols-2 gap-4 pt-4 border-t border-blue-900/30">
+                        <div className="bg-black/50 border border-blue-900/30 p-4 rounded-xl">
+                          <label className="text-[10px] font-mono text-slate-400 uppercase mb-2 block">Verification Status</label>
                           {isEditing ? (
-                            <select aria-label="Verification Status" value={editForm.isVerified !== undefined ? String(editForm.isVerified) : String(inspectUser.isVerified)} onChange={(e) => setEditForm({...editForm, isVerified: e.target.value === 'true'})} className="w-full bg-[#020617] border border-slate-800 text-white text-xs font-mono tracking-widest p-2 focus:outline-none focus:border-blue-500 cursor-pointer">
+                            <select 
+                              value={editForm.isVerified !== undefined ? String(editForm.isVerified) : String(inspectUser.isVerified)} 
+                              onChange={(e) => setEditForm({...editForm, isVerified: e.target.value === 'true'})} 
+                              className="w-full bg-[#020617] border border-blue-900/50 rounded p-2 text-white text-xs font-mono"
+                            >
                               <option value="true">VERIFIED</option>
                               <option value="false">PENDING</option>
                             </select>
                           ) : (
-                            <p className={`text-xs font-black tracking-widest uppercase ${inspectUser.isVerified ? 'text-green-500' : 'text-orange-500'}`}>{inspectUser.isVerified ? 'VERIFIED' : 'PENDING'}</p>
+                            <p className={`text-xs font-mono font-bold uppercase ${inspectUser.isVerified ? 'text-emerald-400' : 'text-amber-400'}`}>
+                              {inspectUser.isVerified ? 'VERIFIED' : 'PENDING'}
+                            </p>
                           )}
                         </div>
-                        <div className={`bg-black border ${isEditing ? 'border-red-500/50 shadow-[inset_0_0_15px_rgba(220,38,38,0.1)]' : 'border-blue-900/30'} p-5`}>
-                          <div className="flex items-center mb-3">
-                            <Key size={12} className={`${isEditing ? 'text-red-500' : 'text-blue-500'} mr-2 opacity-70 transition-colors`} />
-                            <label className="text-[8px] text-slate-500 uppercase tracking-[0.2em]">Security Cipher</label>
-                          </div>
-                          {isEditing ? (
-                            <input type="text" placeholder="ENTER NEW CIPHER..." value={editForm.password || ''} onChange={(e) => setEditForm({...editForm, password: e.target.value})} className="w-full bg-red-950/20 border-b border-red-500 text-red-400 text-xs font-mono tracking-widest p-2 focus:outline-none placeholder-red-900" />
-                          ) : (
-                            <p className="text-sm text-slate-600 font-mono tracking-widest">ENCRYPTED_***</p>
-                          )}
+
+                        <div className="bg-black/50 border border-blue-900/30 p-4 rounded-xl">
+                          <label className="text-[10px] font-mono text-slate-400 uppercase mb-2 block">Clearance Level</label>
+                          <p className="text-xs font-mono font-bold text-white uppercase">{inspectUser.role}</p>
                         </div>
                       </div>
                     </motion.div>
@@ -469,116 +837,204 @@ export default function UltimateUserRoster() {
                   {/* SECURITY TAB */}
                   {activeTab === 'SECURITY' && (
                     <motion.div key="security" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-6">
-                      <div className="bg-orange-950/10 border border-orange-900/40 p-8 relative [clip-path:polygon(0_0,100%_0,100%_calc(100%-15px),calc(100%-15px)_100%,0_100%)]">
-                        <div className="absolute top-0 right-0 w-3 h-full bg-orange-500" />
-                        <h3 className="text-[12px] font-black tracking-[0.2em] uppercase text-orange-500 flex items-center mb-3"><Ban size={16} className="mr-3" /> Network Suspension</h3>
-                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                          <p className="text-[10px] text-orange-400/70 font-mono border-l-2 border-orange-900/50 pl-3 max-w-sm">Sever API access and authentication pathways for this specific node.</p>
-                          <button onClick={toggleNodeSuspension} className={`px-8 py-4 font-black text-[10px] uppercase tracking-widest transition-all flex items-center ${inspectUser.status === 'SUSPENDED' ? 'bg-green-600 text-white shadow-[0_0_20px_rgba(34,197,94,0.4)]' : 'bg-orange-600 text-white shadow-[0_0_20px_rgba(249,115,22,0.4)] hover:bg-orange-500'}`}>
-                            {actionLoading === 'suspend_node' ? <Loader2 size={16} className="animate-spin" /> : inspectUser.status === 'SUSPENDED' ? 'RESTORE ACCESS' : 'SEVER ACCESS'}
-                          </button>
+                      
+                      {/* SECRET CODE REGENERATION */}
+                      <div className="bg-[#050b1a] border border-blue-900/40 p-6 rounded-2xl space-y-4">
+                        <div className="flex items-center text-blue-400 font-bold text-xs uppercase tracking-wider">
+                          <Key size={16} className="mr-2" /> 10-Character Secret Code Protocol
                         </div>
+                        <p className="text-xs text-slate-300 font-mono leading-relaxed">
+                          Admins can regenerate a fresh cryptographic cipher code for the user to authenticate through the secret key login path.
+                        </p>
+
+                        {regeneratedCode && (
+                          <div className="bg-black/60 p-4 rounded-xl border border-emerald-500/40 flex justify-between items-center">
+                            <div>
+                              <p className="text-[10px] font-mono text-slate-400 uppercase">Newly Generated Cipher Code:</p>
+                              <p className="text-lg font-black font-mono text-emerald-400 tracking-widest">{regeneratedCode}</p>
+                            </div>
+                            <button 
+                              onClick={() => handleCopy(regeneratedCode, 'regen_key')}
+                              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-mono font-bold"
+                            >
+                              {copiedField === 'regen_key' ? 'Copied!' : 'Copy Code'}
+                            </button>
+                          </div>
+                        )}
+
+                        <button 
+                          onClick={handleRegenerateSecretCode} 
+                          disabled={actionLoading === 'regen_code'}
+                          className="bg-blue-600 hover:bg-blue-500 text-white font-mono font-bold text-xs uppercase px-5 py-3 rounded-xl transition-all shadow-lg shadow-blue-600/30 flex items-center disabled:opacity-50"
+                        >
+                          {actionLoading === 'regen_code' ? <Loader2 size={14} className="animate-spin mr-2" /> : <RefreshCw size={14} className="mr-2" />} 
+                          Regenerate Secret Code
+                        </button>
                       </div>
-                      <div className="bg-red-950/10 border border-red-900/40 p-8 relative overflow-hidden [clip-path:polygon(0_0,100%_0,100%_calc(100%-15px),calc(100%-15px)_100%,0_100%)]">
-                        <div className="absolute top-0 right-0 w-3 h-full bg-red-600" />
-                        <h3 className="text-[12px] font-black tracking-[0.2em] uppercase text-red-500 flex items-center mb-3"><Lock size={16} className="mr-3" /> Force Cipher Override</h3>
-                        <p className="text-[10px] text-red-400/70 font-mono mb-6 leading-relaxed border-l-2 border-red-900/50 pl-3">Master Protocol: Instantly overwrite the operator's cryptographic key. The current key will be destroyed. This action is irreversible.</p>
-                        <div className="flex flex-col sm:flex-row gap-3">
-                          <input type="text" placeholder="ENTER NEW SECURE CIPHER..." value={newCipher} onChange={(e) => setNewCipher(e.target.value)} className="flex-1 bg-black border border-red-900/50 text-white text-xs font-mono tracking-[0.3em] uppercase p-4 focus:outline-none focus:border-red-500 focus:bg-red-950/20" />
-                          <button onClick={forceCipherOverride} disabled={actionLoading === 'override_cipher'} className="bg-red-600 hover:bg-red-500 text-white px-8 font-black text-[10px] uppercase tracking-widest transition-all flex items-center justify-center shadow-[0_0_20px_rgba(220,38,38,0.4)] disabled:opacity-50">
-                            {actionLoading === 'override_cipher' ? <Loader2 size={16} className="animate-spin" /> : 'EXECUTE'}
+
+                      {/* NETWORK SUSPENSION */}
+                      <div className="bg-amber-950/20 border border-amber-900/40 p-6 rounded-2xl">
+                        <h3 className="text-xs font-mono font-bold uppercase text-amber-400 flex items-center mb-2">
+                          <Ban size={16} className="mr-2" /> Network Access Suspension
+                        </h3>
+                        <p className="text-xs text-slate-300 font-mono mb-4 leading-relaxed">
+                          Sever or restore API access and authentication pathways for this node.
+                        </p>
+                        <button 
+                          onClick={toggleNodeSuspension} 
+                          className={`px-6 py-3 font-mono font-bold text-xs uppercase tracking-wider rounded-xl transition-all ${
+                            inspectUser.status === 'SUSPENDED' ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-600/30' : 'bg-amber-600 hover:bg-amber-500 text-white shadow-lg shadow-amber-600/30'
+                          }`}
+                        >
+                          {actionLoading === 'suspend_node' ? <Loader2 size={14} className="animate-spin" /> : inspectUser.status === 'SUSPENDED' ? 'Restore Node Access' : 'Sever Node Access'}
+                        </button>
+                      </div>
+
+                      {/* FORCE CIPHER OVERRIDE */}
+                      <div className="bg-red-950/20 border border-red-900/40 p-6 rounded-2xl">
+                        <h3 className="text-xs font-mono font-bold uppercase text-red-400 flex items-center mb-2">
+                          <Lock size={16} className="mr-2" /> Force Master Password Override
+                        </h3>
+                        <p className="text-xs text-slate-300 font-mono mb-4 leading-relaxed">
+                          Instantly reset the operator password. Current credentials will be destroyed.
+                        </p>
+                        <div className="flex gap-3">
+                          <input 
+                            type="text" placeholder="Enter new password (min 8 chars)..." value={newCipher} onChange={(e) => setNewCipher(e.target.value)} 
+                            className="flex-1 bg-black/60 border border-red-900/50 text-white text-xs font-mono p-3 rounded-xl focus:outline-none focus:border-red-500" 
+                          />
+                          <button 
+                            onClick={forceCipherOverride} disabled={actionLoading === 'override_cipher'} 
+                            className="bg-red-600 hover:bg-red-500 text-white px-6 font-mono font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-red-600/30 disabled:opacity-50"
+                          >
+                            {actionLoading === 'override_cipher' ? <Loader2 size={14} className="animate-spin" /> : 'Override'}
                           </button>
                         </div>
                       </div>
                     </motion.div>
                   )}
 
-                  {/* 🚀 FIXED 4-CARD TELEMETRY TAB */}
+                  {/* SAVED VAULT TAB */}
+                  {activeTab === 'VAULT' && (
+                    <motion.div key="vault" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-6">
+                      <div className="flex items-center justify-between border-b border-blue-900/30 pb-3">
+                        <h3 className="text-xs font-mono font-bold uppercase text-blue-400 flex items-center">
+                          <Bookmark size={16} className="mr-2" /> Operator Vault Inspection
+                        </h3>
+                        <span className="text-[10px] font-mono text-slate-400">
+                          Bookmarks & Saved Intelligence
+                        </span>
+                      </div>
+
+                      {loadingVault ? (
+                        <div className="py-12 flex flex-col items-center justify-center text-blue-400 font-mono text-xs">
+                          <Loader2 size={24} className="animate-spin mb-3" />
+                          <span>Decrypting User Vault...</span>
+                        </div>
+                      ) : (
+                        <div className="space-y-6">
+                          {/* Saved Research Blueprints */}
+                          <div>
+                            <h4 className="text-xs font-mono font-bold uppercase text-slate-300 mb-3 flex items-center">
+                              <BookOpen size={14} className="mr-2 text-blue-400" /> Saved Research Blueprints ({userVault?.savedPosts?.length || 0})
+                            </h4>
+                            <div className="space-y-2">
+                              {userVault?.savedPosts && userVault.savedPosts.length > 0 ? (
+                                userVault.savedPosts.map((item: any) => (
+                                  <div key={item.id} className="p-3 bg-black/50 border border-blue-900/30 rounded-xl flex justify-between items-center">
+                                    <div>
+                                      <p className="text-xs font-mono font-bold text-white">{item.post?.title || 'Unknown Post'}</p>
+                                      <p className="text-[10px] font-mono text-slate-500">Type: {item.post?.type} | Saved on {new Date(item.createdAt).toLocaleDateString()}</p>
+                                    </div>
+                                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-blue-950/60 text-blue-400 border border-blue-900/40">
+                                      BOOKMARKED
+                                    </span>
+                                  </div>
+                                ))
+                              ) : (
+                                <p className="text-xs font-mono text-slate-500 italic p-3 bg-black/30 rounded-lg">No research blueprints saved by operator.</p>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Saved Project Releases */}
+                          <div>
+                            <h4 className="text-xs font-mono font-bold uppercase text-slate-300 mb-3 flex items-center">
+                              <Layers size={14} className="mr-2 text-amber-400" /> Saved Project Releases ({userVault?.savedReleases?.length || 0})
+                            </h4>
+                            <div className="space-y-2">
+                              {userVault?.savedReleases && userVault.savedReleases.length > 0 ? (
+                                userVault.savedReleases.map((item: any) => (
+                                  <div key={item.id} className="p-3 bg-black/50 border border-blue-900/30 rounded-xl flex justify-between items-center">
+                                    <div>
+                                      <p className="text-xs font-mono font-bold text-white">{item.release?.projectName || 'Unknown Release'}</p>
+                                      <p className="text-[10px] font-mono text-slate-500">Version: {item.release?.version} | Saved on {new Date(item.createdAt).toLocaleDateString()}</p>
+                                    </div>
+                                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-950/60 text-amber-400 border border-amber-900/40">
+                                      RELEASE
+                                    </span>
+                                  </div>
+                                ))
+                              ) : (
+                                <p className="text-xs font-mono text-slate-500 italic p-3 bg-black/30 rounded-lg">No project releases saved by operator.</p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </motion.div>
+                  )}
+
+                  {/* TELEMETRY TAB */}
                   {activeTab === 'TELEMETRY' && (
                     <motion.div key="telemetry" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-6">
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        
-                        {/* Card 1: System ID Hash */}
-                        <div className="bg-[#050A14] border border-blue-900/30 p-5 relative group flex flex-col justify-center items-center text-center overflow-hidden">
-                          <div className="absolute inset-0 bg-[linear-gradient(rgba(59,130,246,0.1)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,0.1)_1px,transparent_1px)] bg-[size:10px_10px] opacity-20 pointer-events-none" />
-                          <p className="text-[9px] text-slate-500 uppercase tracking-[0.3em] mb-2 relative z-10">System ID Hash</p>
-                          <p className="text-xl font-black font-mono text-blue-400 relative z-10">#{inspectUser.id.split('-')[0]}</p>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="bg-black/50 border border-blue-900/30 p-4 rounded-xl">
+                          <p className="text-[10px] font-mono text-slate-400 uppercase mb-1">System Hash ID</p>
+                          <p className="text-sm font-mono font-bold text-blue-400">#{inspectUser.id.substring(0, 16)}</p>
                         </div>
-
-                        {/* Card 2: Node Stability */}
-                        <div className="bg-[#050A14] border border-blue-900/30 p-5 relative group flex flex-col justify-center items-center text-center overflow-hidden">
-                           <div className="absolute bottom-0 left-0 w-full h-1/2 bg-gradient-to-t from-blue-900/20 to-transparent pointer-events-none" />
-                           <p className="text-[9px] text-slate-500 uppercase tracking-[0.3em] mb-2 relative z-10">Node Stability</p>
-                           <p className={`text-xl font-black font-mono relative z-10 ${inspectUser.status === 'SUSPENDED' || !inspectUser.isVerified ? 'text-orange-500 animate-pulse' : 'text-green-500'}`}>
-                             {inspectUser.status === 'SUSPENDED' || !inspectUser.isVerified ? 'UNSTABLE' : 'STABLE'}
-                           </p>
-                        </div>
-
-                        {/* Card 3: Network Origin (IP) Card */}
-                        <div className="bg-[#050A14] border border-blue-900/30 p-5 relative group flex flex-col justify-between">
-                          <div className="flex justify-between items-start mb-4 relative z-10">
-                             <p className="text-[9px] text-slate-500 uppercase tracking-[0.3em] flex items-center">
-                               <Network size={12} className="mr-2 text-blue-500" /> Network Origin
-                             </p>
-                             <button onClick={() => handleCopy(inspectUser.lastIp || 'NO_RECORD', 'ip')} title="Copy IP" className="p-1 hover:bg-blue-900/30 transition-colors rounded z-20">
-                               {copiedField === 'ip' ? <Check size={14} className="text-green-500" /> : <Copy size={14} className="text-blue-500 opacity-50 group-hover:opacity-100" />}
-                             </button>
-                          </div>
-                          <p className="text-lg font-black font-mono text-blue-400 relative z-10 truncate" title={inspectUser.lastIp || 'NO_RECORD'}>
-                            {inspectUser.lastIp || 'NO_RECORD'}
-                          </p>
-                          <p className="text-[8px] text-slate-600 mt-2 tracking-widest uppercase relative z-10">
-                            Sync: {inspectUser.lastLogin ? new Date(inspectUser.lastLogin).toLocaleString() : 'N/A'}
+                        <div className="bg-black/50 border border-blue-900/30 p-4 rounded-xl">
+                          <p className="text-[10px] font-mono text-slate-400 uppercase mb-1">Node Stability</p>
+                          <p className={`text-sm font-mono font-bold ${inspectUser.status === 'SUSPENDED' ? 'text-amber-400' : 'text-emerald-400'}`}>
+                            {inspectUser.status === 'SUSPENDED' ? 'SEVERED' : 'OPERATIONAL'}
                           </p>
                         </div>
-
-                        {/* Card 4: Hardware Signature (Device) Card */}
-                        <div className="bg-[#050A14] border border-blue-900/30 p-5 relative group flex flex-col justify-between">
-                          <div className="flex justify-between items-start mb-4 relative z-10">
-                             <p className="text-[9px] text-slate-500 uppercase tracking-[0.3em] flex items-center">
-                               <Cpu size={12} className="mr-2 text-blue-500" /> Hardware Signature
-                             </p>
-                             <button onClick={() => handleCopy(inspectUser.lastDevice || 'NO_RECORD', 'device')} title="Copy Device Signature" className="p-1 hover:bg-blue-900/30 transition-colors rounded z-20">
-                               {copiedField === 'device' ? <Check size={14} className="text-green-500" /> : <Copy size={14} className="text-blue-500 opacity-50 group-hover:opacity-100" />}
-                             </button>
-                          </div>
-                          <p className="text-[9px] font-bold font-mono text-white line-clamp-2 leading-relaxed relative z-10" title={inspectUser.lastDevice || 'NO_RECORD'}>
-                            {inspectUser.lastDevice || 'NO_RECORD'}
-                          </p>
-                          <p className="text-[8px] text-slate-600 mt-2 tracking-widest uppercase relative z-10">
-                            Latest Client
-                          </p>
-                        </div>
-
                       </div>
 
-                      <div className="bg-[#050A14] border border-blue-900/30 p-6">
-                        <h3 className="text-[10px] font-black tracking-[0.3em] uppercase text-blue-500 border-b border-blue-900/50 pb-3 mb-4 flex items-center"><History size={14} className="mr-2" /> Database Event Log</h3>
-                        <div className="space-y-3">
-                          {[
-                            { action: inspectUser.status === 'SUSPENDED' ? 'NETWORK_SEVERED' : 'NETWORK_ACTIVE', time: 'CURRENT_STATE', status: inspectUser.status === 'SUSPENDED' ? 'WARN' : 'OK' },
-                            { action: inspectUser.role === 'admin' ? 'ELEVATED_CLEARANCE' : 'GUEST_CLEARANCE', time: 'DB_SYNC', status: 'OK' },
-                            { action: inspectUser.isVerified ? 'COMMS_LINK_VERIFIED' : 'VERIFICATION_PENDING', time: 'DB_SYNC', status: inspectUser.isVerified ? 'OK' : 'WARN' },
-                            { action: 'IDENTITY_FORGED', time: new Date(inspectUser.createdAt).toLocaleDateString(), status: 'OK' }
-                          ].map((log, i) => (
-                            <div key={i} className="flex justify-between items-center bg-black border border-slate-800 p-4 hover:border-blue-900/50 transition-colors">
-                              <div className="flex items-center"><div className={`w-2 h-2 rounded-none mr-4 ${log.status === 'WARN' ? 'bg-orange-500' : 'bg-blue-500'}`} /><span className="text-[10px] font-mono font-bold text-white tracking-widest">{log.action}</span></div>
-                              <span className="text-[9px] font-mono text-slate-500">{log.time}</span>
-                            </div>
-                          ))}
+                      <div className="bg-black/50 border border-blue-900/30 p-4 rounded-xl">
+                        <div className="flex justify-between items-center mb-1">
+                          <p className="text-[10px] font-mono text-slate-400 uppercase flex items-center">
+                            <Network size={12} className="mr-1.5 text-blue-400" /> Network Origin (Last Known IP)
+                          </p>
+                          <button onClick={() => handleCopy(inspectUser.lastIp || '127.0.0.1', 'ip')} className="text-xs text-blue-400 hover:text-white">
+                            {copiedField === 'ip' ? 'Copied' : 'Copy'}
+                          </button>
                         </div>
+                        <p className="text-sm font-mono font-bold text-white">{inspectUser.lastIp || '127.0.0.1'}</p>
+                      </div>
+
+                      <div className="bg-black/50 border border-blue-900/30 p-4 rounded-xl">
+                        <p className="text-[10px] font-mono text-slate-400 uppercase mb-1 flex items-center">
+                          <Cpu size={12} className="mr-1.5 text-blue-400" /> Hardware Client Signature
+                        </p>
+                        <p className="text-xs font-mono text-slate-300 leading-relaxed">{inspectUser.lastDevice || 'Mozilla/5.0 WebClient Core'}</p>
                       </div>
                     </motion.div>
                   )}
-                </AnimatePresence>
 
+                </AnimatePresence>
               </div>
             </motion.div>
           </>
         )}
       </AnimatePresence>
 
+      <style jsx global>{`
+        .custom-admin-scroll::-webkit-scrollbar { width: 5px; height: 5px; }
+        .custom-admin-scroll::-webkit-scrollbar-track { background: rgba(3, 8, 22, 0.6); }
+        .custom-admin-scroll::-webkit-scrollbar-thumb { background: rgba(59, 130, 246, 0.4); border-radius: 4px; }
+        .custom-admin-scroll::-webkit-scrollbar-thumb:hover { background: rgba(59, 130, 246, 0.8); }
+      `}</style>
     </div>
   );
 }

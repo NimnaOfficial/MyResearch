@@ -25,6 +25,7 @@ interface Routing { targetRecent: boolean; targetUpcoming: boolean; targetProtot
 interface ResearchFormState {
   id?: string;
   title: string;
+  categoryId?: string;
   type: string;
   content: string; 
   heroImg: string;
@@ -39,7 +40,7 @@ interface ResearchFormState {
 }
 
 const DEFAULT_FORM: ResearchFormState = {
-  title: '', type: 'Research', content: '', heroImg: 'from-slate-800 to-black', published: false,
+  title: '', type: 'Research', content: '', heroImg: 'from-slate-800 to-black', published: false, categoryId: undefined,
   methodology: '', conclusion: '', metrics: [], figures: [], dataSources: [],
   metadata: { writer: 'SYS_ADMIN', contributors: [], startDate: '', endDate: '', topics: [], explorerRating: '4.8', explorerViews: '12.4k' },
   routing: { targetRecent: true, targetUpcoming: false, targetPrototypes: false, targetExplorer: true }
@@ -114,6 +115,66 @@ export default function MasterResearchForge() {
   const [showJsonCompiler, setShowJsonCompiler] = useState(false);
   
   const [hasDraft, setHasDraft] = useState(false);
+  
+  // CATEGORY TAXONOMY STATES
+  const [categories, setCategories] = useState<any[]>([]);
+  const [isCatModalOpen, setIsCatModalOpen] = useState(false);
+  const [catForm, setCatForm] = useState({ name: '', slug: '', description: '', color: '#3b82f6' });
+  const [editingCatId, setEditingCatId] = useState<string | null>(null);
+
+  const fetchCategories = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/categories`);
+      if (res.ok) {
+        const json = await res.json();
+        setCategories(json.data || []);
+      }
+    } catch (e) {
+      console.error('Failed to load categories', e);
+    }
+  };
+
+  const handleSaveCategory = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!catForm.name) return alert('Category Name is required.');
+    const token = localStorage.getItem('matrix_token');
+    try {
+      const url = editingCatId ? `${API_URL}/api/categories/${editingCatId}` : `${API_URL}/api/categories`;
+      const method = editingCatId ? 'PUT' : 'POST';
+      const res = await fetch(url, {
+        method,
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(catForm)
+      });
+      if (res.ok) {
+        await fetchCategories();
+        setCatForm({ name: '', slug: '', description: '', color: '#3b82f6' });
+        setEditingCatId(null);
+      } else {
+        alert('Failed to save category.');
+      }
+    } catch (e) {
+      alert('Network failure.');
+    }
+  };
+
+  const handleDeleteCategory = async (id: string) => {
+    if (!confirm('Permanently delete this category taxonomy?')) return;
+    const token = localStorage.getItem('matrix_token');
+    try {
+      const res = await fetch(`${API_URL}/api/categories/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        await fetchCategories();
+      } else {
+        alert('Failed to delete category.');
+      }
+    } catch (e) {
+      alert('Network failure.');
+    }
+  };
 
   const fetchPosts = async () => {
     try {
@@ -136,6 +197,7 @@ export default function MasterResearchForge() {
 
   useEffect(() => { 
     fetchPosts(); 
+    fetchCategories(); 
     const draft = localStorage.getItem('MATRIX_FORGE_AUTOSAVE');
     if (draft) setHasDraft(true);
   }, [router]);
@@ -175,6 +237,7 @@ export default function MasterResearchForge() {
         content: post.content || '',
         heroImg: post.heroImg || 'from-slate-800 to-black',
         published: post.published || false,
+        categoryId: post.categoryId || undefined,
         methodology: post.methodology || (advanced as any).methodology || '',
         conclusion: post.conclusion || (advanced as any).conclusion || '',
         metrics: post.metrics || (advanced as any).metrics || [],
@@ -211,6 +274,7 @@ export default function MasterResearchForge() {
       content: formData.content,
       heroImg: formData.heroImg,
       published: formData.published,
+      categoryId: formData.categoryId || null,
       advancedData: JSON.stringify({
         methodology: formData.methodology,
         conclusion: formData.conclusion,
@@ -533,6 +597,25 @@ export default function MasterResearchForge() {
                     {activeTab === 'IDENTITY' && (
                       <motion.div key="identity" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
                         <div className="bg-black border border-[#00f0ff]/30 p-6 shadow-lg focus-within:border-[#00ff66] transition-colors [clip-path:polygon(0_0,100%_0,100%_calc(100%-15px),calc(100%-15px)_100%,0_100%)]">
+                          <div className="flex justify-between items-center mb-2">
+                            <label className="text-[10px] text-[#00f0ff] uppercase tracking-[0.3em] font-black">Category Taxonomy</label>
+                            <button type="button" onClick={() => setIsCatModalOpen(true)} className="text-[9px] text-[#00ff66] underline hover:text-white uppercase font-mono">
+                              + Manage Taxonomies
+                            </button>
+                          </div>
+                          <select 
+                            value={formData.categoryId || ''} 
+                            onChange={e => setFormData({...formData, categoryId: e.target.value || undefined})}
+                            className="w-full bg-[#02050A] border border-slate-800 text-white p-3 text-xs font-mono uppercase tracking-wider outline-none focus:border-[#00ff66] cursor-pointer"
+                          >
+                            <option value="">No Category Assigned</option>
+                            {categories.map(c => (
+                              <option key={c.id} value={c.id}>{c.name}</option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div className="bg-black border border-[#00f0ff]/30 p-6 shadow-lg focus-within:border-[#00ff66] transition-colors [clip-path:polygon(0_0,100%_0,100%_calc(100%-15px),calc(100%-15px)_100%,0_100%)]">
                           <label className="text-[10px] text-[#00f0ff] uppercase tracking-[0.3em] block mb-2 font-black">Research Title</label>
                           <input title="Research Title" aria-label="Research Title" type="text" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} className="w-full bg-transparent border-b border-slate-800 focus:border-[#00ff66] text-white text-2xl font-black tracking-widest p-2 outline-none transition-colors" placeholder="ENTER CLASSIFIED TITLE..." />
                         </div>
@@ -766,6 +849,106 @@ export default function MasterResearchForge() {
         )}
       </AnimatePresence>
 
-    </div>
+    
+      {/* CATEGORY MANAGEMENT MODAL */}
+      <AnimatePresence>
+        {isCatModalOpen && (
+          <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsCatModalOpen(false)} className="fixed inset-0 z-[250] bg-black/80 backdrop-blur-md cursor-pointer" />
+            <div className="fixed inset-0 z-[251] flex items-center justify-center p-4 pointer-events-none">
+              <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }} className="bg-[#050A14] border border-blue-500/50 w-full max-w-2xl shadow-2xl rounded-2xl pointer-events-auto overflow-hidden">
+                <div className="flex justify-between items-center bg-blue-950/40 p-5 border-b border-blue-900/50">
+                  <div className="flex items-center text-blue-400 font-bold uppercase text-sm tracking-wider">
+                    <Tags size={18} className="mr-2" /> Category Taxonomy Engine
+                  </div>
+                  <button type="button" onClick={() => { setIsCatModalOpen(false); setEditingCatId(null); }} className="text-slate-400 hover:text-white transition-colors">
+                    <X size={18} />
+                  </button>
+                </div>
+                
+                <div className="p-6 space-y-6">
+                  {/* Create / Edit Form */}
+                  <form onSubmit={handleSaveCategory} className="bg-black/50 border border-blue-900/30 p-4 rounded-xl space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs font-mono font-bold text-slate-300 uppercase">
+                        {editingCatId ? 'Edit Category Taxonomy' : '+ Create New Category'}
+                      </span>
+                      {editingCatId && (
+                        <button type="button" onClick={() => { setEditingCatId(null); setCatForm({ name: '', slug: '', description: '', color: '#3b82f6' }); }} className="text-[10px] text-slate-400 hover:text-white underline">
+                          Cancel Edit
+                        </button>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <input 
+                        type="text" placeholder="Category Name (e.g. AI / Neural Nets)" required
+                        value={catForm.name} onChange={e => setCatForm({...catForm, name: e.target.value})}
+                        className="bg-black border border-blue-900/40 rounded-lg p-2.5 text-xs font-mono text-white focus:outline-none focus:border-blue-500"
+                      />
+                      <input 
+                        type="text" placeholder="Slug (optional, auto-generated)"
+                        value={catForm.slug} onChange={e => setCatForm({...catForm, slug: e.target.value})}
+                        className="bg-black border border-blue-900/40 rounded-lg p-2.5 text-xs font-mono text-white focus:outline-none focus:border-blue-500"
+                      />
+                    </div>
+                    <div className="grid grid-cols-3 gap-3">
+                      <input 
+                        type="text" placeholder="Description..." 
+                        value={catForm.description} onChange={e => setCatForm({...catForm, description: e.target.value})}
+                        className="col-span-2 bg-black border border-blue-900/40 rounded-lg p-2.5 text-xs font-mono text-white focus:outline-none focus:border-blue-500"
+                      />
+                      <div className="flex items-center space-x-2">
+                        <input 
+                          type="color" value={catForm.color} onChange={e => setCatForm({...catForm, color: e.target.value})}
+                          className="w-10 h-10 bg-transparent border border-blue-900/40 rounded cursor-pointer"
+                        />
+                        <button type="submit" className="flex-1 bg-blue-600 hover:bg-blue-500 text-white py-2.5 rounded-lg text-xs font-mono font-bold uppercase transition-colors">
+                          {editingCatId ? 'Update' : 'Add'}
+                        </button>
+                      </div>
+                    </div>
+                  </form>
+
+                  {/* List of Categories */}
+                  <div className="space-y-2 max-h-60 overflow-y-auto pr-1 custom-scrollbar">
+                    <p className="text-[10px] font-mono uppercase text-slate-400">Existing Taxonomies ({categories.length})</p>
+                    {categories.map((cat: any) => (
+                      <div key={cat.id} className="p-3 bg-black/40 border border-blue-900/30 rounded-xl flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          <span className="w-3 h-3 rounded-full" style={{ backgroundColor: cat.color || '#3b82f6' }} />
+                          <div>
+                            <p className="text-xs font-mono font-bold text-white uppercase">{cat.name}</p>
+                            <p className="text-[10px] font-mono text-slate-500">slug: {cat.slug} {cat._count?.posts ? `(${cat._count.posts} posts)` : ''}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <button 
+                            type="button" 
+                            onClick={() => { setEditingCatId(cat.id); setCatForm({ name: cat.name, slug: cat.slug, description: cat.description || '', color: cat.color || '#3b82f6' }); }}
+                            className="p-1.5 text-slate-400 hover:text-blue-400"
+                          >
+                            <Edit3 size={14} />
+                          </button>
+                          <button 
+                            type="button" 
+                            onClick={() => handleDeleteCategory(cat.id)}
+                            className="p-1.5 text-slate-400 hover:text-red-400"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                    {categories.length === 0 && (
+                      <p className="text-xs font-mono text-slate-500 italic p-3 text-center">No categories registered yet.</p>
+                    )}
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+          </>
+        )}
+      </AnimatePresence>
+</div>
   );
 }

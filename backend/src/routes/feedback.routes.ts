@@ -12,6 +12,7 @@ const submitLimiter = rateLimit({
 });
 
 // Authenticated users or guest operators may submit telemetry feedback
+router.post('/', optionalAuth, submitLimiter, submitFeedback);
 router.post('/submit', optionalAuth, submitLimiter, submitFeedback);
 
 // Inbox + purge are admin-only (previously any logged-in user could read/delete them)

@@ -4,7 +4,7 @@ import { API_URL } from '@/lib/api';
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
-import { KeySquare, ShieldCheck, AlertTriangle, ScanFace, ArrowRight } from 'lucide-react';
+import { KeySquare, ShieldCheck, AlertTriangle, ScanFace, ArrowRight, Camera, User } from 'lucide-react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Float, Sphere, MeshTransmissionMaterial, Sparkles, OrbitControls } from '@react-three/drei';
 import { EffectComposer, Bloom, Glitch } from '@react-three/postprocessing';
@@ -68,7 +68,7 @@ export default function AuthGateway() {
   const [authError, setAuthError] = useState(''); 
 
   const [secretCode, setSecretCode] = useState('');
-  const [regData, setRegData] = useState({ name: '', email: '', phone: '', age: '', backupPass: '', confirmPass: '' });
+  const [regData, setRegData] = useState({ name: '', email: '', phone: '', age: '', backupPass: '', confirmPass: '', avatarPreview: '' });
 
   const [isLoading, setIsLoading] = useState(false);
   const isSubmittingRef = useRef(false);
@@ -143,7 +143,7 @@ export default function AuthGateway() {
       const response = await fetch(`${API_URL}/api/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: regData.email, password: regData.backupPass, fullName: regData.name, age: parseInt(regData.age) || 0, phone: regData.phone })
+        body: JSON.stringify({ email: regData.email, password: regData.backupPass, fullName: regData.name, age: parseInt(regData.age) || 0, phone: regData.phone, profilePic: regData.avatarPreview || undefined })
       });
       const data = await response.json();
 
@@ -223,6 +223,49 @@ export default function AuthGateway() {
 
                   {mode === 'register' && (
                     <motion.form key="register" onSubmit={handleRegister} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-5">
+                      {/* REAL-TIME AVATAR SETUP */}
+                      <div className="flex flex-col items-center justify-center pt-1 pb-2">
+                        <div className="relative group cursor-pointer">
+                          <input
+                            type="file"
+                            id="regAvatarInput"
+                            className="hidden"
+                            accept="image/*"
+                            disabled={isLoading}
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                const reader = new FileReader();
+                                reader.onload = () => {
+                                  setRegData((prev) => ({ ...prev, avatarPreview: reader.result as string }));
+                                };
+                                reader.readAsDataURL(file);
+                              }
+                            }}
+                          />
+                          <label
+                            htmlFor="regAvatarInput"
+                            className="w-20 h-20 rounded-full bg-gradient-to-tr from-cyan-400 to-[#a855f7] p-[2px] shadow-[0_0_20px_rgba(168,85,247,0.3)] flex cursor-pointer group-hover:scale-105 transition-all"
+                          >
+                            <div className={`w-full h-full rounded-full flex items-center justify-center overflow-hidden relative ${isLightMode ? 'bg-white' : 'bg-[#020613]'}`}>
+                              {regData.avatarPreview ? (
+                                <img src={regData.avatarPreview} alt="Avatar Preview" className="w-full h-full object-cover" />
+                              ) : (
+                                <div className="flex flex-col items-center justify-center text-slate-500 group-hover:text-cyan-400 transition-colors">
+                                  <Camera size={20} />
+                                  <span className="text-[8px] font-mono uppercase tracking-widest mt-1">Photo</span>
+                                </div>
+                              )}
+                              <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                                <Camera size={18} className="text-cyan-400" />
+                              </div>
+                            </div>
+                          </label>
+                        </div>
+                        <span className="text-[9px] font-mono uppercase tracking-widest mt-2 text-slate-500">
+                          {regData.avatarPreview ? 'Avatar Attached' : 'Set Profile Picture (Optional)'}
+                        </span>
+                      </div>
                       <div className="grid grid-cols-2 gap-6">
                         <input type="text" required placeholder="Full Name" className={inputStyle} value={regData.name} onChange={(e) => setRegData({...regData, name: e.target.value})} disabled={isLoading} />
                         <input type="number" required placeholder="Age" className={inputStyle} value={regData.age} onChange={(e) => setRegData({...regData, age: e.target.value})} disabled={isLoading} />

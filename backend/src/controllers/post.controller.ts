@@ -10,7 +10,7 @@ const authorSelect = { select: { username: true, fullName: true, profilePic: tru
 // 1. INJECT NEW DATACORE (ADMIN CREATE)
 // ==========================================
 export const createPost = catchAsync(async (req: Request, res: Response) => {
-  const { title, content, type, published, heroImg, advancedData } = req.body;
+  const { title, content, type, published, heroImg, advancedData, categoryId } = req.body;
   const authorId = req.user?.id;
 
   if (!authorId) return res.status(401).json({ message: 'Unauthorized execution.' });
@@ -32,6 +32,7 @@ export const createPost = catchAsync(async (req: Request, res: Response) => {
       published: published === true,
       heroImg: heroImg || null,
       advancedData: advancedData || null,
+      categoryId: categoryId || null,
       authorId,
     },
   });
@@ -48,14 +49,26 @@ export const createPost = catchAsync(async (req: Request, res: Response) => {
 // ==========================================
 export const updatePost = catchAsync(async (req: Request, res: Response) => {
   const id = req.params.id as string;
-  const { title, content, type, published, heroImg, advancedData } = req.body;
+  const { title, content, type, published, heroImg, advancedData, categoryId } = req.body;
 
   const existing = await prisma.post.findUnique({ where: { id }, select: { id: true } });
   if (!existing) return res.status(404).json({ message: 'Target node not found.' });
 
+  const dataToUpdate: Record<string, any> = {
+    title,
+    content,
+    type,
+    published,
+    heroImg,
+    advancedData,
+  };
+  if (categoryId !== undefined) {
+    dataToUpdate.categoryId = categoryId || null;
+  }
+
   const updatedPost = await prisma.post.update({
     where: { id },
-    data: { title, content, type, published, heroImg, advancedData },
+    data: dataToUpdate,
   });
 
   res.status(200).json({ status: 'success', data: updatedPost });

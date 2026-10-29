@@ -14,6 +14,7 @@ import feedbackRoutes from './src/routes/feedback.routes';
 import adminRoutes from './src/routes/admin.routes';
 import showcaseRoutes from './src/routes/showcase.routes';
 import faqRoutes from './src/routes/faq.routes';
+import categoryRoutes from './src/routes/category.routes';
 import { errorHandler, notFoundHandler } from './src/middleware/errorHandler';
 
 // Fail fast on missing/insecure configuration
@@ -70,6 +71,7 @@ app.use('/api/feedback', feedbackRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/showcase', showcaseRoutes);
 app.use('/api/faqs', faqRoutes);
+app.use('/api/categories', categoryRoutes);
 
 // 404 + Global Error Handler (must be registered after all routes)
 app.use(notFoundHandler);

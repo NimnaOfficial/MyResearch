@@ -2,6 +2,8 @@ import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
+import fs from 'fs';
+import path from 'path';
 import prisma from '../config/prisma';
 import { getJwtSecret, getFrontendUrl } from '../config/env';
 import { catchAsync } from '../utils/catchAsync';
@@ -9,6 +11,28 @@ import { sendSecretCodeEmail } from '../utils/sendEmail';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MIN_PASSWORD_LENGTH = 8;
+
+// Helper to save base64 avatar to local disk
+const saveBase64Avatar = (base64Str: string, host: string, protocol: string): string | null => {
+  try {
+    const matches = base64Str.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+    if (!matches || matches.length !== 3) return null;
+
+    const mimeType = matches[1];
+    const buffer = Buffer.from(matches[2], 'base64');
+    const ext = mimeType.includes('png') ? '.png' : mimeType.includes('webp') ? '.webp' : '.jpg';
+    const filename = `${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`;
+    const uploadsDir = path.resolve(__dirname, '../../uploads/profiles');
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+    fs.writeFileSync(path.join(uploadsDir, filename), buffer);
+    return `${protocol}://${host}/uploads/profiles/${filename}`;
+  } catch (err) {
+    console.error('[AUTH] Failed to save base64 avatar:', err);
+    return null;
+  }
+};
 
 // ==========================================
 // HELPERS
@@ -57,7 +81,7 @@ const recordFailedLogin = async (userId: string, req: Request) => {
 // INITIALIZE IDENTITY (REGISTER)
 // ==========================================
 export const registerUser = catchAsync(async (req: Request, res: Response) => {
-  const { password, fullName, age, phone } = req.body;
+  const { password, fullName, age, phone, profilePic } = req.body;
   const email = String(req.body.email || '').trim().toLowerCase();
 
   if (!password || !email) {
@@ -70,6 +94,18 @@ export const registerUser = catchAsync(async (req: Request, res: Response) => {
     return res
       .status(400)
       .json({ message: `Backup password must be at least ${MIN_PASSWORD_LENGTH} characters.` });
+  }
+
+  // Resolve profile picture if supplied during registration (URL or base64 data)
+  let resolvedProfilePic: string | null = null;
+  if (typeof profilePic === 'string' && profilePic.trim() !== '') {
+    if (profilePic.startsWith('data:image/')) {
+      const host = req.get('host') || `localhost:${process.env.PORT || 5000}`;
+      const protocol = req.protocol || 'http';
+      resolvedProfilePic = saveBase64Avatar(profilePic, host, protocol);
+    } else if (profilePic.startsWith('http://') || profilePic.startsWith('https://')) {
+      resolvedProfilePic = profilePic.trim();
+    }
   }
 
   // Emails are unique regardless of letter case (normalized to lowercase)
@@ -105,6 +141,7 @@ export const registerUser = catchAsync(async (req: Request, res: Response) => {
         fullName: fullName ? String(fullName).trim() : null,
         age: age ? String(age) : null,
         phone: phone ? String(phone).trim() : null,
+        profilePic: resolvedProfilePic,
         status: 'ACTIVE',
       },
     });
@@ -231,6 +268,13 @@ export const loginUser = catchAsync(async (req: Request, res: Response) => {
 
   if (!user) return res.status(401).json({ message: 'Access Denied: Invalid cipher code.' });
 
+  // Security Perimeter: Admin accounts are strictly barred from single-code login. Master credentials required.
+  if (user.role === 'admin') {
+    return res.status(403).json({
+      message: 'Access Denied: Level 5 Admin nodes must authenticate via master credentials (email and password).',
+    });
+  }
+
   if (user.status === 'SUSPENDED') {
     return res.status(403).json({ message: 'ACCESS DENIED: NODE SUSPENDED BY SYSTEM ADMIN.' });
   }
@@ -326,13 +370,25 @@ export const updateMe = catchAsync(async (req: Request, res: Response) => {
 
   if (!userId) return res.status(401).json({ message: 'Unauthorized: No active session.' });
 
-  const { password, fullName, age, phone } = req.body;
+  const { password, fullName, age, phone, profilePic } = req.body;
 
   // Whitelist: only touch the fields that were actually supplied
   const dataToUpdate: Record<string, any> = {};
   if (fullName !== undefined) dataToUpdate.fullName = fullName ? String(fullName).trim() : null;
   if (age !== undefined) dataToUpdate.age = age ? String(age) : null;
   if (phone !== undefined) dataToUpdate.phone = phone ? String(phone).trim() : null;
+
+  if (profilePic !== undefined) {
+    if (!profilePic) {
+      dataToUpdate.profilePic = null;
+    } else if (typeof profilePic === 'string' && profilePic.startsWith('data:image/')) {
+      const host = req.get('host') || `localhost:${process.env.PORT || 5000}`;
+      const protocol = req.protocol || 'http';
+      dataToUpdate.profilePic = saveBase64Avatar(profilePic, host, protocol);
+    } else if (typeof profilePic === 'string') {
+      dataToUpdate.profilePic = profilePic.trim();
+    }
+  }
 
   if (typeof password === 'string' && password.trim() !== '') {
     if (password.length < MIN_PASSWORD_LENGTH) {
@@ -350,7 +406,7 @@ export const updateMe = catchAsync(async (req: Request, res: Response) => {
   const updatedUser = await prisma.user.update({
     where: { id: userId },
     data: dataToUpdate,
-    select: { id: true, fullName: true, age: true, phone: true, username: true, email: true },
+    select: { id: true, fullName: true, age: true, phone: true, username: true, email: true, profilePic: true },
   });
 
   res.status(200).json({ status: 'success', data: updatedUser });
