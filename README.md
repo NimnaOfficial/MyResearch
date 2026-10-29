@@ -41,13 +41,13 @@ This system was engineered to break the mold of standard web portfolios. It demo
 * **Framework:** Next.js 14 (App Router)
 * **Styling:** Tailwind CSS + custom CSS Matrix animations
 * **Animation:** Framer Motion
-* **Hosting:** Vercel Global Edge Network
+* **Runtime:** Local Development Matrix (`http://localhost:3000`)
 
 ### Backend (The Logic Engine)
 * **Runtime:** Node.js + Express
 * **Database:** Turso Cloud Database (libSQL / SQLite)
 * **ORM:** Prisma 7 with `@prisma/adapter-libsql`
-* **Hosting:** Render Web Services
+* **Runtime:** Local Node Gateway (`http://localhost:5000`)
 
 ---
 

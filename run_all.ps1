@@ -136,19 +136,8 @@ if (-not (Test-Path $FrontendEnv)) {
 }
 
 # ------------------------------------------------------------------------------
-# Quick Database Telemetry Probe & Auto-Initialization
+# Quick Database Telemetry Probe (Turso Cloud Database)
 # ------------------------------------------------------------------------------
-$localDb = Join-Path $BackendPath "dev.db"
-if (-not (Test-Path $localDb)) {
-    Log-Warn "Local database dev.db not detected. Provisioning local schema..."
-    Push-Location $BackendPath
-    npx prisma db push --skip-generate | Out-Null
-    npm run seed | Out-Null
-    npm run seed:admin | Out-Null
-    Pop-Location
-    Log-OK "Local SQLite data core and master admin account successfully initialized."
-}
-
 $dbCheckScript = Join-Path $BackendPath "check-db.ts"
 if (Test-Path $dbCheckScript) {
     try {
@@ -157,7 +146,7 @@ if (Test-Path $dbCheckScript) {
         Pop-Location
         $dbText = $dbCheckOut -join " "
         if ($LASTEXITCODE -eq 0) {
-            Log-OK "Database Connectivity       : ONLINE (Local SQLite dev.db)"
+            Log-OK "Database Connectivity       : ONLINE (Turso Cloud Database)"
         } else {
             Log-Warn "Database Connectivity       : OFFLINE ($dbText)"
         }
