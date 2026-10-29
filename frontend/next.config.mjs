@@ -1,11 +1,11 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   typescript: {
-    // This tells Vercel: "Ignore TypeScript errors and just deploy the site!"
-    ignoreBuildErrors: true,
+    // Type errors now fail the build (the codebase type-checks cleanly with `npx tsc --noEmit`).
+    ignoreBuildErrors: false,
   },
   eslint: {
-    // Also ignore ESLint errors just in case
+    // No ESLint config is committed yet, so linting is skipped during builds.
     ignoreDuringBuilds: true,
   },
 };

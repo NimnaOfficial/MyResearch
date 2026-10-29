@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   // URL is strictly forbidden here in Prisma 7. It is handled by the Adapter.
 }
 
@@ -26,6 +26,7 @@ model User {
   feedbacks     Feedback[] 
   posts         Post[]        @relation("AuthoredPosts") 
   savedPosts    Post[]        @relation("SavedPosts")
+  savedReleases Release[]     @relation("SavedReleases")
   logs          ActivityLog[]
 
   role          String        @default("user")
@@ -114,6 +115,8 @@ model Release {
   publishedAt  DateTime @default(now())
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+
+  savedBy      User[]   @relation("SavedReleases")
 }
 
 // ==========================================

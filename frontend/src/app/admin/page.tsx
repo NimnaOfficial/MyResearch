@@ -1,5 +1,6 @@
 "use client";
 
+import { API_URL } from '@/lib/api';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Activity, ShieldAlert, Cpu, Server, Zap, Crosshair, Loader2, X, Terminal, Database, CheckCircle2, AlertTriangle, RefreshCw, Bell, ShieldCheck, User as UserIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -47,17 +48,17 @@ export default function AdminDashboard() {
 
       try {
         if (!adminProfile) {
-          const meRes = await fetch('https://myresearch-bclz.onrender.com/api/auth/me', { headers: { Authorization: `Bearer ${token}` } }).catch(()=>null);
+          const meRes = await fetch(`${API_URL}/api/auth/me`, { headers: { Authorization: `Bearer ${token}` } }).catch(()=>null);
           if (meRes && meRes.ok) setAdminProfile((await meRes.json()).data);
         }
 
         // Parallel Fetch for Absolute Zero Latency
         const startPing = Date.now();
         const [statsRes, logsRes, fbRes, healthRes] = await Promise.all([
-          fetch('https://myresearch-bclz.onrender.com/api/admin/stats', { headers: { Authorization: `Bearer ${token}` } }).catch(() => null),
-          fetch('https://myresearch-bclz.onrender.com/api/admin/logs', { headers: { Authorization: `Bearer ${token}` } }).catch(() => null),
-          fetch('https://myresearch-bclz.onrender.com/api/feedback', { headers: { Authorization: `Bearer ${token}` } }).catch(() => null),
-          fetch('https://myresearch-bclz.onrender.com/api/health').catch(() => null)
+          fetch(`${API_URL}/api/admin/stats`, { headers: { Authorization: `Bearer ${token}` } }).catch(() => null),
+          fetch(`${API_URL}/api/admin/logs`, { headers: { Authorization: `Bearer ${token}` } }).catch(() => null),
+          fetch(`${API_URL}/api/feedback`, { headers: { Authorization: `Bearer ${token}` } }).catch(() => null),
+          fetch(`${API_URL}/api/health`).catch(() => null)
         ]);
         const endPing = Date.now();
 

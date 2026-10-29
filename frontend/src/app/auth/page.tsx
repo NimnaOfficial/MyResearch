@@ -1,5 +1,6 @@
 "use client";
 
+import { API_URL } from '@/lib/api';
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
@@ -88,7 +89,7 @@ export default function AuthGateway() {
     setAuthError('');
 
     try {
-      const response = await fetch('https://myresearch-bclz.onrender.com/api/auth/login', {
+      const response = await fetch(`${API_URL}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ secretCode })
@@ -122,6 +123,14 @@ export default function AuthGateway() {
     setAuthState('scanning'); 
     setAuthError('');
 
+    if (regData.backupPass.length < 8) {
+      setAuthState('error'); setAuthError('Backup Password must be at least 8 characters.');
+      setTimeout(() => setAuthState('idle'), 3000);
+      setIsLoading(false);
+      isSubmittingRef.current = false;
+      return;
+    }
+
     if (regData.backupPass !== regData.confirmPass) {
       setAuthState('error'); setAuthError('Backup Passwords do not match!');
       setTimeout(() => setAuthState('idle'), 3000); 
@@ -131,7 +140,7 @@ export default function AuthGateway() {
     }
 
     try {
-      const response = await fetch('https://myresearch-bclz.onrender.com/api/auth/register', {
+      const response = await fetch(`${API_URL}/api/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: regData.email, password: regData.backupPass, fullName: regData.name, age: parseInt(regData.age) || 0, phone: regData.phone })

@@ -15,10 +15,8 @@ frontend/build/
 
 # 3. Environment Variables & Secrets (CRITICAL SECURITY)
 .env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env.*
+!.env.example
 *.pem
 
 # 4. Logs & Debugging
@@ -57,10 +55,16 @@ Thumbs.db
 *.db
 *.db-journal
 
-#unnessery 
+#unnessery
 /.trash
 
 #Backups
-/.bakfrontend/node_modules/
-frontend/.next/
+/.bak
 
+# 10. Backend build output & local uploads (avatars live on Cloudinary)
+backend/dist/
+backend/uploads/
+
+# 11. Matrix runtime orchestrator state & logs
+.csx_matrix_runtime.json
+.logs/

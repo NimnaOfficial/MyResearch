@@ -1,6 +1,8 @@
 import { Request, Response } from 'express';
 import puppeteer from 'puppeteer';
 import prisma from '../config/prisma';
+import { escapeHtml } from '../utils/escapeHtml';
+import { isAdminRequester } from '../utils/publicView';
 
 // ==========================================
 // RICH TEXT PARSER FOR PDF ENGINE
@@ -30,38 +32,22 @@ export const generateResearchPDF = async (req: Request, res: Response) => {
   let browser; // Declared outside so the 'finally' block can access it to prevent memory leaks
 
   try {
-    // 1. Attempt to fetch from PostgreSQL
-    let post = await prisma.post.findUnique({ where: { id } });
-    
-    // Establish standard architectural fallback parameters
-    let adv = { 
-      methodology: 'A controlled empirical testing loop was established to verify rendering speed under extreme layouts. We bypassed general cycle reconciliation loops by manipulating standard DOM transformations directly via strict functional spring mathematics.', 
-      conclusion: 'The data conclusively confirms that isolating rendering transformations to individual graphical processing sub-layers eliminates layout execution thrashing, guaranteeing strict frame delivery stability.', 
-      metadata: { writer: 'Nima (Lead Architect)', startDate: 'MAY 2026', endDate: 'JUNE 2026', topics: ['Matrix Frameworks', 'Headless Compilations'] } 
-    };
+    // 1. Fetch from PostgreSQL (drafts are admin-only)
+    const post = await prisma.post.findUnique({ where: { id } });
+    if (!post || (!post.published && !isAdminRequester(req.user))) {
+      return res.status(404).json({ message: 'Research document not found.' });
+    }
 
-    if (!post) {
-      post = {
-        id: id || "v2.4.0",
-        title: "Classified Research Blueprint",
-        type: "Encrypted Data Core",
-        content: "The requested academic blueprint requires elevated architectural clearance. The telemetry logging infrastructure for this resource has been secured.",
-        published: true,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        slug: "classified-research-blueprint",
-        heroImg: "from-slate-800 to-black",
-        advancedData: JSON.stringify(adv),
-        categoryId: null,
-        authorId: null
-      } as any;
-    } else if (post.advancedData) {
+    let adv: any = {};
+    if (post.advancedData) {
       try {
-        adv = JSON.parse(post.advancedData);
+        adv = JSON.parse(post.advancedData) || {};
       } catch (e) {
-        console.error("Failed to parse advanced data", e);
+        console.error('Failed to parse advanced data', e);
       }
     }
+    const methodologyText = adv.methodology || 'Methodology details were not provided for this document.';
+    const conclusionText = adv.conclusion || 'Conclusion details were not provided for this document.';
 
     // 2. Build the Formal Academic HTML Document (International Standard)
     const htmlTemplate = `
@@ -168,26 +154,26 @@ export const generateResearchPDF = async (req: Request, res: Response) => {
       </head>
       <body>
         <div class="header">
-          <div class="title">${post?.title || 'Classified Research Blueprint'}</div>
-          <div class="author">${adv.metadata?.writer || 'System Architect'}</div>
+          <div class="title">${escapeHtml(post.title)}</div>
+          <div class="author">${escapeHtml(adv.metadata?.writer || 'System Architect')}</div>
           <div class="meta">
-            CSxPEDIA SECURE ARCHIVE | CLASSIFICATION: ${post?.type || 'Standard'}<br/>
-            DATE: ${post?.createdAt ? new Date(post.createdAt).toLocaleDateString() : 'Unknown'} | DOI: ${post?.id}
+            CSxPEDIA SECURE ARCHIVE | CLASSIFICATION: ${escapeHtml(post.type || 'Standard')}<br/>
+            DATE: ${new Date(post.createdAt).toLocaleDateString()} | DOI: ${escapeHtml(post.id)}
           </div>
         </div>
 
         <div class="abstract-container">
-          <span class="abstract-label">Abstract—</span><span class="academic-para">${parseRichText(post?.content)}</span>
+          <span class="abstract-label">Abstract—</span><span class="academic-para">${parseRichText(post.content)}</span>
         </div>
 
         <h2 class="section-title">I. Methodology & Framework</h2>
         <div class="content-block">
-          <p class="academic-para">${parseRichText(adv.methodology)}</p>
+          <p class="academic-para">${parseRichText(methodologyText)}</p>
         </div>
 
         <h2 class="section-title">II. Research Conclusion</h2>
         <div class="content-block">
-          <p class="academic-para">${parseRichText(adv.conclusion)}</p>
+          <p class="academic-para">${parseRichText(conclusionText)}</p>
         </div>
 
         <div class="footer-text">
@@ -205,6 +191,8 @@ export const generateResearchPDF = async (req: Request, res: Response) => {
     });
     
     const page = await browser.newPage();
+    // Body text is admin-authored rich text; never let embedded scripts run inside the renderer
+    await page.setJavaScriptEnabled(false);
     await page.setContent(htmlTemplate, { waitUntil: 'domcontentloaded' });
     
     const pdfBuffer = await page.pdf({ 
@@ -215,7 +203,8 @@ export const generateResearchPDF = async (req: Request, res: Response) => {
 
     // 4. Stream File Response
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename=${post?.title?.replace(/\s+/g, '_') || 'document'}.pdf`);
+    const safeName = (post.title || 'document').replace(/[^\w\-]+/g, '_').replace(/^_+|_+$/g, '') || 'document';
+    res.setHeader('Content-Disposition', `attachment; filename="${safeName}.pdf"; filename*=UTF-8''${encodeURIComponent(safeName)}.pdf`);
     res.send(pdfBuffer);
 
   } catch (error) {

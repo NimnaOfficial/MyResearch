@@ -1,5 +1,6 @@
 "use client";
 
+import { API_URL } from '@/lib/api';
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -115,7 +116,7 @@ export default function ReleaseDetailIDE() {
         if (token) headers['Authorization'] = `Bearer ${token}`;
 
         // 1. Fetch Global Data for Sidebar (Strictly Releases)
-        const dirRes = await fetch('https://myresearch-bclz.onrender.com/api/releases', { headers }).catch(() => null);
+        const dirRes = await fetch(`${API_URL}/api/releases`, { headers }).catch(() => null);
 
         let globalReleases: any[] = [];
         if (dirRes && dirRes.ok) {
@@ -128,7 +129,7 @@ export default function ReleaseDetailIDE() {
         const cleanId = releaseId.replace(/['"]+/g, '');
         let dbData = null;
 
-        const relSingle = await fetch(`https://myresearch-bclz.onrender.com/api/releases/${cleanId}`, { headers }).catch(() => null);
+        const relSingle = await fetch(`${API_URL}/api/releases/${cleanId}`, { headers }).catch(() => null);
         if (relSingle && relSingle.ok) {
           const json = await relSingle.json();
           dbData = json.data;
@@ -232,12 +233,12 @@ export default function ReleaseDetailIDE() {
       if (token) {
         setIsAuthenticated(true);
         setCurrentUserRole('user');
-        fetch('https://myresearch-bclz.onrender.com/api/auth/me', { headers: { 'Authorization': `Bearer ${token}` } })
+        fetch(`${API_URL}/api/auth/me`, { headers: { 'Authorization': `Bearer ${token}` } })
           .then(res => res.json())
           .then(json => { 
             if (json.data) {
               setUserData(json.data);
-              const currentlySaved = json.data?.savedPosts?.some((post: any) => post.id === releaseId);
+              const currentlySaved = (json.data?.savedReleaseIds || []).includes(releaseId);
               setIsSaved(!!currentlySaved);
             }
           })
@@ -267,7 +268,7 @@ export default function ReleaseDetailIDE() {
 
     setIsSavingInProgress(true);
     try {
-      const res = await fetch(`https://myresearch-bclz.onrender.com/api/releases/${releaseId}/save`, {
+      const res = await fetch(`${API_URL}/api/releases/${releaseId}/save`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -276,12 +277,11 @@ export default function ReleaseDetailIDE() {
       });
 
       if (res.ok) {
-        setIsSaved(!isSaved);
+        const result = await res.json().catch(() => ({}));
+        setIsSaved(typeof result.saved === 'boolean' ? result.saved : !isSaved);
       } else {
-        const err = await res.json();
-        console.warn(`Matrix Sync Notice: ${err.message || 'Server rejected relational synchronization'}`);
-        // Graceful fallback for UI in case the 'save' endpoint isn't fully built on the backend yet
-        setIsSaved(!isSaved); 
+        const err = await res.json().catch(() => ({}));
+        alert(`Matrix Sync Failed: ${err.message || 'Server rejected the Vault update.'}`);
       }
     } catch (e) {
       console.error(e);

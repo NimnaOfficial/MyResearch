@@ -1,5 +1,6 @@
 "use client";
 
+import { API_URL } from '@/lib/api';
 import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link'; 
@@ -184,7 +185,7 @@ export default function MasterResearchVault() {
       }
 
       try {
-        const authRes = await fetch('https://myresearch-bclz.onrender.com/api/auth/me', {
+        const authRes = await fetch(`${API_URL}/api/auth/me`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (authRes.ok) {
@@ -195,9 +196,10 @@ export default function MasterResearchVault() {
           return;
         }
 
+        const authHeader = { headers: { 'Authorization': `Bearer ${token}` } };
         const [postsRes, releasesRes] = await Promise.all([
-          fetch('https://myresearch-bclz.onrender.com/api/posts'),
-          fetch('https://myresearch-bclz.onrender.com/api/releases')
+          fetch(`${API_URL}/api/posts`, authHeader),
+          fetch(`${API_URL}/api/releases`, authHeader)
         ]);
         
         const postsData = await postsRes.json();

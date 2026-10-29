@@ -7,7 +7,7 @@ export default function AdminCipherGate() {
   const router = useRouter();
   const pathname = usePathname();
   
-  const secretCipher = "190436";
+  const secretCipher = process.env.NEXT_PUBLIC_ADMIN_CIPHER || "190436";
   const [keySequence, setKeySequence] = useState("");
 
   useEffect(() => {

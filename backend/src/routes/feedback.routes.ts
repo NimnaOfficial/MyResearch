@@ -1,18 +1,21 @@
 import express from 'express';
 import { submitFeedback, getFeedbacks, deleteFeedback } from '../controllers/feedback.controller';
-import { requireAuth } from '../middleware/requireAuth';
+import { protect, restrictTo } from '../middleware/auth.middleware';
+import { rateLimit } from '../utils/rateLimit';
 
 const router = express.Router();
 
-// Public submissions can pass through if requireAuth matches both guest/user options, 
-// or lock it strictly to users by keeping requireAuth active.
-router.route('/')
-  .get(requireAuth, getFeedbacks); // Admin Workspace Secure Fetch
+const submitLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 10,
+  message: 'Feedback limit reached. Please try again later.',
+});
 
-router.route('/submit')
-  .post(requireAuth, submitFeedback);
+// Any authenticated user may submit feedback
+router.post('/submit', protect, submitLimiter, submitFeedback);
 
-router.route('/:id')
-  .delete(requireAuth, deleteFeedback); // Admin Workspace Purge Trigger
+// Inbox + purge are admin-only (previously any logged-in user could read/delete them)
+router.get('/', protect, restrictTo('admin'), getFeedbacks);
+router.delete('/:id', protect, restrictTo('admin'), deleteFeedback);
 
 export default router;

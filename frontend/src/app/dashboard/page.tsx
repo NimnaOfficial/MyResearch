@@ -1,5 +1,6 @@
 "use client";
 
+import { API_URL } from '@/lib/api';
 import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
@@ -50,7 +51,9 @@ function DataCore({ isLightMode }: { isLightMode: boolean }) {
 interface UserData {
   id: string;
   username: string;
+  fullName?: string | null;
   email: string;
+  profilePic?: string | null;
   isVerified: boolean;
   createdAt: string;
 }
@@ -74,7 +77,7 @@ export default function UserDashboard() {
         return;
       }
       try {
-        const response = await fetch('https://myresearch-bclz.onrender.com/api/auth/me', {
+        const response = await fetch(`${API_URL}/api/auth/me`, {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -144,8 +147,12 @@ export default function UserDashboard() {
           <motion.div initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 }} className={`col-span-1 p-8 rounded-3xl backdrop-blur-xl border ${glassPanel}`}>
             <div className="flex items-center space-x-4 mb-8 pb-8 border-b border-slate-500/20">
               <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-[#a855f7] to-[#00f0ff] p-1">
-                <div className={`w-full h-full rounded-full flex items-center justify-center ${isLightMode ? 'bg-white' : 'bg-[#020613]'}`}>
-                  <User size={24} className={textPrimary} />
+                <div className={`w-full h-full rounded-full flex items-center justify-center overflow-hidden ${isLightMode ? 'bg-white' : 'bg-[#020613]'}`}>
+                  {userData?.profilePic ? (
+                    <img src={userData.profilePic} alt="Profile" className="w-full h-full object-cover" />
+                  ) : (
+                    <User size={24} className={textPrimary} />
+                  )}
                 </div>
               </div>
               <div>

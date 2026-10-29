@@ -1,4 +1,5 @@
 "use client";
+import { API_URL } from '@/lib/api';
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -82,12 +83,21 @@ export default function AdvancedSettingsMatrix() {
   };
 
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const tabParam = new URLSearchParams(window.location.search).get('tab');
+      if (tabParam && ['account', 'hardware', 'saved', 'security'].includes(tabParam)) {
+        setActiveTab(tabParam);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
     const fetchMatrixData = async () => {
       const token = localStorage.getItem('matrix_token');
       if (!token) { router.push('/auth'); return; }
 
       try {
-        const userRes = await fetch('https://myresearch-bclz.onrender.com/api/auth/me', { headers: { 'Authorization': `Bearer ${token}` } });
+        const userRes = await fetch(`${API_URL}/api/auth/me`, { headers: { 'Authorization': `Bearer ${token}` } });
         if (userRes.ok) {
           const { data } = await userRes.json();
           setUserData(data);
@@ -99,8 +109,16 @@ export default function AdvancedSettingsMatrix() {
             phone: data.phone || ""
           }));
           
-          // 🔥 THE FIX: Directly load the joined savedPosts array from the backend
-          setUserVault(data.savedPosts || []);
+          // Load both saved research cores and saved project releases
+          const posts = (data.savedPosts || []).map((p: any) => ({ ...p, isRelease: false }));
+          const releases = (data.savedReleases || []).map((r: any) => ({
+            ...r,
+            title: r.projectName,
+            content: r.releaseNotes,
+            type: `PROJECT ${r.version || ''}`.trim(),
+            isRelease: true,
+          }));
+          setUserVault([...posts, ...releases]);
           
         } else {
           router.push('/auth');
@@ -115,11 +133,15 @@ export default function AdvancedSettingsMatrix() {
       alert("Encryption Mismatch: Passwords do not match.");
       return;
     }
+    if (formData.password && formData.password.length < 8) {
+      alert("Password must be at least 8 characters.");
+      return;
+    }
     setIsSaving(true);
     const token = localStorage.getItem('matrix_token');
 
     try {
-      const res = await fetch('https://myresearch-bclz.onrender.com/api/auth/update', {
+      const res = await fetch(`${API_URL}/api/auth/update`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -132,12 +154,14 @@ export default function AdvancedSettingsMatrix() {
 
       if (res.ok) {
         const result = await res.json();
-        setUserData(result.data);
+        // Merge instead of replace: the update response only carries a few fields (keeps avatar, vault, role)
+        setUserData((prev: any) => ({ ...prev, ...result.data }));
         setSaveSuccess(true);
         setTimeout(() => setSaveSuccess(false), 3000);
         setFormData(prev => ({ ...prev, password: "", confirmPassword: "" }));
       } else {
-        alert("Transmission Failed. Data rejected by server.");
+        const errBody = await res.json().catch(() => ({}));
+        alert(errBody.message || "Transmission Failed. Data rejected by server.");
       }
     } catch (err) {
       console.error(err);
@@ -435,7 +459,7 @@ export default function AdvancedSettingsMatrix() {
                        {userVault.map((item, i) => (
                          <motion.div 
                            key={i} variants={springItem} whileHover={{ scale: 1.02 }} 
-                           onClick={() => router.push(`/research/${item.id}`)}
+                           onClick={() => router.push(item.isRelease ? `/projects/${item.id}` : `/research/${item.id}`)}
                            className={`p-6 rounded-3xl border flex flex-col transition-all cursor-pointer ${innerCard}`}
                          >
                            <div className="flex justify-between items-start mb-4">
@@ -617,7 +641,7 @@ export default function AdvancedSettingsMatrix() {
                       uploadFormData.append('profilePic', croppedBlob, 'profile.jpg');
 
                       const token = localStorage.getItem('matrix_token');
-                      const res = await fetch('https://myresearch-bclz.onrender.com/api/auth/upload-pic', {
+                      const res = await fetch(`${API_URL}/api/auth/upload-pic`, {
                         method: 'POST',
                         headers: { 'Authorization': `Bearer ${token}` },
                         body: uploadFormData

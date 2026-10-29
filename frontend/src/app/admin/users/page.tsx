@@ -1,5 +1,6 @@
 "use client";
 
+import { API_URL } from '@/lib/api';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -52,7 +53,7 @@ export default function UltimateUserRoster() {
   const fetchUsers = async () => {
     try {
       const token = localStorage.getItem('matrix_token');
-      const res = await fetch('https://myresearch-bclz.onrender.com/api/admin/users', {
+      const res = await fetch(`${API_URL}/api/admin/users`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
@@ -76,7 +77,7 @@ export default function UltimateUserRoster() {
     if (!confirm(`Elevate/Demote operator clearance to [${newRole.toUpperCase()}]?`)) return;
     setActionLoading(userId);
     try {
-      const res = await fetch(`https://myresearch-bclz.onrender.com/api/admin/users/${userId}/role`, {
+      const res = await fetch(`${API_URL}/api/admin/users/${userId}/role`, {
         method: 'PUT',
         headers: { 'Authorization': `Bearer ${localStorage.getItem('matrix_token')}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ role: newRole })
@@ -92,7 +93,7 @@ export default function UltimateUserRoster() {
     if (!confirm("CRITICAL: Permanent Node Termination. Proceed?")) return;
     setActionLoading(userId);
     try {
-      const res = await fetch(`https://myresearch-bclz.onrender.com/api/admin/users/${userId}`, {
+      const res = await fetch(`${API_URL}/api/admin/users/${userId}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${localStorage.getItem('matrix_token')}` }
       });
@@ -109,18 +110,23 @@ export default function UltimateUserRoster() {
     try {
       const token = localStorage.getItem('matrix_token');
       
-      const res = await fetch(`https://myresearch-bclz.onrender.com/api/admin/users/${inspectUser.id}/identity`, {
+      const res = await fetch(`${API_URL}/api/admin/users/${inspectUser.id}/identity`, {
         method: 'PUT',
         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify(editForm)
       });
       
-      if (editForm.password && editForm.password.length >= 6) {
-        await fetch(`https://myresearch-bclz.onrender.com/api/admin/users/${inspectUser.id}/cipher`, {
-          method: 'PUT',
-          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ newCipher: editForm.password })
-        });
+      if (editForm.password) {
+        if (editForm.password.length < 8) {
+          alert("CIPHER MUST BE AT LEAST 8 CHARACTERS. Identity fields were saved; the cipher was not changed.");
+        } else {
+          const cipherRes = await fetch(`${API_URL}/api/admin/users/${inspectUser.id}/cipher`, {
+            method: 'PUT',
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ newCipher: editForm.password })
+          });
+          if (!cipherRes.ok) alert("Cipher override was rejected by the server.");
+        }
       }
 
       const data = await res.json();
@@ -135,11 +141,11 @@ export default function UltimateUserRoster() {
   };
 
   const forceCipherOverride = async () => {
-    if (!newCipher || newCipher.length < 6) return alert("CIPHER MUST BE AT LEAST 6 CHARACTERS.");
+    if (!newCipher || newCipher.length < 8) return alert("CIPHER MUST BE AT LEAST 8 CHARACTERS.");
     if (!confirm(`WARNING: Overwriting Node Cipher. Proceed?`)) return;
     setActionLoading('override_cipher');
     try {
-      const res = await fetch(`https://myresearch-bclz.onrender.com/api/admin/users/${inspectUser!.id}/cipher`, {
+      const res = await fetch(`${API_URL}/api/admin/users/${inspectUser!.id}/cipher`, {
         method: 'PUT',
         headers: { 'Authorization': `Bearer ${localStorage.getItem('matrix_token')}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ newCipher })
@@ -147,7 +153,10 @@ export default function UltimateUserRoster() {
       if (res.ok) {
         setNewCipher('');
         alert(`CIPHER OVERRIDE SUCCESSFUL.`);
-      } else alert("Override Denied by Server.");
+      } else {
+        const errBody = await res.json().catch(() => ({}));
+        alert(errBody.message || "Override Denied by Server.");
+      }
     } catch (err) { alert("Network Failure."); } finally { setActionLoading(null); }
   };
 
@@ -157,7 +166,7 @@ export default function UltimateUserRoster() {
     setActionLoading('suspend_node');
     
     try {
-      const res = await fetch(`https://myresearch-bclz.onrender.com/api/admin/users/${inspectUser.id}/status`, {
+      const res = await fetch(`${API_URL}/api/admin/users/${inspectUser.id}/status`, {
         method: 'PUT',
         headers: { 'Authorization': `Bearer ${localStorage.getItem('matrix_token')}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus })

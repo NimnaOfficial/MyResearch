@@ -1,5 +1,6 @@
 "use client";
 
+import { API_URL } from '@/lib/api';
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -166,13 +167,13 @@ export default function MasterProjectForge() {
       const token = localStorage.getItem('matrix_token');
       if(!token) return router.push('/auth');
 
-      const resProj = await fetch('https://myresearch-bclz.onrender.com/api/releases', { headers: { 'Authorization': `Bearer ${token}` } });
+      const resProj = await fetch(`${API_URL}/api/releases`, { headers: { 'Authorization': `Bearer ${token}` } });
       if (resProj.ok) setProjects((await resProj.json()).data || []);
 
-      const resMedia = await fetch('https://myresearch-bclz.onrender.com/api/showcase', { headers: { 'Authorization': `Bearer ${token}` } });
+      const resMedia = await fetch(`${API_URL}/api/showcase`, { headers: { 'Authorization': `Bearer ${token}` } });
       if (resMedia.ok) setMediaList((await resMedia.json()).data || []);
       
-      const resFaq = await fetch('https://myresearch-bclz.onrender.com/api/faqs', { headers: { 'Authorization': `Bearer ${token}` } });
+      const resFaq = await fetch(`${API_URL}/api/faqs`, { headers: { 'Authorization': `Bearer ${token}` } });
       if (resFaq.ok) setFaqList((await resFaq.json()).data || []);
 
     } catch (err) {
@@ -344,7 +345,7 @@ export default function MasterProjectForge() {
 
     try {
       const token = localStorage.getItem('matrix_token');
-      const url = projectForm.id ? `https://myresearch-bclz.onrender.com/api/releases/${projectForm.id}` : 'https://myresearch-bclz.onrender.com/api/releases';
+      const url = projectForm.id ? `${API_URL}/api/releases/${projectForm.id}` : `${API_URL}/api/releases`;
       const method = projectForm.id ? 'PUT' : 'POST';
 
       const res = await fetch(url, { method, headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
@@ -361,7 +362,7 @@ export default function MasterProjectForge() {
     if (!confirm("CRITICAL WARNING: Permanent Deletion of Project Node. Proceed?")) return;
     try {
       const token = localStorage.getItem('matrix_token');
-      const res = await fetch(`https://myresearch-bclz.onrender.com/api/releases/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
+      const res = await fetch(`${API_URL}/api/releases/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
       if (res.ok) setProjects(projects.filter(r => r.id !== id));
     } catch (err) { alert("Network Failure"); }
   };
@@ -370,7 +371,7 @@ export default function MasterProjectForge() {
     setActionLoading(true);
     try {
       const token = localStorage.getItem('matrix_token');
-      const url = mediaForm.id ? `https://myresearch-bclz.onrender.com/api/showcase/${mediaForm.id}` : 'https://myresearch-bclz.onrender.com/api/showcase';
+      const url = mediaForm.id ? `${API_URL}/api/showcase/${mediaForm.id}` : `${API_URL}/api/showcase`;
       const method = mediaForm.id ? 'PUT' : 'POST';
       const payload = { title: mediaForm.title, videoUrl: mediaForm.videoUrl, thumbnailUrl: mediaForm.thumbnailUrl, description: mediaForm.description };
       const res = await fetch(url, { method, headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
@@ -382,7 +383,7 @@ export default function MasterProjectForge() {
     if (!confirm("Delete Showcase Media?")) return;
     try {
       const token = localStorage.getItem('matrix_token');
-      const res = await fetch(`https://myresearch-bclz.onrender.com/api/showcase/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
+      const res = await fetch(`${API_URL}/api/showcase/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
       if (res.ok) setMediaList(prev => prev.filter(m => m.id !== id));
     } catch (err) { alert("Network Error."); }
   };
@@ -391,7 +392,7 @@ export default function MasterProjectForge() {
     setActionLoading(true);
     try {
       const token = localStorage.getItem('matrix_token');
-      const url = faqForm.id ? `https://myresearch-bclz.onrender.com/api/faqs/${faqForm.id}` : 'https://myresearch-bclz.onrender.com/api/faqs';
+      const url = faqForm.id ? `${API_URL}/api/faqs/${faqForm.id}` : `${API_URL}/api/faqs`;
       const method = faqForm.id ? 'PUT' : 'POST';
       const payload = { query: faqForm.query, response: faqForm.response };
       const res = await fetch(url, { method, headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
@@ -403,7 +404,7 @@ export default function MasterProjectForge() {
     if (!confirm("Delete System Query?")) return;
     try {
       const token = localStorage.getItem('matrix_token');
-      const res = await fetch(`https://myresearch-bclz.onrender.com/api/faqs/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
+      const res = await fetch(`${API_URL}/api/faqs/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
       if (res.ok) setFaqList(prev => prev.filter(f => f.id !== id));
     } catch (err) { alert("Network Error."); }
   };

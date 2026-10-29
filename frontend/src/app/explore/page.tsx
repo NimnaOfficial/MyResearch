@@ -1,4 +1,5 @@
 "use client";
+import { API_URL } from '@/lib/api';
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
 import { Search, Filter, Star, Eye, Clock, Database, Code2, Cpu, Hexagon, Lock, Compass, X, Loader2 } from 'lucide-react';
@@ -131,8 +132,8 @@ export default function ExplorePage() {
     const fetchMatrixData = async () => {
       try {
         const [postsRes, releasesRes] = await Promise.all([
-          fetch('https://myresearch-bclz.onrender.com/api/posts').catch(() => null),
-          fetch('https://myresearch-bclz.onrender.com/api/releases').catch(() => null)
+          fetch(`${API_URL}/api/posts`).catch(() => null),
+          fetch(`${API_URL}/api/releases`).catch(() => null)
         ]);
 
         let combinedData: any[] = [];
@@ -140,7 +141,7 @@ export default function ExplorePage() {
         // 1. Process Research Posts
         if (postsRes && postsRes.ok) {
           const postsJson = await postsRes.json();
-          const mappedPosts = (postsJson.data || []).map((p: any) => {
+          const mappedPosts = (postsJson.data || []).filter((p: any) => p.published).map((p: any) => {
             let adv = {} as any;
             try { if(p.advancedData) adv = JSON.parse(p.advancedData); } catch(e) {}
             
@@ -149,8 +150,8 @@ export default function ExplorePage() {
               title: p.title,
               type: p.type || 'Research',
               category: 'Research',
-              rating: adv.metadata?.explorerRating || (Math.random() * (5.0 - 4.2) + 4.2).toFixed(1),
-              views: adv.metadata?.explorerViews || `${Math.floor(Math.random() * 10) + 1}.${Math.floor(Math.random() * 9)}k`,
+              rating: String(adv.metadata?.explorerRating || 'N/A'),
+              views: String(adv.metadata?.explorerViews || 'N/A'),
               date: new Date(p.createdAt).toLocaleDateString(),
               preview: stripMarkdown(p.content).substring(0, 120) + '...', // 🔥 Sanitized Preview
               status: 'Active',
@@ -165,20 +166,24 @@ export default function ExplorePage() {
         // 2. Process Project Releases
         if (releasesRes && releasesRes.ok) {
           const releasesJson = await releasesRes.json();
-          const mappedReleases = (releasesJson.data || []).map((r: any) => ({
+          const mappedReleases = (releasesJson.data || []).filter((r: any) => r.published).map((r: any) => {
+            let radv = {} as any;
+            try { if (r.advancedData) radv = JSON.parse(r.advancedData); } catch (e) {}
+            return {
             id: `release_${r.id}`,
             title: r.projectName,
             type: 'Project',
             category: 'Projects',
-            rating: (Math.random() * (5.0 - 4.5) + 4.5).toFixed(1), 
-            views: `${Math.floor(Math.random() * 20) + 5}.${Math.floor(Math.random() * 9)}k`,
+            rating: String(radv.explorerRating || 'N/A'),
+            views: String(radv.explorerViews || 'N/A'),
             date: new Date(r.publishedAt).toLocaleDateString(),
             preview: stripMarkdown(r.releaseNotes).substring(0, 120) + '...', // 🔥 Sanitized Preview
             status: 'Active',
             icon: Hexagon,
             file: `v${r.version}.sys`,
             timestamp: new Date(r.publishedAt).getTime()
-          }));
+            };
+          });
           combinedData = [...combinedData, ...mappedReleases];
         }
 
@@ -220,8 +225,8 @@ export default function ExplorePage() {
     }
     
     result = [...result].sort((a, b) => {
-      if (activeSort === 'Top Rated') return parseFloat(b.rating) - parseFloat(a.rating);
-      if (activeSort === 'Most Viewed') return parseFloat(b.views) - parseFloat(a.views);
+      if (activeSort === 'Top Rated') return (parseFloat(b.rating) || 0) - (parseFloat(a.rating) || 0);
+      if (activeSort === 'Most Viewed') return (parseFloat(b.views) || 0) - (parseFloat(a.views) || 0);
       return b.timestamp - a.timestamp; 
     });
     

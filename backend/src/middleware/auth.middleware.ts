@@ -1,77 +1,102 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import prisma from '../config/prisma';
+import { getJwtSecret } from '../config/env';
 
+// Tell TypeScript that authenticated requests carry a lightweight 'user' object
+declare global {
+  namespace Express {
+    interface Request {
+      user?: {
+        id: string;
+        username: string;
+        role: string;
+      };
+    }
+  }
+}
 
+const extractToken = (req: Request): string | null => {
+  const header = req.headers.authorization;
+  if (!header || !header.startsWith('Bearer ')) return null;
+  // Strip accidental quotes from JSON-stringified localStorage values
+  const token = header.slice(7).trim().replace(/"/g, '');
+  return token || null;
+};
 
+/** Verifies the JWT and loads a fresh, minimal user record. Returns null if the user is gone. */
+const resolveUser = async (token: string) => {
+  const decoded = jwt.verify(token, getJwtSecret()) as jwt.JwtPayload;
+
+  // Tokens minted for e-mail verification must never act as login sessions
+  if (decoded.purpose) throw new Error('Token purpose mismatch');
+
+  const id = decoded.id || decoded.userId;
+  if (!id) throw new Error('Token has no subject');
+
+  return prisma.user.findUnique({
+    where: { id },
+    select: { id: true, username: true, role: true, status: true },
+  });
+};
+
+// ==========================================
+// REQUIRED AUTH: 401 unless a valid, active session is present
+// ==========================================
 export const protect = async (req: Request, res: Response, next: NextFunction) => {
+  const token = extractToken(req);
+  if (!token) {
+    return res.status(401).json({ message: 'Not authorized. No token provided.' });
+  }
+
   try {
-    let token;
-    
-    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
-      token = req.headers.authorization.split(' ')[1];
-    }
+    const user = await resolveUser(token);
 
-    if (!token) {
-      return res.status(401).json({ message: 'Not authorized. No token provided.' });
-    }
-
-    // 1. Strip any accidental JSON quotes from localStorage stringification
-    token = token.replace(/"/g, '');
-
-    // 2. Strict Secret Verification
-    const secret = process.env.JWT_SECRET || 'super_secure_matrix_key_2026';
-    const decoded: any = jwt.verify(token, secret);
-
-    // 3. Catch both 'id' and 'userId' depending on how the payload was mapped
-    const currentUser = await prisma.user.findUnique({
-      where: { id: decoded.id || decoded.userId },
-    });
-
-    if (!currentUser) {
+    if (!user) {
       return res.status(401).json({ message: 'The user belonging to this token no longer exists.' });
     }
+    if (user.status === 'SUSPENDED') {
+      return res.status(403).json({ message: 'ACCESS DENIED: NODE SUSPENDED BY SYSTEM ADMIN.' });
+    }
 
-    req.user = currentUser;
+    req.user = { id: user.id, username: user.username, role: user.role };
     next();
-    
   } catch (error: any) {
-    // 🔥 THE FIX: Print the exact cryptographic failure to the backend terminal!
-    console.error("🛡️ JWT Security Shield Blocked Request:", error.message);
-    return res.status(401).json({ message: 'Matrix Sync Failed: Not authorized. Token invalid or expired.' });
+    console.warn('[SECURITY] Auth rejected:', error?.message);
+    return res.status(401).json({ message: 'Not authorized. Token invalid or expired.' });
   }
 };
 
-// Add this right below your existing `protect` middleware function
+// ==========================================
+// OPTIONAL AUTH: attaches req.user when a valid token is supplied, never blocks
+// ==========================================
+export const optionalAuth = async (req: Request, _res: Response, next: NextFunction) => {
+  const token = extractToken(req);
+  if (!token) return next();
 
-export const adminGuard = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    // Check if the verified user object exists and has the 'admin' role
-    if (req.user && req.user.role === 'admin') {
-      next(); // Access Granted: Proceed to controller
-    } else {
-      console.warn(`⚠️ [SECURITY] Unauthorized elevated access attempt by User ID: ${req.user?.id}`);
-      return res.status(403).json({ 
-        message: 'Access Denied: Elevated Admin Clearance Required.' 
-      });
+    const user = await resolveUser(token);
+    if (user && user.status !== 'SUSPENDED') {
+      req.user = { id: user.id, username: user.username, role: user.role };
     }
-  } catch (error) {
-    console.error("🛡️ Admin Shield Error:", error);
-    return res.status(500).json({ message: 'Internal Matrix Error during clearance verification.' });
+  } catch {
+    // Invalid token on a public route simply means "treat as guest"
   }
+  next();
 };
 
 // ==========================================
 // ROLE-BASED ACCESS CONTROL
 // ==========================================
 export const restrictTo = (...roles: string[]) => {
-  return (req: any, res: any, next: any) => {
-    // Check if the user exists and if their role matches the required roles
+  return (req: Request, res: Response, next: NextFunction) => {
     if (!req.user || !roles.includes(req.user.role)) {
-      return res.status(403).json({ 
-        message: 'ACCESS DENIED: Insufficient clearance level for this operation.' 
+      return res.status(403).json({
+        message: 'ACCESS DENIED: Insufficient clearance level for this operation.',
       });
     }
     next();
   };
 };
+
+export const adminGuard = restrictTo('admin');

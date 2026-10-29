@@ -12,7 +12,7 @@
   <img src="https://img.shields.io/badge/three.js-000000?style=flat-square&logo=threedotjs&logoColor=white" />
   <img src="https://img.shields.io/badge/Node.js-339933?style=flat-square&logo=nodedotjs&logoColor=white" />
   <img src="https://img.shields.io/badge/Prisma-2D3748?style=flat-square&logo=prisma&logoColor=white" />
-  <img src="https://img.shields.io/badge/PostgreSQL-316192?style=flat-square&logo=postgresql&logoColor=white" />
+  <img src="https://img.shields.io/badge/Turso-00E599?style=flat-square&logo=turso&logoColor=black" />
 </div>
 
 <br>
@@ -45,13 +45,30 @@ This system was engineered to break the mold of standard web portfolios. It demo
 
 ### Backend (The Logic Engine)
 * **Runtime:** Node.js + Express
-* **Database:** PostgreSQL (Supabase Connection Pooler)
-* **ORM:** Prisma
+* **Database:** Turso Cloud Database (libSQL / SQLite)
+* **ORM:** Prisma 7 with `@prisma/adapter-libsql`
 * **Hosting:** Render Web Services
 
 ---
 
-## 💻 Local Deployment Protocol
+### 💻 Master Ignition Scripts (Recommended)
+
+To launch or stop the complete full-stack environment with a single command, execute the provided PowerShell control scripts from the project root:
+
+```powershell
+# Launch both Backend (Port 5000) and Frontend (Port 3000) with telemetry & port verification:
+.\run_all.ps1
+
+# Or run headless in the background:
+.\run_all.ps1 -Headless
+
+# Stop, kill, and clean up all running services and free network ports:
+.\stop_all.ps1
+```
+
+---
+
+## 💻 Manual Deployment Protocol
 
 To run the CSx Matrix on your local development environment, follow this strict ignition sequence.
 
@@ -75,20 +92,35 @@ npm install
 ```
 
 #### Environment Variable Configuration:
-Create a strict `.env` file at the root of the `/backend` directory. This securely holds your database connection strings and cryptographic keys for JWT generation.
+Copy `backend/.env.example` to `backend/.env` and fill it in. **Never commit `.env`** (it is git-ignored).
 ```bash
 PORT=5000
-DATABASE_URL="postgresql://postgres:[PASSWORD]@localhost:5432/csx_core"
-JWT_SECRET="your_super_secret_cipher_key"
+TURSO_DATABASE_URL="libsql://<db-name>-<org>.turso.io"
+TURSO_AUTH_TOKEN="<turso-auth-token>"
+DATABASE_URL="file:./dev.db"
+JWT_SECRET="<long random string - REQUIRED in production>"
+FRONTEND_URL="http://localhost:3000"        # used in verification e-mail links + CORS
+CORS_ORIGINS=""                             # optional extra allowed origins, comma separated
+EMAIL_RELAY_URL="<Google Apps Script web-app URL>"   # verification + feedback e-mails
+EMAIL_USER="you@example.com"                # receives feedback notifications
+CLOUDINARY_CLOUD_NAME= / CLOUDINARY_API_KEY= / CLOUDINARY_API_SECRET=   # avatars
 ```
+Generate a strong secret with: `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"`
 
 #### Database Schema Synchronization & Seeding:
 Compile the SQL tables directly from the Prisma schema and inject the baseline architectural data into the local data core.
 ```bash
-npx prisma db push
-npx prisma db seed
+npm run db:push            # creates/updates tables in Turso cloud database
+npm run seed               # injects master data core (releases, showcase videos, FAQs)
+
+# create your admin account (credentials come from the environment, never from source code)
+ADMIN_EMAIL=you@example.com ADMIN_PASSWORD='a-long-password' npm run seed:admin   # PowerShell: $env:ADMIN_EMAIL=...; $env:ADMIN_PASSWORD=...
+
 npm run dev
 ```
+> **Existing database?** The project-vault feature needs one extra join table. Run `npx prisma db push` **or** execute `backend/prisma/manual/add_saved_releases.sql` in your SQL editor. Until then everything else works; only "save project" returns a friendly 503.
+>
+> `prisma/migrations` is a legacy snapshot that no longer matches the schema - use `db push`, not `migrate deploy`.
 Status: <i>The Express API runtime is now actively listening and serving traffic on Port 5000.</i>
 
 ### 3. Bootstrap the Frontend Client Matrix
@@ -98,7 +130,7 @@ cd frontend
 npm install
 ```
 #### Environment Configuration:
-Create a `.env.local file` in the `/frontend` directory. This variable routes all client-side telemetry and dynamic data fetches to your local backend engine.
+Copy `frontend/.env.example` to `frontend/.env.local`. This variable routes every API call to your backend. If it is unset the app falls back to the production Render API.
 
 ```bash
 NEXT_PUBLIC_API_URL="http://localhost:5000"
@@ -110,6 +142,15 @@ npm run dev
 ```
 
 Status: <i>The Next.js React tree is successfully compiled. Access the secure GUI at `http://localhost:3000`.</i>
+
+## 🔐 Security Model (summary)
+
+* **Auth:** JWT (7 days). Users sign in with their emailed 10-character *secret code*; admins use e-mail + password at the hidden `/auth/admin`. Every protected request re-checks the user in the database, so **suspended or deleted accounts are cut off immediately**.
+* **Verification tokens** carry a `purpose: "verify"` claim and can never be used as login sessions.
+* **Roles:** admin-only routes use `protect` + `restrictTo('admin')` (feedback inbox, user management, all content writes).
+* **Drafts:** unpublished posts/releases are visible to guests only as body-less teasers; admins see everything.
+* **Abuse protection:** rate limits on login/register/verify/feedback/PDF, strict CORS allow-list, request bodies and uploads size-limited, HTML escaped in e-mails and PDFs.
+* **Secrets:** all credentials live in environment variables. If a secret was ever committed, rotate it.
 
 ## ☁️ Production Architecture & CI/CD Pipeline
 

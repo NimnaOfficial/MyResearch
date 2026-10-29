@@ -1,5 +1,6 @@
 "use client";
 
+import { API_URL } from '@/lib/api';
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence, useTransform, useMotionValue, useAnimationFrame } from 'framer-motion';
@@ -117,9 +118,9 @@ export default function ProjectMatrix() {
     const hydrateMatrix = async () => {
       try {
         const [relRes, showRes, faqRes] = await Promise.all([
-          fetch('https://myresearch-bclz.onrender.com/api/releases').catch(() => null),
-          fetch('https://myresearch-bclz.onrender.com/api/showcase').catch(() => null),
-          fetch('https://myresearch-bclz.onrender.com/api/faqs').catch(() => null)
+          fetch(`${API_URL}/api/releases`).catch(() => null),
+          fetch(`${API_URL}/api/showcase`).catch(() => null),
+          fetch(`${API_URL}/api/faqs`).catch(() => null)
         ]);
 
         // Safely parse JSON to prevent crashes if a route 404s
@@ -229,7 +230,7 @@ export default function ProjectMatrix() {
       if (token) {
         setIsAuthenticated(true);
         setCurrentUserRole('user');
-        fetch('https://myresearch-bclz.onrender.com/api/auth/me', { headers: { 'Authorization': `Bearer ${token}` } })
+        fetch(`${API_URL}/api/auth/me`, { headers: { 'Authorization': `Bearer ${token}` } })
           .then(res => res.json())
           .then(json => { if (json.data) setUserData(json.data); })
           .catch(() => {});

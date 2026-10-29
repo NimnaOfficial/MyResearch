@@ -1,3 +1,10 @@
+-- ============================================================================
+-- NOTE: LEGACY SCHEMA SEED REFERENCE
+-- The active database schema is managed via backend/prisma/schema.prisma and
+-- populated by backend/prisma/seed.ts (and npm run seed:admin).
+-- This file is retained as an architectural archive of earlier prototypes.
+-- ============================================================================
+
 -- ==========================================
 -- 1. SEED USERS & HARDWARE
 -- ==========================================

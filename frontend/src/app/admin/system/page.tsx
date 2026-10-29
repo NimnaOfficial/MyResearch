@@ -1,5 +1,6 @@
 "use client";
 
+import { API_URL } from '@/lib/api';
 import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
@@ -101,8 +102,8 @@ export default function SystemCommandCenter() {
         const headers = { 'Authorization': `Bearer ${token}` };
 
         const [fbRes, logRes] = await Promise.all([
-          fetch('https://myresearch-bclz.onrender.com/api/feedback', { headers }).catch(() => null),
-          fetch('https://myresearch-bclz.onrender.com/api/admin/logs', { headers }).catch(() => null)
+          fetch(`${API_URL}/api/feedback`, { headers }).catch(() => null),
+          fetch(`${API_URL}/api/admin/logs`, { headers }).catch(() => null)
         ]);
 
         const fbData = fbRes && fbRes.ok ? (await fbRes.json()).data : MOCK_MESSAGES;

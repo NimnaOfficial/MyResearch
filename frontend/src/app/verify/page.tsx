@@ -1,5 +1,6 @@
 "use client";
 
+import { API_URL } from '@/lib/api';
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Canvas, useFrame } from '@react-three/fiber';
@@ -63,7 +64,7 @@ function VerifyMatrixContent() {
       }
 
       try {
-        const response = await fetch('https://myresearch-bclz.onrender.com/api/auth/verify', {
+        const response = await fetch(`${API_URL}/api/auth/verify`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ token }),

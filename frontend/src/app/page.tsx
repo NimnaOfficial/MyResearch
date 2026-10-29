@@ -1,4 +1,5 @@
 "use client";
+import { API_URL } from '@/lib/api';
 import { useRef, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Canvas, useFrame } from '@react-three/fiber';
@@ -233,7 +234,7 @@ export default function WelcomePage() {
       // 🔥 Fetch User Profile Data on Load
       const fetchUserData = async () => {
         try {
-          const res = await fetch('https://myresearch-bclz.onrender.com/api/auth/me', {
+          const res = await fetch(`${API_URL}/api/auth/me`, {
             headers: { 'Authorization': `Bearer ${token}` }
           });
           if (res.ok) {
@@ -357,6 +358,12 @@ export default function WelcomePage() {
                   <motion.div initial={{ opacity: 0, y: 15, scale: 0.9, rotateX: -20 }} animate={{ opacity: 1, y: 0, scale: 1, rotateX: 0 }} exit={{ opacity: 0, y: 15, scale: 0.9, rotateX: -20 }} transition={{ type: "spring", stiffness: 100, damping: 20 }} className={`absolute right-0 mt-3 w-56 rounded-2xl backdrop-blur-2xl p-2 flex flex-col transform-gpu shadow-2xl ${glassBg}`}>
                     <Link href="/dashboard" className={`flex items-center px-4 py-3 text-xs font-bold uppercase tracking-widest rounded-xl transition-all ${isLightMode ? 'text-slate-700 hover:bg-slate-100' : 'text-slate-300 hover:bg-white/5'}`}>
                       <LayoutDashboard size={14} className="mr-3 text-cyan-400" /> Personal Matrix
+                    </Link>
+                    <Link href="/settings" className={`flex items-center px-4 py-3 text-xs font-bold uppercase tracking-widest rounded-xl transition-all ${isLightMode ? 'text-slate-700 hover:bg-slate-100' : 'text-slate-300 hover:bg-white/5'}`}>
+                      <Settings size={14} className="mr-3 text-cyan-400" /> Identity & Settings
+                    </Link>
+                    <Link href="/settings?tab=saved" className={`flex items-center px-4 py-3 text-xs font-bold uppercase tracking-widest text-cyan-500 rounded-xl transition-all group ${isLightMode ? 'hover:bg-cyan-50' : 'hover:bg-cyan-500/10'}`}>
+                      <Star size={14} className="mr-3 text-cyan-400 group-hover:drop-shadow-[0_0_8px_rgba(0,240,255,0.8)]" /> Authored Vault
                     </Link>
                     <div className={`h-px w-full my-1 ${isLightMode ? 'bg-slate-200' : 'bg-slate-800/50'}`} />
                     <button type="button" aria-label="Terminate Link" onClick={handleLogout} className={`flex items-center px-4 py-3 text-xs font-bold uppercase tracking-widest text-red-500 rounded-xl transition-all group ${isLightMode ? 'hover:bg-red-50' : 'hover:bg-red-500/10'}`}>

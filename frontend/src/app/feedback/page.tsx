@@ -1,5 +1,6 @@
 "use client";
 
+import { API_URL } from '@/lib/api';
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence, useMotionValue, useTransform } from 'framer-motion';
 import { Canvas } from '@react-three/fiber';
@@ -171,7 +172,7 @@ export default function MasterFeedbackVault() {
       if (!token) return;
 
       try {
-        const userRes = await fetch('https://myresearch-bclz.onrender.com/api/auth/me', { headers: { 'Authorization': `Bearer ${token}` } });
+        const userRes = await fetch(`${API_URL}/api/auth/me`, { headers: { 'Authorization': `Bearer ${token}` } });
         if (userRes.ok) {
           const { data } = await userRes.json();
           setUserData(data);
@@ -278,7 +279,7 @@ export default function MasterFeedbackVault() {
     const token = localStorage.getItem('matrix_token');
 
     try {
-      const res = await fetch("https://myresearch-bclz.onrender.com/api/feedback/submit", {
+      const res = await fetch(`${API_URL}/api/feedback/submit`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

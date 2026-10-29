@@ -1,30 +1,32 @@
 import { Router } from 'express';
-import { 
-  createRelease, 
-  getReleases, 
-  getSingleRelease, 
-  updateRelease, 
-  deleteRelease 
+import {
+  createRelease,
+  getReleases,
+  getSingleRelease,
+  updateRelease,
+  deleteRelease,
+  toggleSaveRelease,
 } from '../controllers/release.controller';
-import { protect, restrictTo } from '../middleware/auth.middleware';
+import { protect, restrictTo, optionalAuth } from '../middleware/auth.middleware';
 
 const router = Router();
 
 // ==========================================
-// PUBLIC GATEWAY ROUTES (No Auth Required)
+// PUBLIC GATEWAY ROUTES (optional auth: admins additionally see full drafts)
 // ==========================================
-router.get('/', getReleases);
-router.get('/:id', getSingleRelease);
+router.get('/', optionalAuth, getReleases);
+router.get('/:id', optionalAuth, getSingleRelease);
+
+// ==========================================
+// USER PROTECTED ROUTES
+// ==========================================
+router.post('/:id/save', protect, toggleSaveRelease);
 
 // ==========================================
 // ADMIN FORGE ROUTES (Level 5 Clearance)
 // ==========================================
-// Only System Admins can forge, modify, or terminate release data cores
-router.use(protect);
-router.use(restrictTo('admin'));
-
-router.post('/', createRelease);
-router.put('/:id', updateRelease);
-router.delete('/:id', deleteRelease);
+router.post('/', protect, restrictTo('admin'), createRelease);
+router.put('/:id', protect, restrictTo('admin'), updateRelease);
+router.delete('/:id', protect, restrictTo('admin'), deleteRelease);
 
 export default router;

@@ -1,15 +1,4 @@
-import { PrismaClient } from '@prisma/client';
-import { Pool } from 'pg';
-import { PrismaPg } from '@prisma/adapter-pg';
-
-// 1. Initialize the native Postgres connection pool
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-
-// 2. Wrap it in the Prisma 7 Driver Adapter
-const adapter = new PrismaPg(pool);
-
-// 3. Pass the adapter to PrismaClient
-const prisma = new PrismaClient({ adapter });
+import prisma from '../src/config/prisma';
 
 async function main() {
   console.log('Initiating Master Data Core Injection...');
@@ -120,7 +109,7 @@ async function main() {
     data: [
       {
         query: 'What database architecture powers the CSx Core?',
-        response: 'The system utilizes a highly normalized PostgreSQL relational database. Data manipulation and telemetry injections are handled strictly via Prisma ORM to guarantee type-safety and eliminate injection vulnerabilities.'
+        response: 'The system utilizes a distributed Turso libSQL database with SQLite dialect. Data manipulation and telemetry injections are handled strictly via Prisma ORM to guarantee type-safety and eliminate injection vulnerabilities.'
       },
       {
         query: 'Who has execution access to the payroll sequence module?',
