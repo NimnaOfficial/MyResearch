@@ -15,6 +15,7 @@ import BottomNav from '@/components/BottomNav';
 import CustomCursor from '@/components/CustomCursor';
 import NextGenButton from '@/components/NextGenButton';
 import ThemeToggle from '@/components/ThemeToggle';
+import { useTheme } from '@/context/ThemeContext';
 import Footer from '@/components/Footer';
 import BootSequence from '@/components/BootSequence';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -216,7 +217,7 @@ function SystemEngine({ scrollData }: { scrollData: { section: number, velocity:
 export default function WelcomePage() {
   const router = useRouter(); 
   const [scrollData, setScrollData] = useState({ section: 0, velocity: 0 });
-  const [isLightMode, setIsLightMode] = useState(false);
+  const { isLightMode, toggleTheme } = useTheme();
   const lastScrollY = useRef(0);
 
   // 🔹 DYNAMIC AUTHENTICATION & USER STATE
@@ -304,21 +305,21 @@ export default function WelcomePage() {
   const textPrimary = isLightMode ? "text-slate-900" : "text-white";
   const textSecondary = isLightMode ? "text-slate-600" : "text-slate-400";
   const accentText = isLightMode ? "text-blue-600" : "text-cyan-400";
-  const glassBg = isLightMode ? "bg-white/90 border-slate-200 shadow-2xl" : "bg-[#010308]/90 border-white/5 shadow-[0_0_50px_rgba(0,0,0,0.5)]";
+  const glassBg = isLightMode ? "bg-white/95 border-slate-200 shadow-2xl" : "bg-[#010308]/90 border-white/5 shadow-[0_0_50px_rgba(0,0,0,0.5)]";
   
   const cardCyan = isLightMode ? "bg-white/60 border-white/50 shadow-[0_20px_60px_rgba(0,0,0,0.08)]" : "bg-[#030b1c]/80 border-cyan-500/50 shadow-[0_0_60px_rgba(34,211,238,0.2)]";
   const cardIndigo = isLightMode ? "bg-white/60 border-white/50 shadow-[0_20px_60px_rgba(0,0,0,0.08)]" : "bg-[#030b1c]/80 border-indigo-500/50 shadow-[0_0_60px_rgba(79,70,229,0.2)]";
   const cardPurple = isLightMode ? "bg-white/60 border-white/50 shadow-[0_20px_60px_rgba(0,0,0,0.08)]" : "bg-[#030b1c]/80 border-purple-500/50 shadow-[0_0_60px_rgba(168,85,247,0.2)]";
 
   return (
-    <main className={`relative transition-colors duration-700 font-sans cursor-none overflow-x-hidden ${isLightMode ? 'bg-slate-50' : 'bg-[#01030a]'}`}>
+    <main className={`relative transition-colors duration-700 font-sans cursor-none overflow-x-hidden ${isLightMode ? 'bg-[#f8fafc]' : 'bg-[#01030a]'}`}>
       
       <AnimatePresence>
         {isSystemBooting && <BootSequence onComplete={handleBootComplete} />}
       </AnimatePresence>
       
       <CustomCursor />
-      <ThemeToggle isLight={isLightMode} toggleTheme={() => setIsLightMode(!isLightMode)} />
+      <ThemeToggle isLight={isLightMode} toggleTheme={toggleTheme} />
 
       {/* ==========================================
           HEADER (DYNAMIC DATABASE PROFILE INJECTION)

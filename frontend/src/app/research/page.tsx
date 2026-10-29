@@ -16,6 +16,7 @@ import {
 import CustomCursor from '@/components/CustomCursor';
 import BottomNav from '@/components/BottomNav';
 import ThemeToggle from '@/components/ThemeToggle';
+import { useTheme } from '@/context/ThemeContext';
 import Footer from '@/components/Footer';
 
 // ==========================================
@@ -63,7 +64,7 @@ function ActiveDataBackground({ isLight }: { isLight: boolean }) {
   const [nodes, setNodes] = useState<any[]>([]);
   const gridColor = isLight ? 'rgba(0,255,102,0.1)' : 'rgba(0,255,102,0.03)';
   const gridColor2 = isLight ? 'rgba(0,240,255,0.1)' : 'rgba(0,240,255,0.03)';
-  const bgColor = isLight ? 'bg-slate-50' : 'bg-[#010205]';
+  const bgColor = isLight ? 'bg-[#f8fafc]' : 'bg-[#010205]';
 
   useEffect(() => {
     setNodes(Array.from({ length: 20 }).map((_, i) => ({
@@ -152,7 +153,7 @@ function SpatialUpcomingCarousel({ isLight, topics }: { isLight: boolean, topics
 // ==========================================
 export default function MasterResearchVault() {
   const router = useRouter();
-  const [isLightMode, setIsLightMode] = useState(false);
+  const { isLightMode, toggleTheme } = useTheme();
   const [activeFilter, setActiveFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [searchFocused, setSearchFocused] = useState(false);
@@ -321,15 +322,15 @@ export default function MasterResearchVault() {
 
   const textPrimary = isLightMode ? "text-slate-900" : "text-white";
   const textSecondary = isLightMode ? "text-slate-600" : "text-slate-400";
-  const glassBg = isLightMode ? "bg-white/80 border-slate-200 shadow-xl" : "bg-[#010308]/80 border-[#00f0ff]/10 shadow-2xl";
-  const cardBg = isLightMode ? "bg-white border-slate-200 shadow-md" : "bg-black/20 border-white/5";
+  const glassBg = isLightMode ? "bg-white/95 border-slate-200 shadow-xl" : "bg-[#010308]/80 border-[#00f0ff]/10 shadow-2xl";
+  const cardBg = isLightMode ? "bg-white/95 border-slate-200 shadow-md text-slate-800" : "bg-black/20 border-white/5";
 
   return (
-    <main className={`relative min-h-screen font-sans cursor-none overflow-x-hidden selection:bg-[#00ff66]/30 flex transition-colors duration-1000 ${isLightMode ? 'bg-slate-50' : 'bg-[#010205]'}`}>
+    <main className={`relative min-h-screen font-sans cursor-none overflow-x-hidden selection:bg-[#00ff66]/30 flex transition-colors duration-1000 ${isLightMode ? 'bg-[#f8fafc]' : 'bg-[#010205]'}`}>
       <CustomCursor />
       
       <div className="relative z-[100]">
-        <ThemeToggle isLight={isLightMode} toggleTheme={() => setIsLightMode(!isLightMode)} />
+        <ThemeToggle isLight={isLightMode} toggleTheme={toggleTheme} />
       </div>
 
       <ActiveDataBackground isLight={isLightMode} />

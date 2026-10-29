@@ -18,6 +18,7 @@ import { getCroppedImg } from '@/utils/cropImage';
 import CustomCursor from '@/components/CustomCursor';
 import BottomNav from '@/components/BottomNav';
 import ThemeToggle from '@/components/ThemeToggle';
+import { useTheme } from '@/context/ThemeContext';
 import Footer from '@/components/Footer';
 
 // ==========================================
@@ -55,7 +56,7 @@ const SETTINGS_TABS = [
 
 export default function AdvancedSettingsMatrix() {
   const router = useRouter();
-  const [isLightMode, setIsLightMode] = useState(false);
+  const { isLightMode, toggleTheme } = useTheme();
   const [activeTab, setActiveTab] = useState('account');
   
   const [isCodeRevealed, setIsCodeRevealed] = useState(false);
@@ -214,9 +215,9 @@ export default function AdvancedSettingsMatrix() {
     };
   }, []);
 
-  const bgCore = isLightMode ? "bg-[#f4f7fb]" : "bg-[#01030b]";
-  const panelGlass = isLightMode ? "bg-white/80 border-slate-200 shadow-2xl" : "bg-[#020512]/70 border-[#0055ff]/30 shadow-[0_0_60px_rgba(0,100,255,0.15)]";
-  const innerCard = isLightMode ? "bg-slate-50 border-slate-200 focus-within:border-blue-500" : "bg-[#01020a]/90 border-[#0044ff]/40 focus-within:border-[#00f0ff] focus-within:shadow-[0_0_30px_rgba(0,240,255,0.2)]";
+  const bgCore = isLightMode ? "bg-[#f8fafc]" : "bg-[#01030b]";
+  const panelGlass = isLightMode ? "bg-white/95 border-slate-200 shadow-2xl text-slate-800" : "bg-[#020512]/70 border-[#0055ff]/30 shadow-[0_0_60px_rgba(0,100,255,0.15)]";
+  const innerCard = isLightMode ? "bg-slate-100 border-slate-300 text-slate-900 focus-within:border-blue-500" : "bg-[#01020a]/90 border-[#0044ff]/40 focus-within:border-[#00f0ff] focus-within:shadow-[0_0_30px_rgba(0,240,255,0.2)]";
   const textPrimary = isLightMode ? "text-slate-900" : "text-white";
   const textSecondary = isLightMode ? "text-slate-500" : "text-[#4d88ff]";
 
@@ -229,7 +230,7 @@ export default function AdvancedSettingsMatrix() {
       <style dangerouslySetInnerHTML={{__html: `@keyframes textAnimation { 0% { background-position: 0 0; } 100% { background-position: 2000px 0; } } .video-text-animation { color: rgba(225, 225, 255, 0.05); background-image: url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop'); background-repeat: repeat-x; background-clip: text; -webkit-background-clip: text; background-size: cover; animation: textAnimation 25s linear infinite; } .secure-code-block { user-select: none !important; -webkit-user-select: none !important; -moz-user-select: none !important; pointer-events: none; } @media print { .secure-code-container { display: none !important; } }`}} />
 
       <div className="relative z-[100] pointer-events-auto">
-        <ThemeToggle isLight={isLightMode} toggleTheme={() => setIsLightMode(!isLightMode)} />
+        <ThemeToggle isLight={isLightMode} toggleTheme={toggleTheme} />
       </div>
 
       <div className="fixed inset-0 z-0 overflow-hidden cursor-move">

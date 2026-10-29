@@ -11,6 +11,7 @@ import * as THREE from 'three';
 import BottomNav from '@/components/BottomNav';
 import CustomCursor from '@/components/CustomCursor';
 import ThemeToggle from '@/components/ThemeToggle';
+import { useTheme } from '@/context/ThemeContext';
 import Footer from '@/components/Footer';
 
 // ==========================================
@@ -111,7 +112,7 @@ function DataConstellation({ isLight, exploreMode }: { isLight: boolean, explore
 // 4. MAIN EXPLORE COMPONENT
 // ==========================================
 export default function ExplorePage() {
-  const [isLightMode, setIsLightMode] = useState(false);
+  const { isLightMode, toggleTheme } = useTheme();
   const [exploreMode, setExploreMode] = useState(false);
   
   const [searchQuery, setSearchQuery] = useState('');
@@ -203,12 +204,12 @@ export default function ExplorePage() {
     return () => { document.body.style.overflow = 'auto'; };
   }, [exploreMode]);
 
-  const bgCol = isLightMode ? 'bg-slate-50' : 'bg-[#01030a]';
+  const bgCol = isLightMode ? 'bg-[#f8fafc]' : 'bg-[#01030a]';
   const textPrimary = isLightMode ? "text-slate-900" : "text-white";
   const textSecondary = isLightMode ? "text-slate-500" : "text-slate-400";
   const accentText = isLightMode ? "text-blue-600" : "text-cyan-400";
   const borderTheme = isLightMode ? "border-slate-200" : "border-cyan-500/20";
-  const cardBg = isLightMode ? "bg-white/70 border-slate-300 shadow-xl" : "bg-[#020712]/90 border-cyan-500/15 shadow-[0_20px_50px_rgba(0,0,0,0.3)]";
+  const cardBg = isLightMode ? "bg-white/90 border-slate-200/90 shadow-[0_15px_35px_rgba(0,0,0,0.06)] text-slate-800" : "bg-[#020712]/90 border-cyan-500/15 shadow-[0_20px_50px_rgba(0,0,0,0.3)]";
 
   const filteredData = useMemo(() => {
     let result = realData;
@@ -236,7 +237,7 @@ export default function ExplorePage() {
   return (
     <main className={`relative min-h-screen transition-colors duration-700 font-sans cursor-none overflow-x-hidden ${bgCol}`}>
       <CustomCursor />
-      <ThemeToggle isLight={isLightMode} toggleTheme={() => setIsLightMode(!isLightMode)} />
+      <ThemeToggle isLight={isLightMode} toggleTheme={toggleTheme} />
 
       <motion.div style={{ scaleX: scrollYProgress }} className={`fixed top-0 left-0 right-0 h-1 origin-left z-[100] ${isLightMode ? 'bg-blue-600 shadow-[0_0_10px_#2563eb]' : 'bg-cyan-400 shadow-[0_0_15px_#22d3ee]'}`} />
 

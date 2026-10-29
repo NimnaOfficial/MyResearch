@@ -3,17 +3,24 @@
 import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { motion, useMotionValue, useSpring, useVelocity, useTransform } from 'framer-motion';
+import { useTheme } from '@/context/ThemeContext';
 
 export default function CustomCursor() {
   const pathname = usePathname() || '';
   const [isMounted, setIsMounted] = useState(false);
+  const { isLightMode } = useTheme();
 
   // 1. DYNAMIC CHAMELEON THEME ENGINE
-  let activeColor = '#00f0ff'; // Default Matrix Cyan
-  if (pathname.includes('/projects') || pathname.includes('/releases')) activeColor = '#f97316'; // CSx Orange
-  else if (pathname.includes('/admin/users')) activeColor = '#dc2626'; // Blood Red
-  else if (pathname.includes('/admin')) activeColor = '#3b82f6'; // General Blue
-  else if (pathname.includes('/auth')) activeColor = '#a855f7'; // Security Purple
+  let activeColor = isLightMode ? '#0284c7' : '#00f0ff'; // Matrix Cyan (or Rich Sky in light)
+  if (pathname.includes('/projects') || pathname.includes('/releases')) {
+    activeColor = isLightMode ? '#ea580c' : '#f97316'; // CSx Orange
+  } else if (pathname.includes('/admin/users')) {
+    activeColor = '#dc2626'; // Blood Red
+  } else if (pathname.includes('/admin')) {
+    activeColor = isLightMode ? '#2563eb' : '#3b82f6'; // General Blue
+  } else if (pathname.includes('/auth')) {
+    activeColor = isLightMode ? '#7c3aed' : '#a855f7'; // Security Purple
+  }
 
   // 2. ZERO-LATENCY KINEMATICS ENGINE
   const cursorX = useMotionValue(-100);
@@ -85,7 +92,7 @@ export default function CustomCursor() {
       {/* THE 3D CYBERNETIC MECH HAND */}
       <motion.div className="fixed top-0 left-0 pointer-events-none z-[99998] drop-shadow-2xl" style={{ x: smoothX, y: smoothY, rotateX: bankX, rotateY: bankY, translateX: "-4px", translateY: "-2px" }}>
         <motion.div animate={{ scale: isClicking ? 0.9 : (isHovering ? 1.05 : 1), rotateZ: isHovering ? -15 : 0, y: isHovering ? 0 : [0, 2, 0] }} transition={{ scale: { type: "spring", stiffness: 500, damping: 25 }, rotateZ: { type: "spring", stiffness: 400, damping: 30 }, y: { repeat: Infinity, duration: 3, ease: "easeInOut" } }}>
-          <svg width="45" height="60" viewBox="0 0 45 60" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ filter: `drop-shadow(0 8px 12px rgba(0,0,0,0.8))` }}>
+          <svg width="45" height="60" viewBox="0 0 45 60" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ filter: isLightMode ? `drop-shadow(0 6px 10px rgba(0,0,0,0.2))` : `drop-shadow(0 8px 12px rgba(0,0,0,0.8))` }}>
             <defs>
               <linearGradient id="armor-dark" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#334155" /><stop offset="50%" stopColor="#0f172a" /><stop offset="100%" stopColor="#020617" /></linearGradient>
               <linearGradient id="armor-light" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#94a3b8" /><stop offset="100%" stopColor="#1e293b" /></linearGradient>
@@ -143,11 +150,22 @@ export default function CustomCursor() {
 
       {/* TELEMETRY HUD */}
       <motion.div className="fixed top-0 left-0 pointer-events-none z-[99997]" style={{ x: smoothX, y: smoothY, translateX: "32px", translateY: "16px" }}>
-        <div className="flex flex-col bg-black/40 backdrop-blur-sm border-l-2 pl-2 py-1" style={{ borderColor: activeColor }}>
-          <motion.div animate={{ color: isHovering ? activeColor : '#94a3b8' }} className="text-[9px] font-mono font-black uppercase tracking-[0.2em] whitespace-nowrap drop-shadow-[0_0_5px_rgba(0,0,0,1)]">
+        <div className={`flex flex-col border-l-2 pl-2 py-1 ${
+          isLightMode 
+            ? 'bg-white/80 backdrop-blur-md shadow-sm border-l-2' 
+            : 'bg-black/40 backdrop-blur-sm'
+        }`} style={{ borderColor: activeColor }}>
+          <motion.div 
+            animate={{ color: isHovering ? activeColor : (isLightMode ? '#334155' : '#94a3b8') }} 
+            className="text-[9px] font-mono font-black uppercase tracking-[0.2em] whitespace-nowrap"
+          >
             {scrollDelta !== 0 ? '» SCROLL_ACTUATOR' : isClicking ? '» ENGAGING_TARGET' : isHovering ? '» TARGET_LOCKED' : '» MECH_IDLE'}
           </motion.div>
-          <motion.div animate={{ opacity: isHovering ? 1 : 0.6 }} className="text-[7px] font-mono tracking-[0.3em] uppercase drop-shadow-[0_0_5px_rgba(0,0,0,1)]" style={{ color: activeColor }}>
+          <motion.div 
+            animate={{ opacity: isHovering ? 1 : 0.8 }} 
+            className="text-[7px] font-mono tracking-[0.3em] uppercase font-bold" 
+            style={{ color: activeColor }}
+          >
             X: {Math.round(cursorX.get())} Y: {Math.round(cursorY.get())}
           </motion.div>
         </div>

@@ -14,6 +14,7 @@ import {
 
 import CustomCursor from '@/components/CustomCursor';
 import ThemeToggle from '@/components/ThemeToggle';
+import { useTheme } from '@/context/ThemeContext';
 import BottomNav from '@/components/BottomNav';
 import Footer from '@/components/Footer';
 
@@ -23,12 +24,12 @@ import Footer from '@/components/Footer';
 function ActiveDataBackground({ isLight }: { isLight: boolean }) {
   const combColor = isLight ? 'rgba(249, 115, 22, 0.25)' : 'rgba(249, 115, 22, 0.15)'; 
   const fiberColor = isLight ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.02)';
-  const bgColor = isLight ? 'bg-slate-50' : 'bg-[#010205]';
+  const bgColor = isLight ? 'bg-[#f8fafc]' : 'bg-[#010205]';
 
   return (
     <div className={`fixed inset-0 z-0 pointer-events-none overflow-hidden transition-colors duration-1000 ${bgColor}`}>
       <motion.div animate={{ x: [0, -100, 0], y: [0, -100, 0] }} transition={{ duration: 20, ease: "linear", repeat: Infinity }} className="absolute inset-0 w-[200%] h-[200%] opacity-80" style={{ backgroundImage: `repeating-linear-gradient(45deg, ${fiberColor} 25%, transparent 25%, transparent 75%, ${fiberColor} 75%, ${fiberColor}), repeating-linear-gradient(45deg, ${fiberColor} 25%, transparent 25%, transparent 75%, ${fiberColor} 75%, ${fiberColor})`, backgroundPosition: '0 0, 10px 10px', backgroundSize: '20px 20px' }} />
-      <motion.div animate={{ y: [0, -103.92, 0] }} transition={{ duration: 30, ease: "linear", repeat: Infinity }} className="absolute inset-0 w-full h-[200%] opacity-100 mix-blend-screen" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='103.92304845413264' viewBox='0 0 60 103.92304845413264' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 103.92304845413264L60 86.60254037844386L60 51.96152422706632L30 34.64101615137754L0 51.96152422706632L0 86.60254037844386Z' fill='transparent' stroke='${encodeURIComponent(combColor)}' stroke-width='1.5'/%3E%3C/svg%3E")`, backgroundSize: '60px 103.92px' }} />
+      <motion.div animate={{ y: [0, -103.92, 0] }} transition={{ duration: 30, ease: "linear", repeat: Infinity }} className={`absolute inset-0 w-full h-[200%] ${isLight ? "opacity-30" : "opacity-100 mix-blend-screen"}`} style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='103.92304845413264' viewBox='0 0 60 103.92304845413264' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 103.92304845413264L60 86.60254037844386L60 51.96152422706632L30 34.64101615137754L0 51.96152422706632L0 86.60254037844386Z' fill='transparent' stroke='${encodeURIComponent(combColor)}' stroke-width='1.5'/%3E%3C/svg%3E")`, backgroundSize: '60px 103.92px' }} />
       <motion.div animate={{ opacity: [0.3, 0.6, 0.3], scale: [1, 1.2, 1] }} transition={{ duration: 10, repeat: Infinity }} className={`absolute -top-[10%] -left-[5%] w-[40vw] h-[40vw] rounded-full blur-[150px] ${isLight ? 'bg-orange-500/30' : 'bg-orange-600/20'}`} />
       <motion.div animate={{ opacity: [0.2, 0.5, 0.2], scale: [1, 1.3, 1] }} transition={{ duration: 12, repeat: Infinity }} className={`absolute top-[40%] -right-[10%] w-[50vw] h-[50vw] rounded-full blur-[180px] ${isLight ? 'bg-amber-500/20' : 'bg-orange-500/10'}`} />
     </div>
@@ -85,7 +86,7 @@ export default function ReleaseDetailIDE() {
   const releaseId = decodeURIComponent(rawId);
 
   // Core UI States
-  const [isLightMode, setIsLightMode] = useState(false);
+  const { isLightMode, toggleTheme } = useTheme();
   const [timeState, setTimeState] = useState({ time: "", date: "" });
   const [isProfileHovered, setIsProfileHovered] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
@@ -318,7 +319,7 @@ export default function ReleaseDetailIDE() {
 
   const textPrimary = isLightMode ? "text-slate-900" : "text-white";
   const textSecondary = isLightMode ? "text-slate-600" : "text-slate-400";
-  const glassPanel = isLightMode ? "bg-white/60 backdrop-blur-3xl border-slate-300 shadow-xl" : "bg-black/20 backdrop-blur-3xl border-white/10 shadow-2xl";
+  const glassPanel = isLightMode ? "bg-white/90 backdrop-blur-3xl border-slate-200/90 shadow-xl text-slate-800" : "bg-black/20 backdrop-blur-3xl border-white/10 shadow-2xl";
 
   const scrollReveal = { 
     hidden: { opacity: 0, y: 50, scale: 0.95, rotateX: 10 }, 
@@ -345,7 +346,7 @@ export default function ReleaseDetailIDE() {
   }
 
   return (
-    <main className="relative min-h-screen w-full flex flex-col font-sans overflow-x-hidden transition-colors duration-1000">
+    <main className={`relative min-h-screen w-full flex flex-col font-sans overflow-x-hidden transition-colors duration-1000 ${isLightMode ? "bg-[#f8fafc] text-slate-900" : "bg-[#010205] text-white"}`}>
       <CustomCursor />
       <ActiveDataBackground isLight={isLightMode} />
 
@@ -356,7 +357,7 @@ export default function ReleaseDetailIDE() {
         
         <div className="flex items-center space-x-4 md:space-x-6 pointer-events-auto h-full">
           <div className="relative flex items-center justify-center bg-transparent">
-             <ThemeToggle isLight={isLightMode} toggleTheme={() => setIsLightMode(!isLightMode)} />
+             <ThemeToggle isLight={isLightMode} toggleTheme={toggleTheme} />
           </div>
           <motion.button 
             whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}

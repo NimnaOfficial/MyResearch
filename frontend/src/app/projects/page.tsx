@@ -15,6 +15,7 @@ import {
 import CustomCursor from '@/components/CustomCursor';
 import BottomNav from '@/components/BottomNav';
 import ThemeToggle from '@/components/ThemeToggle';
+import { useTheme } from '@/context/ThemeContext';
 import Footer from '@/components/Footer';
 
 // ==========================================
@@ -27,7 +28,7 @@ const ICONS = [Layers, Terminal, Database, Zap, ShieldAlert, Cpu, Code2, Box];
 // UNIFIED MATRIX BACKGROUND
 // ==========================================
 function UnifiedMatrixBackground({ isLight }: { isLight: boolean }) {
-  const bgColor = isLight ? 'bg-slate-50' : 'bg-[#010205]';
+  const bgColor = isLight ? 'bg-[#f8fafc]' : 'bg-[#010205]';
   const combColor = isLight ? 'rgba(249, 115, 22, 0.15)' : 'rgba(249, 115, 22, 0.08)'; 
 
   return (
@@ -35,7 +36,7 @@ function UnifiedMatrixBackground({ isLight }: { isLight: boolean }) {
       <motion.div 
         animate={{ backgroundPosition: ["0px 0px", "0px 103.92px"] }} 
         transition={{ duration: 5, ease: "linear", repeat: Infinity }}
-        className="absolute inset-0 w-full h-full opacity-80 mix-blend-screen" 
+        className={`absolute inset-0 w-full h-full ${isLight ? "opacity-35" : "opacity-80 mix-blend-screen"}`} 
         style={{ 
           backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='103.92304845413264' viewBox='0 0 60 103.92304845413264' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 103.92304845413264L60 86.60254037844386L60 51.96152422706632L30 34.64101615137754L0 51.96152422706632L0 86.60254037844386Z' fill='transparent' stroke='${encodeURIComponent(combColor)}' stroke-width='1.5'/%3E%3C/svg%3E")`, 
           backgroundSize: '60px 103.92px' 
@@ -55,7 +56,7 @@ const slowExpandSpring = { type: "spring" as const, stiffness: 50, damping: 25, 
 // ==========================================
 export default function ProjectMatrix() {
   const router = useRouter();
-  const [isLightMode, setIsLightMode] = useState(false);
+  const { isLightMode, toggleTheme } = useTheme();
   const [timeState, setTimeState] = useState({ time: "", date: "" });
   const [isProfileHovered, setIsProfileHovered] = useState(false);
   const [userData, setUserData] = useState<any>(null);
@@ -284,16 +285,16 @@ export default function ProjectMatrix() {
 
   const textPrimary = isLightMode ? "text-slate-900" : "text-white";
   const textSecondary = isLightMode ? "text-slate-600" : "text-slate-400";
-  const glassBg = isLightMode ? "bg-white/90 border-slate-200 shadow-2xl" : "bg-[#010308]/90 border-white/5 shadow-[0_0_50px_rgba(0,0,0,0.5)]";
+  const glassBg = isLightMode ? "bg-white/95 border-slate-200 shadow-2xl" : "bg-[#010308]/90 border-white/5 shadow-[0_0_50px_rgba(0,0,0,0.5)]";
   const accentHex = isLightMode ? "#ea580c" : "#f97316";
 
   return (
-    <main className={`relative min-h-screen font-sans cursor-none overflow-x-hidden flex flex-col transition-colors duration-1000 ${isLightMode ? 'text-slate-900' : 'text-white'}`}>
+    <main className={`relative min-h-screen font-sans cursor-none overflow-x-hidden flex flex-col transition-colors duration-1000 ${isLightMode ? 'bg-[#f8fafc] text-slate-900' : 'bg-[#010205] text-white'}`}>
       <CustomCursor />
       <UnifiedMatrixBackground isLight={isLightMode} />
 
       <div className="fixed top-24 left-6 lg:left-12 z-[100] pointer-events-auto">
-        <ThemeToggle isLight={isLightMode} toggleTheme={() => setIsLightMode(!isLightMode)} />
+        <ThemeToggle isLight={isLightMode} toggleTheme={toggleTheme} />
       </div>
 
       {/* HEADER */}

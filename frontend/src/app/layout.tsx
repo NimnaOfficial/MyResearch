@@ -6,6 +6,7 @@ import "./globals.css";
 import SmoothScroll from '@/components/SmoothScroll';
 import AdminCipherGate from "@/components/AdminCipherGate";
 import MobileBlocker from "@/components/MobileBlocker";
+import { ThemeProvider } from "@/context/ThemeContext";
 
 // Initialize standard and tech-themed fonts
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
@@ -23,29 +24,35 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${inter.variable} ${firaCode.variable}`}>
-      <body className="bg-[#020617] text-white antialiased overflow-x-hidden selection:bg-blue-600/30 selection:text-blue-400">
+      <body className="bg-[var(--background)] text-[var(--foreground)] antialiased overflow-x-hidden selection:bg-blue-600/30 selection:text-blue-400 transition-colors duration-300">
       
         {/* ========================================= */}
-        {/* HARDWARE SECURITY FIREWALL                */}
-        {/* Blocks mobile agents and small viewports  */}
+        {/* THE GLOBAL THEME PROVIDER                 */}
+        {/* Synchronizes light/dark mode everywhere   */}
         {/* ========================================= */}
-        <MobileBlocker>
-          
+        <ThemeProvider>
           {/* ========================================= */}
-          {/* THE INVISIBLE ADMIN GATE                  */}
-          {/* Listens globally for the 190436 cipher    */}
+          {/* HARDWARE SECURITY FIREWALL                */}
+          {/* Blocks mobile agents and small viewports  */}
           {/* ========================================= */}
-          <AdminCipherGate />
-          
-          {/* ========================================= */}
-          {/* THE MOMENTUM SCROLLING ENGINE             */}
-          {/* Wraps the entire canvas for buttery scroll*/}
-          {/* ========================================= */}
-          <SmoothScroll>
-            {children}
-          </SmoothScroll>
+          <MobileBlocker>
+            
+            {/* ========================================= */}
+            {/* THE INVISIBLE ADMIN GATE                  */}
+            {/* Listens globally for the 190436 cipher    */}
+            {/* ========================================= */}
+            <AdminCipherGate />
+            
+            {/* ========================================= */}
+            {/* THE MOMENTUM SCROLLING ENGINE             */}
+            {/* Wraps the entire canvas for buttery scroll*/}
+            {/* ========================================= */}
+            <SmoothScroll>
+              {children}
+            </SmoothScroll>
 
-        </MobileBlocker>
+          </MobileBlocker>
+        </ThemeProvider>
         
       </body>
     </html>

@@ -15,6 +15,7 @@ import {
 
 import CustomCursor from '@/components/CustomCursor';
 import ThemeToggle from '@/components/ThemeToggle';
+import { useTheme } from '@/context/ThemeContext';
 import BottomNav from '@/components/BottomNav';
 import Footer from '@/components/Footer';
 
@@ -50,17 +51,17 @@ const FALLBACK_DATA = {
 };
 
 // 🔥 Safe Markdown/HTML Parser for Typography Rendering
-const renderRichText = (text: string) => {
+const renderRichText = (text: string, isLight: boolean = false) => {
   if (!text) return { __html: '' };
   
   let formatted = text
-    .replace(/^# (.*$)/gim, '<h1 class="text-3xl md:text-4xl font-black mt-8 mb-4 text-[#00f0ff]">$1</h1>')
-    .replace(/^## (.*$)/gim, '<h2 class="text-2xl md:text-3xl font-bold mt-6 mb-3 text-[#00ff66]">$1</h2>')
-    .replace(/^### (.*$)/gim, '<h3 class="text-xl md:text-2xl font-bold mt-5 mb-2 text-[#00ff66]">$1</h3>')
-    .replace(/\*\*(.*?)\*\*/g, '<strong class="font-black text-white">$1</strong>')
-    .replace(/\*(.*?)\*/g, '<em class="italic text-slate-300">$1</em>')
+    .replace(/^# (.*$)/gim, `<h1 class="text-3xl md:text-4xl font-black mt-8 mb-4 ${isLight ? 'text-blue-600' : 'text-[#00f0ff]'}">$1</h1>`)
+    .replace(/^## (.*$)/gim, `<h2 class="text-2xl md:text-3xl font-bold mt-6 mb-3 ${isLight ? 'text-emerald-600' : 'text-[#00ff66]'}">$1</h2>`)
+    .replace(/^### (.*$)/gim, `<h3 class="text-xl md:text-2xl font-bold mt-5 mb-2 ${isLight ? 'text-emerald-700' : 'text-[#00ff66]'}">$1</h3>`)
+    .replace(/\*\*(.*?)\*\*/g, `<strong class="font-black ${isLight ? 'text-slate-900' : 'text-white'}">$1</strong>`)
+    .replace(/\*(.*?)\*/g, `<em class="italic ${isLight ? 'text-slate-600' : 'text-slate-300'}">$1</em>`)
     .replace(/~~(.*?)~~/g, '<del class="opacity-50">$1</del>')
-    .replace(/`(.*?)`/g, '<code class="bg-[#00f0ff]/10 text-[#00f0ff] px-1.5 py-0.5 rounded border border-[#00f0ff]/20 font-mono text-sm">$1</code>')
+    .replace(/`(.*?)`/g, `<code class="${isLight ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-[#00f0ff]/10 text-[#00f0ff] border-[#00f0ff]/20'} px-1.5 py-0.5 rounded border font-mono text-sm">$1</code>`)
     .replace(/\n- (.*)/g, '<li class="ml-6 list-disc mb-1">$1</li>');
 
   return { __html: formatted };
@@ -76,7 +77,7 @@ function ActiveDataBackground({ isLight }: { isLight: boolean }) {
   
   const gridColor = isLight ? 'rgba(0,255,102,0.1)' : 'rgba(0,255,102,0.03)';
   const gridColor2 = isLight ? 'rgba(0,240,255,0.1)' : 'rgba(0,240,255,0.03)';
-  const bgColor = isLight ? 'bg-slate-50' : 'bg-[#010205]';
+  const bgColor = isLight ? 'bg-[#f8fafc]' : 'bg-[#010205]';
 
   return (
     <div className={`fixed inset-0 z-0 pointer-events-none overflow-hidden transition-colors duration-1000 ${bgColor}`}>
@@ -281,7 +282,7 @@ export default function ResearchDetailPage() {
   const isDownloadingRef = useRef(false);
 
   const [userData, setUserData] = useState<any>(null);
-  const [isLightMode, setIsLightMode] = useState(false);
+  const { isLightMode, toggleTheme } = useTheme();
   const [timeState, setTimeState] = useState({ time: "", date: "" });
   
   const [activeTab, setActiveTab] = useState('Abstract');
@@ -510,7 +511,7 @@ export default function ResearchDetailPage() {
       <header className={`fixed top-0 left-0 right-0 h-24 w-full flex items-center justify-between px-4 sm:px-6 lg:px-12 z-50 pointer-events-none bg-transparent border-none`}>
         <div className="flex items-center space-x-3 sm:space-x-4 md:space-x-6 pointer-events-auto h-full pl-2">
           <div className="relative flex items-center justify-center shrink-0">
-             <ThemeToggle isLight={isLightMode} toggleTheme={() => setIsLightMode(!isLightMode)} />
+             <ThemeToggle isLight={isLightMode} toggleTheme={toggleTheme} />
           </div>
           <motion.button 
             whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
@@ -671,7 +672,7 @@ export default function ResearchDetailPage() {
                {/* 🚀 INJECTED RICH TEXT HERE */}
                <div 
                  className={`text-sm md:text-base leading-relaxed font-medium relative z-10 ${textPrimary} whitespace-pre-wrap`} 
-                 dangerouslySetInnerHTML={renderRichText(data.abstract)} 
+                 dangerouslySetInnerHTML={renderRichText(data.abstract, isLightMode)} 
                />
 
             </motion.div>
@@ -710,7 +711,7 @@ export default function ResearchDetailPage() {
              {/* 🚀 INJECTED RICH TEXT HERE */}
              <div 
                className={`text-base md:text-lg leading-relaxed font-medium relative z-10 ${textPrimary} whitespace-pre-wrap`} 
-               dangerouslySetInnerHTML={renderRichText(data.methodology)} 
+               dangerouslySetInnerHTML={renderRichText(data.methodology, isLightMode)} 
              />
 
           </motion.div>
@@ -741,7 +742,7 @@ export default function ResearchDetailPage() {
              {/* 🚀 INJECTED RICH TEXT HERE */}
              <div 
                className={`text-base md:text-lg leading-relaxed font-medium relative z-10 ${textPrimary} whitespace-pre-wrap`} 
-               dangerouslySetInnerHTML={renderRichText(data.conclusion)} 
+               dangerouslySetInnerHTML={renderRichText(data.conclusion, isLightMode)} 
              />
 
           </motion.div>

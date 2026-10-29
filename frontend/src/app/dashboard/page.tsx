@@ -12,6 +12,7 @@ import { User, Mail, Fingerprint, ShieldCheck, LogOut, Clock, Activity, Lock } f
 import CustomCursor from '@/components/CustomCursor';
 import BottomNav from '@/components/BottomNav';
 import ThemeToggle from '@/components/ThemeToggle';
+import { useTheme } from '@/context/ThemeContext';
 import Footer from '@/components/Footer';
 
 // ==========================================
@@ -64,7 +65,7 @@ interface UserData {
 export default function UserDashboard() {
   const router = useRouter();
   
-  const [isLightMode, setIsLightMode] = useState(false);
+  const { isLightMode, toggleTheme } = useTheme();
   const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -106,9 +107,9 @@ export default function UserDashboard() {
     router.push('/auth');
   };
 
-  const bgPrimary = isLightMode ? "bg-slate-50" : "bg-[#010309]";
+  const bgPrimary = isLightMode ? "bg-[#f8fafc]" : "bg-[#010309]";
   const textPrimary = isLightMode ? "text-slate-900" : "text-white";
-  const glassPanel = isLightMode ? "bg-white/60 border-slate-200 shadow-xl" : "bg-[#030b1c]/80 border-cyan-500/20 shadow-[0_0_30px_rgba(34,211,238,0.05)]";
+  const glassPanel = isLightMode ? "bg-white/95 border-slate-200 shadow-xl text-slate-800" : "bg-[#030b1c]/80 border-cyan-500/20 shadow-[0_0_30px_rgba(34,211,238,0.05)]";
 
   if (loading) {
     return (
@@ -121,7 +122,7 @@ export default function UserDashboard() {
   return (
     <main className={`relative min-h-screen flex flex-col font-sans overflow-x-hidden transition-colors duration-1000 ${bgPrimary}`}>
       <CustomCursor />
-      <ThemeToggle isLight={isLightMode} toggleTheme={() => setIsLightMode(!isLightMode)} />
+      <ThemeToggle isLight={isLightMode} toggleTheme={toggleTheme} />
 
       <div className="fixed inset-0 z-0 pointer-events-none">
         <Canvas camera={{ position: [0, 0, 6], fov: 45 }}>

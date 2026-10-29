@@ -7,9 +7,19 @@
   --foreground: #e2e8f0;
 }
 
+html.light, body.light {
+  --background: #f8fafc;
+  --foreground: #0f172a;
+}
+
 ::selection {
   background: rgba(34, 211, 238, 0.3);
   color: #fff;
+}
+
+html.light ::selection {
+  background: rgba(37, 99, 235, 0.25);
+  color: #1e3a8a;
 }
 
 body {
@@ -42,6 +52,10 @@ input, textarea {
   caret-color: #00f0ff; /* Makes the blinking typing line Matrix Cyan */
 }
 
+html.light input, html.light textarea {
+  caret-color: #2563eb; /* High contrast Royal Blue for light mode */
+}
+
 /* Premium Matrix Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
@@ -55,6 +69,16 @@ input, textarea {
 }
 ::-webkit-scrollbar-thumb:hover {
   background: #a855f7; /* Syncs with your cybernetic cursor */
+}
+
+html.light ::-webkit-scrollbar-track, body.light ::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+html.light ::-webkit-scrollbar-thumb, body.light ::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+}
+html.light ::-webkit-scrollbar-thumb:hover, body.light ::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
 
 /* Ensure smooth native behavior alongside Lenis */

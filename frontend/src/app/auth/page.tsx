@@ -14,6 +14,7 @@ import * as THREE from 'three';
 import CustomCursor from '@/components/CustomCursor';
 import BottomNav from '@/components/BottomNav';
 import ThemeToggle from '@/components/ThemeToggle';
+import { useTheme } from '@/context/ThemeContext';
 import Footer from '@/components/Footer';
 
 // ==========================================
@@ -61,7 +62,7 @@ export default function AuthGateway() {
   const router = useRouter();
   const [isMounted, setIsMounted] = useState(false);
   
-  const [isLightMode, setIsLightMode] = useState(false);
+  const { isLightMode, toggleTheme } = useTheme();
   const [isBooting, setIsBooting] = useState(true);
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [authState, setAuthState] = useState<'idle' | 'scanning' | 'error' | 'success'>('idle');
@@ -163,7 +164,7 @@ export default function AuthGateway() {
   };
 
   const textPrimary = isLightMode ? "text-slate-900" : "text-white";
-  const bgPrimary = isLightMode ? "bg-slate-50" : "bg-[#010309]";
+  const bgPrimary = isLightMode ? "bg-[#f8fafc]" : "bg-[#010309]";
   const inputStyle = `w-full bg-transparent border-b px-2 py-3 focus:outline-none focus:border-[#a855f7] transition-all font-mono tracking-widest ${isLightMode ? 'border-slate-300 text-slate-900 placeholder-slate-400 focus:bg-[#a855f7]/5' : 'border-slate-800 text-white placeholder-slate-600 focus:bg-[#a855f7]/10'}`;
 
   if (!isMounted) return <div className={`min-h-screen ${bgPrimary}`} />;
@@ -171,7 +172,7 @@ export default function AuthGateway() {
   return (
     <main className={`relative min-h-screen flex flex-col font-sans overflow-x-hidden transition-colors duration-1000 ${bgPrimary}`}>
       <CustomCursor />
-      <ThemeToggle isLight={isLightMode} toggleTheme={() => setIsLightMode(!isLightMode)} />
+      <ThemeToggle isLight={isLightMode} toggleTheme={toggleTheme} />
 
       <div className="fixed inset-0 z-0 pointer-events-none">
         <Canvas camera={{ position: [0, 0, 8], fov: 45 }}>
@@ -199,7 +200,7 @@ export default function AuthGateway() {
               </div>
             </motion.div>
 
-            <motion.div initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2, type: 'spring', damping: 20 }} className={`w-full lg:w-1/2 flex items-center justify-center p-8 lg:p-24 pointer-events-auto transition-colors duration-1000 ${isLightMode ? 'bg-gradient-to-l from-slate-50 via-slate-50/90 to-transparent' : 'bg-gradient-to-l from-[#010309] via-[#010309]/90 to-transparent'}`}>
+            <motion.div initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2, type: 'spring', damping: 20 }} className={`w-full lg:w-1/2 flex items-center justify-center p-8 lg:p-24 pointer-events-auto transition-colors duration-1000 ${isLightMode ? 'bg-gradient-to-l from-[#f8fafc] via-[#f8fafc]/90 to-transparent' : 'bg-gradient-to-l from-[#010309] via-[#010309]/90 to-transparent'}`}>
               <div className="w-full max-w-md pt-20 lg:pt-0">
                 
                 <div className="mb-10 text-center lg:text-left">

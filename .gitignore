@@ -1,70 +1,137 @@
-# ==========================================
-# NIMA PLATFORM - GLOBAL GITIGNORE
-# ==========================================
+# ========================================================
+# CSx / NIMA PLATFORM - COMPREHENSIVE GITIGNORE ARCHITECTURE
+# ========================================================
 
-# 1. Dependencies (Never push these, they are huge!)
+# --------------------------------------------------------
+# 1. DEPENDENCIES & PACKAGE MANAGERS
+# --------------------------------------------------------
 node_modules/
-/.pnp
-.pnp.js
-
-# 2. Next.js Build Outputs & Caches
-frontend/.next/
-frontend/out/
-frontend/build/
-.next/
-
-# 3. Environment Variables & Secrets (CRITICAL SECURITY)
-.env
-.env.*
-!.env.example
-*.pem
-
-# 4. Logs & Debugging
+*/node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+lerna-debug.log*
+.pnp
+.pnp.js
+.yarn/cache/
+.yarn/unplugged/
+.yarn/build-state.yml
+.yarn/install-state.gz
 
-# 5. OS Generated Files
+# --------------------------------------------------------
+# 2. RUNTIME SECRETS & ENVIRONMENT CONFIGURATION (CRITICAL)
+# --------------------------------------------------------
+.env
+.env.*
+*.env
+backend/.env
+backend/.env.*
+frontend/.env
+frontend/.env.*
+!.env.example
+!backend/.env.example
+!frontend/.env.example
+*.pem
+*.key
+*.cert
+*.crt
+credentials.json
+serviceAccountKey.json
+
+# --------------------------------------------------------
+# 3. BUILD OUTPUTS, COMPILED BUNDLES & CACHES
+# --------------------------------------------------------
+# Next.js
+.next/
+frontend/.next/
+out/
+frontend/out/
+build/
+frontend/build/
+.turbo/
+# Backend TypeScript compilation
+dist/
+backend/dist/
+# TypeScript build caches
+*.tsbuildinfo
+next-env.d.ts.bak
+
+# --------------------------------------------------------
+# 4. LOCAL DATABASES & STORAGE ENGINES
+# --------------------------------------------------------
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+*.sqlite-journal
+backend/dev.db
+backend/dev.db-journal
+
+# --------------------------------------------------------
+# 5. MATRIX RUNTIME ORCHESTRATOR & APPLICATION TELEMETRY
+# --------------------------------------------------------
+.csx_matrix_runtime.json
+.logs/
+logs/
+*.log
+backend/uploads/
+uploads/
+temp/
+tmp/
+
+# --------------------------------------------------------
+# 6. HEAVY STATISTICAL SURVEY DATA & LARGE BINARIES
+# --------------------------------------------------------
+# SPSS datasets & analytical working files
+*.sav
+*.spv
+docs/SC/
+docs/Statistics_and_Sampling_Exam_Playbook.pdf
+
+# --------------------------------------------------------
+# 7. BACKUPS, SCRATCH FILES & TEMPORARY ARTIFACTS
+# --------------------------------------------------------
+*.bak
+*.backup
+*.old
+*.tmp
+*.temp
+.trash/
+.bak/
+
+# --------------------------------------------------------
+# 8. OPERATING SYSTEM ARTIFACTS
+# --------------------------------------------------------
+# macOS
 .DS_Store
 .DS_Store?
 ._*
 .Spotlight-V100
 .Trashes
-ehthumbs.db
+# Windows
 Thumbs.db
+ehthumbs.db
+ehthumbs_vista.db
+desktop.ini
+$RECYCLE.BIN/
+# Linux
+*~
+.directory
 
-# 6. IDEs and Editors (VS Code, IntelliJ, etc.)
-.vscode/
-!.vscode/extensions.json
-!.vscode/settings.json
+# --------------------------------------------------------
+# 9. IDE & CODE EDITOR ARTIFACTS
+# --------------------------------------------------------
 .idea/
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
-
-# 7. TypeScript Caches
-*.tsbuildinfo
-
-# 8. Deployment Caches (Vercel/Netlify)
-.vercel/
-
-# 9. Prisma SQLite Databases (If you use a local dev database)
-*.db
-*.db-journal
-
-#unnessery
-/.trash
-
-#Backups
-/.bak
-
-# 10. Backend build output & local uploads (avatars live on Cloudinary)
-backend/dist/
-backend/uploads/
-
-# 11. Matrix runtime orchestrator state & logs
-.csx_matrix_runtime.json
-.logs/
+*.sublime-project
+*.sublime-workspace
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json

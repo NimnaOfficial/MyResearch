@@ -16,6 +16,7 @@ import {
 import CustomCursor from '@/components/CustomCursor';
 import BottomNav from '@/components/BottomNav';
 import ThemeToggle from '@/components/ThemeToggle';
+import { useTheme } from '@/context/ThemeContext';
 import Footer from '@/components/Footer';
 
 // ==========================================
@@ -101,7 +102,7 @@ function DigitalSkeletonCore({ rating, isTyping, isLight, lastChar }: { rating: 
 // ANIMATED CYBER GRID
 // ==========================================
 function AnimatedCyberGrid({ isLight }: { isLight: boolean }) {
-  const bgColor = isLight ? 'bg-slate-50' : 'bg-[#010205]';
+  const bgColor = isLight ? 'bg-[#f8fafc]' : 'bg-[#010205]';
   const hexColor = isLight ? 'rgba(0, 240, 255, 0.1)' : 'rgba(0, 240, 255, 0.03)'; 
   
   return (
@@ -125,7 +126,7 @@ function AnimatedCyberGrid({ isLight }: { isLight: boolean }) {
 // ==========================================
 export default function MasterFeedbackVault() {
   const router = useRouter();
-  const [isLightMode, setIsLightMode] = useState(false);
+  const { isLightMode, toggleTheme } = useTheme();
   const [timeState, setTimeState] = useState({ time: "", date: "" });
   const [isProfileHovered, setIsProfileHovered] = useState(false);
   
@@ -318,13 +319,13 @@ export default function MasterFeedbackVault() {
   const displayName = userData?.fullName ? userData.fullName.toUpperCase() : "GUEST";
 
   return (
-    <main className={`relative min-h-screen font-sans cursor-none overflow-x-hidden selection:bg-[${activeAccent}]/30 flex flex-col transition-colors duration-1000 ${isLightMode ? 'text-slate-900' : 'text-white'}`}>
+    <main className={`relative min-h-screen font-sans cursor-none overflow-x-hidden selection:bg-[${activeAccent}]/30 flex flex-col transition-colors duration-1000 ${isLightMode ? 'bg-[#f8fafc] text-slate-900' : 'bg-[#010205] text-white'}`}>
       <CustomCursor />
       
       <AnimatedCyberGrid isLight={isLightMode} />
 
       <div className="fixed top-24 left-6 lg:left-12 z-[100] pointer-events-auto">
-        <ThemeToggle isLight={isLightMode} toggleTheme={() => setIsLightMode(!isLightMode)} />
+        <ThemeToggle isLight={isLightMode} toggleTheme={toggleTheme} />
       </div>
 
       <div className="fixed top-0 left-0 right-0 z-50 pt-6 px-6 lg:px-12 flex justify-between items-start pointer-events-none">

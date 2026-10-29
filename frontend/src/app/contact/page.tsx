@@ -15,6 +15,7 @@ import Link from 'next/link';
 import BottomNav from '@/components/BottomNav';
 import CustomCursor from '@/components/CustomCursor';
 import ThemeToggle from '@/components/ThemeToggle';
+import { useTheme } from '@/context/ThemeContext';
 import Footer from '@/components/Footer';
 
 // ==========================================
@@ -85,7 +86,7 @@ const itemVariants = { hidden: { opacity: 0, x: -20 }, show: { opacity: 1, x: 0,
 // 4. MAIN CONTACT COMPONENT
 // ==========================================
 export default function ContactPage() {
-  const [isLightMode, setIsLightMode] = useState(false);
+  const { isLightMode, toggleTheme } = useTheme();
   
   // Profile Header States
   const [timeState, setTimeState] = useState({ time: "", date: "" });
@@ -153,14 +154,14 @@ export default function ContactPage() {
   }, [isAuthenticated]);
 
   // Theme Variables
-  const bgCol = isLightMode ? 'bg-slate-50' : 'bg-[#01030a]';
+  const bgCol = isLightMode ? 'bg-[#f8fafc]' : 'bg-[#01030a]';
   const textPrimary = isLightMode ? "text-slate-900" : "text-white";
   const textSecondary = isLightMode ? "text-slate-500" : "text-slate-400";
   const accentText = isLightMode ? "text-blue-600" : "text-cyan-400";
   
   const techPurple = isLightMode ? "text-[#9333ea]" : "text-[#a855f7]";
   const techPurpleHex = isLightMode ? "#9333ea" : "#a855f7";
-  const glassPanel = isLightMode ? "bg-white/60 border-slate-300 shadow-xl" : "bg-[#030b1c]/80 border-cyan-500/20 shadow-[0_0_50px_rgba(34,211,238,0.05)]";
+  const glassPanel = isLightMode ? "bg-white/90 border-slate-200 shadow-xl text-slate-800" : "bg-[#030b1c]/80 border-cyan-500/20 shadow-[0_0_50px_rgba(34,211,238,0.05)]";
   
   const inputStyle = isLightMode 
     ? "bg-white/80 border-slate-300 text-slate-900 focus:border-[#9333ea] focus:ring-[#9333ea]/20 placeholder-slate-400" 
@@ -172,7 +173,7 @@ export default function ContactPage() {
       
       {/* THEME TOGGLE (Left Aligned like Feedback Page) */}
       <div className="fixed top-24 left-6 lg:left-12 z-[100] pointer-events-auto">
-        <ThemeToggle isLight={isLightMode} toggleTheme={() => setIsLightMode(!isLightMode)} />
+        <ThemeToggle isLight={isLightMode} toggleTheme={toggleTheme} />
       </div>
 
       {/* ==========================================
