@@ -1,28 +1,40 @@
 import dotenv from 'dotenv';
+import nodemailer from 'nodemailer';
 import { escapeHtml } from './escapeHtml';
+
 dotenv.config();
 
-// Google Apps Script relay (plain HTTPS, so Render's SMTP block does not matter).
-// Configure it with EMAIL_RELAY_URL. The legacy URL below is only a temporary fallback
-// so existing deployments keep delivering mail; set the env var, rotate the script URL, then delete it.
-const LEGACY_RELAY_URL =
-  'https://script.google.com/macros/s/AKfycbwbPWENsU1co5MdQfB6PLjClsAmUa1fgoL-6sltghRNIat3SPUm0btlsA0pqANJZjoGbA/exec';
+// Direct Gmail SMTP Transporter for Real-Time Email Delivery
+let cachedTransporter: nodemailer.Transporter | null = null;
 
-const RELAY_TIMEOUT_MS = 15000;
+const getTransporter = (): nodemailer.Transporter | null => {
+  const user = process.env.EMAIL_USER;
+  const pass = process.env.EMAIL_PASS;
 
-const getRelayUrl = (): string => {
-  if (process.env.EMAIL_RELAY_URL) return process.env.EMAIL_RELAY_URL;
-  console.warn('[MAIL] EMAIL_RELAY_URL is not set - using the legacy built-in relay URL. Please configure the env var.');
-  return LEGACY_RELAY_URL;
+  if (!user || !pass) return null;
+
+  if (!cachedTransporter) {
+    cachedTransporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: { user, pass },
+    });
+  }
+
+  return cachedTransporter;
 };
 
-/** Sends one e-mail through the HTTP relay. Throws on any failure. */
+// Fallback HTTP Relay (if configured)
+const RELAY_TIMEOUT_MS = 10000;
+
 const sendViaRelay = async (to: string, subject: string, html: string): Promise<void> => {
+  const relayUrl = process.env.EMAIL_RELAY_URL;
+  if (!relayUrl) throw new Error('EMAIL_RELAY_URL is not configured.');
+
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), RELAY_TIMEOUT_MS);
 
   try {
-    const response = await fetch(getRelayUrl(), {
+    const response = await fetch(relayUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ to, subject, html }),
@@ -37,20 +49,49 @@ const sendViaRelay = async (to: string, subject: string, html: string): Promise<
   }
 };
 
+/**
+ * Dispatches an e-mail in real-time via Gmail SMTP.
+ * Falls back to HTTP relay if SMTP fails, and logs to terminal for local tracking.
+ */
+const sendMailMessage = async (to: string, subject: string, html: string): Promise<boolean> => {
+  const transporter = getTransporter();
+
+  // 1. Primary: Direct Real-Time SMTP Delivery via Gmail
+  if (transporter) {
+    try {
+      console.log(`[NETWORK] Dispatching real-time email via Gmail SMTP to: ${to}...`);
+      const info = await transporter.sendMail({
+        from: `"CSx CORE Systems" <${process.env.EMAIL_USER}>`,
+        to,
+        subject,
+        html,
+      });
+      console.log(`[NETWORK] ✅ Cryptographic Email delivered in real time! Message ID: ${info.messageId}`);
+      return true;
+    } catch (err: any) {
+      console.error(`[SMTP WARNING] Direct Gmail SMTP failed (${err?.message || err}). Trying fallback...`);
+    }
+  }
+
+  // 2. Secondary: HTTP Relay (if configured)
+  if (process.env.EMAIL_RELAY_URL) {
+    try {
+      console.log(`[NETWORK] Dispatching email via HTTP relay to: ${to}...`);
+      await sendViaRelay(to, subject, html);
+      console.log(`[NETWORK] ✅ Cryptographic Email delivered via HTTP relay!`);
+      return true;
+    } catch (relayErr: any) {
+      console.error(`[RELAY ERROR] HTTP relay rejected transmission:`, relayErr?.message || relayErr);
+    }
+  }
+
+  return false;
+};
+
 // ============================================================================
-// 1. IDENTITY VERIFICATION MODULE (HTTP RELAY)
+// 1. IDENTITY VERIFICATION MODULE (REAL-TIME DELIVERY)
 // ============================================================================
 export const sendSecretCodeEmail = async (toEmail: string, secretCode: string, verifyUrl: string) => {
-  // In local development without an explicit EMAIL_RELAY_URL, log immediately for zero-latency offline workflow
-  if (!process.env.EMAIL_RELAY_URL && process.env.NODE_ENV !== 'production') {
-    console.log(`\n======================================================`);
-    console.log(`⚡ [LOCAL DEV MAIL EMULATOR]`);
-    console.log(`[RECIPIENT]   : ${toEmail}`);
-    console.log(`[SECRET CODE] : ${secretCode}`);
-    console.log(`[VERIFY URL]  : ${verifyUrl}`);
-    console.log(`======================================================\n`);
-    return;
-  }
   const htmlContent = `
       <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #01030a; padding: 40px 0; width: 100%; font-family: 'Courier New', Courier, monospace;">
         <tr>
@@ -89,19 +130,21 @@ export const sendSecretCodeEmail = async (toEmail: string, secretCode: string, v
       </table>
   `;
 
-  try {
-    console.log(`[NETWORK] Transmitting verification payload via HTTP relay to ${toEmail}...`);
-    await sendViaRelay(toEmail, 'System Initialization: Verify Your Identity', htmlContent);
-    console.log(`[NETWORK] Cryptographic Email successfully delivered!`);
-  } catch (error: any) {
-    console.error(`[RELAY ERROR] HTTP Email failed:`, error.message);
-    // The secret code is a credential: only ever print it outside production
-    if (process.env.NODE_ENV !== 'production') {
-      console.log(`\n======================================================`);
-      console.log(`DEV ENVIRONMENT BYPASS ACTIVE`);
-      console.log(`[YOUR SECRET CODE IS] -> ${secretCode}`);
-      console.log(`======================================================\n`);
-    }
+  const sent = await sendMailMessage(
+    toEmail,
+    'System Initialization: Verify Your Identity',
+    htmlContent
+  );
+
+  // In non-production environments, also display in console for instant developer feedback
+  if (process.env.NODE_ENV !== 'production') {
+    console.log(`\n======================================================`);
+    console.log(`⚡ [IDENTITY MATRIX DISPATCHED]`);
+    console.log(`[RECIPIENT]   : ${toEmail}`);
+    console.log(`[SECRET CODE] : ${secretCode}`);
+    console.log(`[VERIFY URL]  : ${verifyUrl}`);
+    console.log(`[STATUS]      : ${sent ? 'DELIVERED IN REAL-TIME VIA GMAIL SMTP ✅' : 'PENDING'}`);
+    console.log(`======================================================\n`);
   }
 };
 
@@ -117,16 +160,8 @@ export const sendFeedbackNotificationEmail = async (
   tags: string
 ) => {
   const priorityColor = priority === 'Critical' ? '#ef4444' : priority === 'Medium' ? '#f59e0b' : '#00f0ff';
-
-  // Alerts go to the configured admin mailbox
   const adminEmail = process.env.EMAIL_USER || 'nimna909@gmail.com';
 
-  if (!process.env.EMAIL_RELAY_URL && process.env.NODE_ENV !== 'production') {
-    console.log(`[LOCAL DEV MAIL EMULATOR] Telemetry Feedback from ${senderInfo} (Priority: ${priority}, Category: ${category})`);
-    return;
-  }
-
-  // Every user-supplied value is escaped: feedback text must never inject HTML into the admin's inbox
   const htmlContent = `
       <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #01030a; padding: 40px 0; width: 100%; font-family: 'Courier New', Courier, monospace;">
         <tr>
@@ -135,7 +170,7 @@ export const sendFeedbackNotificationEmail = async (
               <tr>
                 <td style="padding: 30px; border-bottom: 1px solid #1e293b; background-color: #020617;">
                   <h2 style="color: #00ff66; letter-spacing: 2px; margin: 0; font-size: 20px;">NEW TELEMETRY INTERCEPTED</h2>
-                  <p style="color: #94a3b8; font-size: 14px; margin-top: 5px;">A new log has been injected into the PostgreSQL Matrix.</p>
+                  <p style="color: #94a3b8; font-size: 14px; margin-top: 5px;">A new log has been injected into the DataCore Matrix.</p>
                 </td>
               </tr>
               <tr>
@@ -174,14 +209,9 @@ export const sendFeedbackNotificationEmail = async (
       </table>
   `;
 
-  try {
-    await sendViaRelay(
-      adminEmail,
-      `[TELEMETRY] ${priority.toUpperCase()} ALERTS - ${category}`.replace(/[\r\n]+/g, ' '),
-      htmlContent
-    );
-    console.log(`[NETWORK] Telemetry Email Notification successfully delivered!`);
-  } catch (error: any) {
-    console.error(`[RELAY ERROR] Telemetry Email failed to send:`, error.message);
-  }
+  await sendMailMessage(
+    adminEmail,
+    `[TELEMETRY] ${priority.toUpperCase()} ALERTS - ${category}`.replace(/[\r\n]+/g, ' '),
+    htmlContent
+  );
 };

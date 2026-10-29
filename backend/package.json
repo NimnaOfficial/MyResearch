@@ -12,6 +12,7 @@
     "db:push:turso": "ts-node --transpile-only prisma/push-turso.ts",
     "db:check": "ts-node --transpile-only check-db.ts",
     "seed": "ts-node --transpile-only prisma/seed.ts",
+    "seed:mock": "ts-node --transpile-only prisma/inject-mock-data.ts",
     "seed:admin": "ts-node --transpile-only seed-admin.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
