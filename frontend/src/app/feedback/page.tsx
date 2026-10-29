@@ -409,7 +409,7 @@ export default function MasterFeedbackVault() {
           </motion.div>
 
           <div className="absolute inset-0 z-0 cursor-grab active:cursor-grabbing">
-             <Canvas camera={{ position: [0, 0, 8], fov: 45 }}>
+             <Canvas camera={{ position: [0, 0, 8], fov: 45 }} dpr={[1, 1.5]} gl={{ powerPreference: "high-performance", antialias: false, stencil: false }}>
                 <DigitalSkeletonCore rating={rating} isTyping={isTyping} isLight={isLightMode} lastChar={lastChar} />
              </Canvas>
           </div>

@@ -125,7 +125,7 @@ export default function UserDashboard() {
       <ThemeToggle isLight={isLightMode} toggleTheme={toggleTheme} />
 
       <div className="fixed inset-0 z-0 pointer-events-none">
-        <Canvas camera={{ position: [0, 0, 6], fov: 45 }}>
+        <Canvas camera={{ position: [0, 0, 6], fov: 45 }} dpr={[1, 1.5]} gl={{ powerPreference: "high-performance", antialias: false, stencil: false }}>
           <ambientLight intensity={isLightMode ? 0.8 : 0.2} />
           <directionalLight position={[5, 5, 5]} intensity={isLightMode ? 2 : 1} color={isLightMode ? "#0ea5e9" : "#a855f7"} />
           <Sparkles count={100} scale={10} size={1} speed={0.4} color={isLightMode ? "#0ea5e9" : "#00f0ff"} opacity={0.3} />

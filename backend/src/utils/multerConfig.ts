@@ -30,7 +30,7 @@ if (useCloudinary) {
   });
 } else {
   // 100% Local Disk Storage Engine (Zero Cloud Dependencies)
-  const uploadsDir = path.resolve(__dirname, '../../uploads/profiles');
+  const uploadsDir = path.resolve(process.cwd(), 'uploads/profiles');
   if (!fs.existsSync(uploadsDir)) {
     fs.mkdirSync(uploadsDir, { recursive: true });
   }

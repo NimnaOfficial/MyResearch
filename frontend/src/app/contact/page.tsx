@@ -56,7 +56,7 @@ function QuantumSignalRelay({ isLight }: { isLight: boolean }) {
       <Float speed={2} rotationIntensity={1} floatIntensity={1} position={[0, 0, -4]}>
         <group ref={relayRef}>
           <Icosahedron args={[1.5, 1]}>
-            <MeshTransmissionMaterial backside thickness={0.5} roughness={0.1} color={isLight ? "#3b82f6" : "#00f0ff"} distortionScale={0} temporalDistortion={0} />
+            <MeshTransmissionMaterial backside samples={2} resolution={256} thickness={0.5} roughness={0.1} color={isLight ? "#3b82f6" : "#00f0ff"} distortionScale={0} temporalDistortion={0} />
           </Icosahedron>
           <Torus args={[2.8, 0.02, 16, 100]} rotation={[Math.PI / 2, 0, 0]}>
             <meshBasicMaterial color={isLight ? "#2563eb" : "#22d3ee"} />
@@ -237,10 +237,10 @@ export default function ContactPage() {
 
       {/* 3D CANVAS */}
       <div className="fixed inset-0 z-0 pointer-events-none">
-        <Canvas camera={{ position: [0, 0, 12], fov: 45 }}>
+        <Canvas camera={{ position: [0, 0, 12], fov: 45 }} dpr={[1, 1.5]} gl={{ powerPreference: "high-performance", antialias: false, stencil: false }}>
           <ambientLight intensity={isLightMode ? 0.8 : 0.2} />
           <directionalLight position={[5, 5, 5]} intensity={isLightMode ? 2 : 5} color={isLightMode ? "#3b82f6" : "#00f0ff"} />
-          <Sparkles count={300} scale={20} size={1.5} speed={0.4} opacity={isLightMode ? 0.4 : 0.6} color={isLightMode ? "#3b82f6" : "#00f0ff"} />
+          <Sparkles count={100} scale={20} size={1.5} speed={0.4} opacity={isLightMode ? 0.4 : 0.6} color={isLightMode ? "#3b82f6" : "#00f0ff"} />
           <QuantumSignalRelay isLight={isLightMode} />
           <EffectComposer>
             <Bloom luminanceThreshold={isLightMode ? 0.8 : 0.2} mipmapBlur intensity={isLightMode ? 1.0 : 2.5} radius={0.8} />

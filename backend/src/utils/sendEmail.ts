@@ -215,3 +215,108 @@ export const sendFeedbackNotificationEmail = async (
     htmlContent
   );
 };
+
+// ============================================================================
+// 3. REGENERATED SECRET CODE DISPATCH MODULE
+// ============================================================================
+export const sendRegeneratedCodeEmail = async (toEmail: string, newSecretCode: string): Promise<boolean> => {
+  const htmlContent = `
+      <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #01030a; padding: 40px 0; width: 100%; font-family: 'Courier New', Courier, monospace;">
+        <tr>
+          <td align="center">
+            <table width="600" cellpadding="0" cellspacing="0" style="background-color: #050b14; border: 1px solid #1e293b; border-radius: 8px; overflow: hidden; text-align: left;">
+              <tr>
+                <td style="padding: 30px; border-bottom: 1px solid #1e293b; background-color: #020617;">
+                  <h2 style="color: #00f0ff; letter-spacing: 3px; margin: 0; font-size: 22px; text-transform: uppercase;">CIPHER ACCESS REGENERATED</h2>
+                  <p style="color: #94a3b8; font-size: 13px; margin-top: 6px;">Your cryptographic access code has been updated by system administration.</p>
+                </td>
+              </tr>
+              <tr>
+                <td align="center" style="padding: 40px 20px;">
+                  <div style="background-color: rgba(0, 240, 255, 0.05); border: 1px dashed #00f0ff; border-radius: 8px; padding: 25px 40px; display: inline-block;">
+                    <p style="color: #94a3b8; font-size: 11px; margin: 0 0 10px 0; letter-spacing: 2px; text-transform: uppercase;">New Secret Login Code</p>
+                    <h1 style="margin: 0; font-size: 38px; letter-spacing: 8px; color: #00ff66;">${escapeHtml(newSecretCode)}</h1>
+                  </div>
+                  <p style="color: #94a3b8; font-size: 13px; margin-top: 25px; max-width: 450px; line-height: 1.6;">
+                    Your previous access code has been invalidated. Please store this new code in a secure location. You may now use it immediately to establish access to the platform.
+                  </p>
+                </td>
+              </tr>
+              <tr>
+                <td align="center" style="padding: 20px; background-color: #020617; border-top: 1px solid #1e293b;">
+                  <p style="color: #475569; font-size: 10px; margin: 0; letter-spacing: 1px;">CSx CORE SYSTEMS // AUTOMATED SECURITY DISPATCH</p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+  `;
+
+  const sent = await sendMailMessage(
+    toEmail,
+    'CSx Security Dispatch: New Secret Member Cipher Generated',
+    htmlContent
+  );
+
+  if (process.env.NODE_ENV !== 'production') {
+    console.log(`\n======================================================`);
+    console.log(`⚡ [REGENERATED CODE DISPATCHED]`);
+    console.log(`[RECIPIENT]   : ${toEmail}`);
+    console.log(`[NEW CIPHER]  : ${newSecretCode}`);
+    console.log(`[STATUS]      : ${sent ? 'DELIVERED IN REAL-TIME ✅' : 'PENDING'}`);
+    console.log(`======================================================\n`);
+  }
+
+  return sent;
+};
+
+// ============================================================================
+// 4. CODE RECOVERY REQUEST ADMIN ALERT MODULE
+// ============================================================================
+export const sendRecoveryAlertToAdmin = async (userEmail: string, userFullName: string, userId: string): Promise<boolean> => {
+  const adminEmail = process.env.EMAIL_USER || 'nimna909@gmail.com';
+  const htmlContent = `
+      <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #01030a; padding: 40px 0; width: 100%; font-family: 'Courier New', Courier, monospace;">
+        <tr>
+          <td align="center">
+            <table width="600" cellpadding="0" cellspacing="0" style="background-color: #050b14; border: 1px solid #f59e0b; border-radius: 8px; overflow: hidden; text-align: left;">
+              <tr>
+                <td style="padding: 30px; border-bottom: 1px solid #1e293b; background-color: #020617;">
+                  <h2 style="color: #f59e0b; letter-spacing: 2px; margin: 0; font-size: 20px;">⚠️ CODE RECOVERY REQUESTED</h2>
+                  <p style="color: #94a3b8; font-size: 13px; margin-top: 6px;">An operator has requested secret login cipher regeneration.</p>
+                </td>
+              </tr>
+              <tr>
+                <td style="padding: 30px;">
+                  <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse;">
+                    <tr>
+                      <td style="padding: 10px 0; border-bottom: 1px solid #1e293b; color: #94a3b8; width: 140px; font-size: 13px;">OPERATOR</td>
+                      <td style="padding: 10px 0; border-bottom: 1px solid #1e293b; color: #fff; font-weight: bold; font-size: 13px;">${escapeHtml(userFullName || 'Unknown')}</td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 10px 0; border-bottom: 1px solid #1e293b; color: #94a3b8; font-size: 13px;">EMAIL</td>
+                      <td style="padding: 10px 0; border-bottom: 1px solid #1e293b; color: #00f0ff; font-weight: bold; font-size: 13px;">${escapeHtml(userEmail)}</td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 10px 0; border-bottom: 1px solid #1e293b; color: #94a3b8; font-size: 13px;">NODE ID</td>
+                      <td style="padding: 10px 0; border-bottom: 1px solid #1e293b; color: #94a3b8; font-family: monospace; font-size: 12px;">${escapeHtml(userId)}</td>
+                    </tr>
+                  </table>
+                  <p style="color: #94a3b8; font-size: 13px; margin-top: 20px;">
+                    Log into the Admin Console &rarr; Global Node Roster to review and regenerate this operator's login code with 1 click.
+                  </p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+  `;
+
+  return sendMailMessage(
+    adminEmail,
+    `[ACTION REQUIRED] Code Recovery Request: ${userEmail}`,
+    htmlContent
+  );
+};

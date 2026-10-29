@@ -43,10 +43,10 @@ function DigitalFlask({ scale }: { scale: number }) {
   return (
     <group scale={scale} position={[0, -0.8, 0]}>
       <Cylinder args={[0.3, 1.2, 1.8, 32]} position={[0, 0.9, 0]}>
-        <MeshTransmissionMaterial backside samples={4} thickness={0.5} chromaticAberration={0.1} color="#0ea5e9" distortionScale={0} temporalDistortion={0} />
+        <MeshTransmissionMaterial backside samples={2} resolution={256} thickness={0.5} chromaticAberration={0.1} color="#0ea5e9" distortionScale={0} temporalDistortion={0} />
       </Cylinder>
       <Cylinder args={[0.3, 0.3, 0.8, 32]} position={[0, 2.2, 0]}>
-        <MeshTransmissionMaterial backside samples={4} thickness={0.5} chromaticAberration={0.1} color="#0ea5e9" distortionScale={0} temporalDistortion={0} />
+        <MeshTransmissionMaterial backside samples={2} resolution={256} thickness={0.5} chromaticAberration={0.1} color="#0ea5e9" distortionScale={0} temporalDistortion={0} />
       </Cylinder>
       <Cylinder args={[0.35, 0.35, 0.1, 32]} position={[0, 2.65, 0]} material={new THREE.MeshPhysicalMaterial({ color: "#e2e8f0" })} />
       <Cylinder args={[0.4, 1.15, 1.2, 32]} position={[0, 0.65, 0]} material={new THREE.MeshStandardMaterial({ color: "#000", emissive: "#00f0ff", emissiveIntensity: 2, wireframe: true })} />
@@ -110,7 +110,7 @@ function QuantumPortal({ scale }: { scale: number }) {
   });
   return (
     <group scale={scale} ref={ref}>
-      <TorusKnot args={[1, 0.3, 128, 16]} material={new THREE.MeshStandardMaterial({ color: "#000", emissive: "#a855f7", emissiveIntensity: 1.5, wireframe: true })} />
+      <TorusKnot args={[1, 0.3, 64, 16]} material={new THREE.MeshStandardMaterial({ color: "#000", emissive: "#a855f7", emissiveIntensity: 1.5, wireframe: true })} />
       <Sphere args={[0.6, 32, 32]} material={new THREE.MeshStandardMaterial({ color: "#000", emissive: "#00f0ff", emissiveIntensity: 3, wireframe: true })} />
       <Sparkles count={100} scale={4} size={3} color="#a855f7" />
     </group>
@@ -196,7 +196,7 @@ function SystemEngine({ scrollData }: { scrollData: { section: number, velocity:
     <PresentationControls global config={{ mass: 2, tension: 300 }} snap={{ mass: 4, tension: 800 }} rotation={[0, 0, 0]} polar={[-0.4, 0.4]} azimuth={[-1, 1]}>
       <group ref={engineGroup}>
         <mesh ref={liquidRef} scale={liquidScale} position={[0, isScrolling ? 0 : 0.5, 0]}>
-          <sphereGeometry args={[1, 128, 128]} />
+          <sphereGeometry args={[1, 48, 48]} />
           <MeshDistortMaterial color="#000" emissive="#0ea5e9" emissiveIntensity={3} distort={0.8} speed={5} wireframe={true} />
         </mesh>
         <DigitalLaptop scale={s0} />
@@ -379,10 +379,10 @@ export default function WelcomePage() {
       </div>
 
       <div className={`fixed inset-0 z-0 pointer-events-none transition-all duration-1000`}>
-        <Canvas camera={{ position: [0, 0, 7], fov: 45 }}>
+        <Canvas camera={{ position: [0, 0, 7], fov: 45 }} dpr={[1, 1.5]} gl={{ powerPreference: "high-performance", antialias: false, stencil: false }}>
           <color attach="background" args={['#01030a']} />
           <SceneLighting isLight={isLightMode} />
-          <Sparkles count={600} scale={20} size={1.5} speed={0.4} opacity={isLightMode ? 0.2 : 0.6} color={isLightMode ? "#3b82f6" : "#00f0ff"} />
+          <Sparkles count={150} scale={20} size={1.5} speed={0.4} opacity={isLightMode ? 0.2 : 0.6} color={isLightMode ? "#3b82f6" : "#00f0ff"} />
           <Float speed={2} rotationIntensity={0.1} floatIntensity={0.3}>
             <SystemEngine scrollData={scrollData} />
           </Float>

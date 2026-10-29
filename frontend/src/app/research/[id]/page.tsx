@@ -68,34 +68,18 @@ const renderRichText = (text: string, isLight: boolean = false) => {
 };
 
 function ActiveDataBackground({ isLight }: { isLight: boolean }) {
-  const [nodes, setNodes] = useState<any[]>([]);
-  useEffect(() => {
-    setNodes(Array.from({ length: 20 }).map((_, i) => ({
-      id: i, left: Math.random() * 100, top: Math.random() * 100, size: Math.random() * 30 + 10
-    })));
-  }, []);
-  
-  const gridColor = isLight ? 'rgba(0,255,102,0.1)' : 'rgba(0,255,102,0.03)';
-  const gridColor2 = isLight ? 'rgba(0,240,255,0.1)' : 'rgba(0,240,255,0.03)';
+  const gridColor = isLight ? 'rgba(0,255,102,0.08)' : 'rgba(0,255,102,0.03)';
+  const gridColor2 = isLight ? 'rgba(0,240,255,0.08)' : 'rgba(0,240,255,0.03)';
   const bgColor = isLight ? 'bg-[#f8fafc]' : 'bg-[#010205]';
 
   return (
-    <div className={`fixed inset-0 z-0 pointer-events-none overflow-hidden transition-colors duration-1000 ${bgColor}`}>
-      <motion.div 
-        initial={{ opacity: 0, scale: 1.1 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 2 }}
-        className="absolute inset-0 [mask-image:radial-gradient(ellipse_at_center,black_20%,transparent_80%)]" 
+    <div className={`fixed inset-0 z-0 pointer-events-none overflow-hidden transition-colors duration-700 ${bgColor}`}>
+      <div 
+        className="absolute inset-0 [mask-image:radial-gradient(ellipse_at_center,black_30%,transparent_85%)]" 
         style={{ backgroundImage: `linear-gradient(${gridColor} 1px, transparent 1px), linear-gradient(90deg, ${gridColor2} 1px, transparent 1px)`, backgroundSize: '80px 80px' }}
       />
-      {nodes.map((node) => {
-        const isCyan = node.id % 2 === 0;
-        return (
-          <motion.div key={node.id} className={`absolute flex items-center justify-center opacity-30 ${isCyan ? 'text-[#00f0ff]' : 'text-[#00ff66]'}`} style={{ left: `${node.left}vw`, top: `${node.top}vh` }} animate={{ y: [0, Math.random() * -150 - 50, 0], x: [0, Math.random() * 50 - 25, 0], rotateZ: [0, Math.random() * 180, 360], rotateX: [0, 180, 360], scale: [1, Math.random() * 0.5 + 1, 1], opacity: [0.1, 0.5, 0.1] }} transition={{ duration: Math.random() * 25 + 15, repeat: Infinity, ease: "linear" }}>
-            <Hexagon size={node.size} strokeWidth={1.5} />
-          </motion.div>
-        );
-      })}
-      <motion.div animate={{ opacity: [0.3, 0.6, 0.3], scale: [1, 1.1, 1] }} transition={{ duration: 10, repeat: Infinity }} className={`absolute -top-[20%] -left-[10%] w-[50vw] h-[50vw] rounded-full blur-[150px] ${isLight ? 'bg-[#00ff66]/20' : 'bg-[#00ff66]/10'}`} />
-      <motion.div animate={{ opacity: [0.3, 0.6, 0.3], scale: [1, 1.2, 1] }} transition={{ duration: 12, repeat: Infinity }} className={`absolute -bottom-[20%] -right-[10%] w-[60vw] h-[60vw] rounded-full blur-[180px] ${isLight ? 'bg-[#00f0ff]/20' : 'bg-[#00f0ff]/10'}`} />
+      <div className={`absolute -top-[15%] -left-[10%] w-[45vw] h-[45vw] rounded-full blur-[100px] pointer-events-none transform-gpu ${isLight ? 'bg-[#00ff66]/10' : 'bg-[#00ff66]/5'}`} />
+      <div className={`absolute -bottom-[15%] -right-[10%] w-[50vw] h-[50vw] rounded-full blur-[120px] pointer-events-none transform-gpu ${isLight ? 'bg-[#00f0ff]/10' : 'bg-[#00f0ff]/5'}`} />
     </div>
   );
 }

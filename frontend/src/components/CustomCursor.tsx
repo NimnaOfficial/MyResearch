@@ -46,13 +46,18 @@ export default function CustomCursor() {
     setIsMounted(true);
     if (typeof window === 'undefined') return;
 
+    let lastHoverCheck = 0;
     const handleMouseMove = (e: MouseEvent) => {
       cursorX.set(e.clientX);
       cursorY.set(e.clientY);
       
-      const target = e.target as HTMLElement;
-      const isInteractive = !!target.closest('a, button, input, textarea, select, [role="button"], .cursor-pointer');
-      setIsHovering(isInteractive);
+      const now = performance.now();
+      if (now - lastHoverCheck > 50) {
+        lastHoverCheck = now;
+        const target = e.target as HTMLElement;
+        const isInteractive = !!target?.closest?.('a, button, input, textarea, select, [role="button"], .cursor-pointer');
+        setIsHovering(prev => prev === isInteractive ? prev : isInteractive);
+      }
     };
 
     const handleMouseDown = () => setIsClicking(true);

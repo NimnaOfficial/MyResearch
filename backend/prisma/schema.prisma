@@ -31,6 +31,8 @@ model User {
 
   role          String        @default("user")
   status        String        @default("ACTIVE")
+  mustChangePassword Boolean   @default(false)
+  recoveryRequested  Boolean   @default(false)
 
   // Telemetry
   lastIp        String?

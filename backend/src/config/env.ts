@@ -39,23 +39,27 @@ export const getAllowedOrigins = (): string[] => {
   );
 };
 
-/** Vercel preview deployments of the frontend (e.g. https://csxpidia-git-main-xyz.vercel.app) */
+/** Vercel production & preview deployments of the frontend (e.g. https://*.vercel.app) */
 export const isTrustedPreviewOrigin = (origin: string): boolean =>
-  /^https:\/\/csxpidia[a-z0-9-]*\.vercel\.app$/i.test(origin);
+  /^https:\/\/[a-z0-9-]+(?:\.[a-z0-9-]+)*\.vercel\.app$/i.test(origin);
 
 /** Fail fast at boot when the server would otherwise run insecurely or broken. */
 export const validateEnv = (): void => {
   const problems: string[] = [];
 
-  if (!process.env.DATABASE_URL) problems.push('DATABASE_URL is missing.');
-  if (isProduction && !process.env.JWT_SECRET) problems.push('JWT_SECRET is missing (required in production).');
+  if (!process.env.DATABASE_URL && !process.env.TURSO_DATABASE_URL) {
+    problems.push('DATABASE_URL or TURSO_DATABASE_URL is missing.');
+  }
+  if (isProduction && !process.env.JWT_SECRET) {
+    problems.push('JWT_SECRET is missing (required in production).');
+  }
 
   if (problems.length > 0) {
     problems.forEach((p) => console.error(`[CONFIG ERROR] ${p}`));
     throw new Error('Invalid server configuration. See errors above.');
   }
 
-  if (!process.env.EMAIL_RELAY_URL) {
-    console.warn('[CONFIG] EMAIL_RELAY_URL is not set. Falling back to the legacy built-in relay URL - please configure it.');
+  if (!process.env.EMAIL_RELAY_URL && !process.env.EMAIL_USER) {
+    console.warn('[CONFIG] Neither EMAIL_RELAY_URL nor EMAIL_USER is set. Email dispatch may fail.');
   }
 };

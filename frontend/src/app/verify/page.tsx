@@ -23,10 +23,10 @@ function DecryptionCore({ status }: { status: 'verifying' | 'success' | 'error' 
   return (
     <group>
       <Float speed={4} rotationIntensity={1.5} floatIntensity={2}>
-        <TorusKnot args={[1, 0.3, 128, 16]} position={[0, 0, 0]}>
+        <TorusKnot args={[1, 0.3, 64, 16]} position={[0, 0, 0]}>
           <MeshTransmissionMaterial 
             backside 
-            samples={4} 
+            samples={2} resolution={256} 
             thickness={0.5} 
             chromaticAberration={0.5} 
             color={coreColor} 
@@ -38,7 +38,7 @@ function DecryptionCore({ status }: { status: 'verifying' | 'success' | 'error' 
           <meshStandardMaterial color="#000" emissive={coreColor} emissiveIntensity={3} wireframe />
         </Sphere>
       </Float>
-      <Sparkles count={150} scale={6} size={2} speed={0.8} color={coreColor} />
+      <Sparkles count={80} scale={6} size={2} speed={0.8} color={coreColor} />
     </group>
   );
 }
@@ -154,7 +154,7 @@ export default function VerifyPage() {
       
       {/* 3D BACKGROUND ENGINE */}
       <div className="fixed inset-0 z-0 pointer-events-none">
-        <Canvas camera={{ position: [0, 0, 5], fov: 45 }}>
+        <Canvas camera={{ position: [0, 0, 5], fov: 45 }} dpr={[1, 1.5]} gl={{ powerPreference: "high-performance", antialias: false, stencil: false }}>
           <color attach="background" args={['#01030a']} />
           <ambientLight intensity={0.2} />
           <directionalLight position={[5, 10, 5]} intensity={3} color="#a855f7" />

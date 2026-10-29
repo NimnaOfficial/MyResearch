@@ -32,7 +32,7 @@ function ActiveTopography({ isLight }: { isLight: boolean }) {
       <ambientLight intensity={isLight ? 1 : 0.5} />
       <Float speed={1.5} rotationIntensity={0.1} floatIntensity={0.5}>
         <mesh ref={meshRef}>
-          <planeGeometry args={[70, 70, 150, 150]} />
+          <planeGeometry args={[70, 70, 50, 50]} />
           <MeshDistortMaterial 
             color={isLight ? "#0066ff" : "#001133"} emissive={isLight ? "#00aaff" : "#00f0ff"}
             emissiveIntensity={isLight ? 0.4 : 1.5} wireframe={true} distort={0.4} 
@@ -227,14 +227,14 @@ export default function AdvancedSettingsMatrix() {
   return (
     <main className={`relative min-h-screen font-sans cursor-none overflow-x-hidden selection:bg-[#00f0ff]/30 flex flex-col transition-colors duration-1000 ${bgCore}`}>
       <CustomCursor />
-      <style dangerouslySetInnerHTML={{__html: `@keyframes textAnimation { 0% { background-position: 0 0; } 100% { background-position: 2000px 0; } } .video-text-animation { color: rgba(225, 225, 255, 0.05); background-image: url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop'); background-repeat: repeat-x; background-clip: text; -webkit-background-clip: text; background-size: cover; animation: textAnimation 25s linear infinite; } .secure-code-block { user-select: none !important; -webkit-user-select: none !important; -moz-user-select: none !important; pointer-events: none; } @media print { .secure-code-container { display: none !important; } }`}} />
+      <style dangerouslySetInnerHTML={{__html: `.video-text-animation { background: linear-gradient(135deg, #00f0ff 0%, #818cf8 50%, #c084fc 100%); -webkit-background-clip: text; background-clip: text; color: transparent; } .secure-code-block { user-select: none !important; -webkit-user-select: none !important; -moz-user-select: none !important; pointer-events: none; } @media print { .secure-code-container { display: none !important; } }`}} />
 
       <div className="relative z-[100] pointer-events-auto">
         <ThemeToggle isLight={isLightMode} toggleTheme={toggleTheme} />
       </div>
 
       <div className="fixed inset-0 z-0 overflow-hidden cursor-move">
-        <Canvas camera={{ position: [0, 2, 8], fov: 60 }}>
+        <Canvas camera={{ position: [0, 2, 8], fov: 60 }} dpr={[1, 1.5]} gl={{ powerPreference: "high-performance", antialias: false, stencil: false }}>
           <OrbitControls enableZoom={false} enablePan={true} autoRotate={true} autoRotateSpeed={0.5} maxPolarAngle={Math.PI / 1.5} minPolarAngle={Math.PI / 4} />
           <ActiveTopography isLight={isLightMode} />
         </Canvas>

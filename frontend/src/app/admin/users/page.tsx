@@ -25,6 +25,8 @@ interface MatrixUser {
   lastIp?: string;
   lastDevice?: string;
   lastLogin?: string;
+  recoveryRequested?: boolean;
+  mustChangePassword?: boolean;
   _count?: {
     savedPosts: number;
     savedReleases: number;
@@ -40,7 +42,7 @@ export default function UltimateUserRoster() {
 
   // Advanced UI States
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterRole, setFilterRole] = useState<'ALL' | 'ADMIN' | 'USER'>('ALL');
+  const [filterRole, setFilterRole] = useState<'ALL' | 'ADMIN' | 'USER' | 'RECOVERY'>('ALL');
   const [selectedNodes, setSelectedNodes] = useState<string[]>([]);
   
   // Inspection & Editing States
@@ -213,7 +215,7 @@ export default function UltimateUserRoster() {
 
   const handleRegenerateSecretCode = async () => {
     if (!inspectUser) return;
-    if (!confirm("Regenerate fresh 10-character secret cipher code for this user? Previous code will become invalid.")) return;
+    if (!confirm(`Regenerate fresh 10-character secret cipher code for ${inspectUser.fullName || inspectUser.username} (${inspectUser.email}) and email it to them?`)) return;
     setActionLoading('regen_code');
     try {
       const token = localStorage.getItem('matrix_token');
@@ -224,7 +226,35 @@ export default function UltimateUserRoster() {
       const data = await res.json();
       if (res.ok) {
         setRegeneratedCode(data.secretCode);
-        alert(`New Secret Code Generated: ${data.secretCode}`);
+        setUsers(prev => prev.map(u => u.id === inspectUser.id ? { ...u, username: data.secretCode, recoveryRequested: false } : u));
+        setInspectUser({ ...inspectUser, username: data.secretCode, recoveryRequested: false });
+        alert(`New Secret Code Generated & Emailed to Operator: ${data.secretCode}`);
+      } else {
+        alert(data.message || "Failed to regenerate secret code.");
+      }
+    } catch (e) {
+      alert("Network failure.");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleQuickRegenerateCode = async (user: MatrixUser) => {
+    if (!confirm(`Regenerate and email fresh secret login code for ${user.fullName || user.username} (${user.email})?`)) return;
+    setActionLoading(`quick_regen_${user.id}`);
+    try {
+      const token = localStorage.getItem('matrix_token');
+      const res = await fetch(`${API_URL}/api/admin/users/${user.id}/regenerate-code`, {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setUsers(prev => prev.map(u => u.id === user.id ? { ...u, username: data.secretCode, recoveryRequested: false } : u));
+        if (inspectUser?.id === user.id) {
+          setInspectUser({ ...inspectUser, username: data.secretCode, recoveryRequested: false });
+        }
+        alert(`New Secret Code Generated & Dispatched to ${user.email}: ${data.secretCode}`);
       } else {
         alert(data.message || "Failed to regenerate secret code.");
       }
@@ -350,7 +380,10 @@ export default function UltimateUserRoster() {
                           (user.username || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                           user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           user.id.includes(searchTerm);
-    const matchesRole = filterRole === 'ALL' || user.role.toUpperCase() === filterRole;
+    let matchesRole = true;
+    if (filterRole === 'ADMIN') matchesRole = user.role.toUpperCase() === 'ADMIN';
+    else if (filterRole === 'USER') matchesRole = user.role.toUpperCase() === 'USER';
+    else if (filterRole === 'RECOVERY') matchesRole = Boolean(user.recoveryRequested);
     return matchesSearch && matchesRole;
   });
 
@@ -419,16 +452,27 @@ export default function UltimateUserRoster() {
           </div>
           <div className="flex items-center space-x-2">
             <div className="flex bg-black/60 p-1 rounded-xl border border-blue-900/30">
-              {['ALL', 'ADMIN', 'USER'].map(role => (
-                <button 
-                  key={role} onClick={() => setFilterRole(role as any)} 
-                  className={`px-4 py-2 text-xs font-mono font-bold uppercase rounded-lg transition-all ${
-                    filterRole === role ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  {role}
-                </button>
-              ))}
+              {(['ALL', 'ADMIN', 'USER', 'RECOVERY'] as const).map(role => {
+                const isRecovery = role === 'RECOVERY';
+                const recCount = users.filter(u => u.recoveryRequested).length;
+                return (
+                  <button 
+                    key={role} onClick={() => setFilterRole(role)} 
+                    className={`px-3 py-1.5 text-xs font-mono font-bold uppercase rounded-lg transition-all flex items-center space-x-1.5 ${
+                      filterRole === role 
+                        ? (isRecovery ? 'bg-amber-600 text-white shadow-md' : 'bg-blue-600 text-white shadow-md')
+                        : (isRecovery && recCount > 0 ? 'text-amber-400 hover:text-white' : 'text-slate-400 hover:text-white')
+                    }`}
+                  >
+                    <span>{role}</span>
+                    {isRecovery && recCount > 0 && (
+                      <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-amber-500/30 text-amber-300 font-bold animate-pulse">
+                        {recCount}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
             <button 
               onClick={extractCSV} 
@@ -523,6 +567,16 @@ export default function UltimateUserRoster() {
                     <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${user.status === 'SUSPENDED' ? 'bg-amber-400 animate-pulse' : 'bg-emerald-400'}`} />
                     {user.status || 'ACTIVE'}
                   </span>
+                  {user.recoveryRequested && (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-md border border-amber-500/60 bg-amber-500/20 text-[9px] font-mono font-bold tracking-wider text-amber-300 animate-pulse">
+                      ⚠️ RECOVERY REQ
+                    </span>
+                  )}
+                  {user.mustChangePassword && !user.recoveryRequested && (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-md border border-cyan-500/40 bg-cyan-500/10 text-[9px] font-mono font-bold tracking-wider text-cyan-300">
+                      🔑 RESET REQ
+                    </span>
+                  )}
                   {!user.isVerified && (
                     <span className="inline-flex items-center text-[9px] font-mono tracking-wider text-amber-400 opacity-80">
                       <AlertTriangle size={10} className="mr-1" /> UNVERIFIED
@@ -530,10 +584,20 @@ export default function UltimateUserRoster() {
                   )}
                 </div>
                 <div className="col-span-2 flex justify-end items-center space-x-1 pr-2">
-                  {actionLoading === user.id ? (
+                  {actionLoading === user.id || actionLoading === `quick_regen_${user.id}` ? (
                     <Loader2 size={18} className="animate-spin text-blue-500 mr-4" />
                   ) : (
                     <>
+                      {user.recoveryRequested && (
+                        <button
+                          onClick={() => handleQuickRegenerateCode(user)}
+                          className="px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-black font-mono text-[10px] font-bold tracking-wider flex items-center space-x-1 shadow-md shadow-amber-500/20 transition-all mr-1"
+                          title="Regenerate & Email Code Now"
+                        >
+                          <Key size={12} />
+                          <span>Regen Code</span>
+                        </button>
+                      )}
                       <button 
                         onClick={() => { setInspectUser(user); setEditForm(user); setIsEditing(false); setActiveTab('IDENTITY'); setRegeneratedCode(null); }} 
                         className="p-2 text-slate-400 hover:text-white hover:bg-blue-900/30 rounded-lg transition-all" 
@@ -838,6 +902,37 @@ export default function UltimateUserRoster() {
                   {activeTab === 'SECURITY' && (
                     <motion.div key="security" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-6">
                       
+                      {/* RECOVERY REQUEST CALLOUT */}
+                      {inspectUser.recoveryRequested && (
+                        <div className="bg-amber-950/40 border-2 border-amber-500/70 p-5 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-[0_0_30px_rgba(245,158,11,0.2)]">
+                          <div className="flex items-center space-x-3.5">
+                            <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/50 flex items-center justify-center text-amber-400 shrink-0 animate-pulse">
+                              <AlertTriangle size={22} />
+                            </div>
+                            <div>
+                              <p className="text-xs font-bold text-amber-300 uppercase tracking-wider font-mono">⚠️ CODE RECOVERY REQUESTED</p>
+                              <p className="text-[11px] font-mono text-slate-300 mt-0.5">This operator flagged that they lost their login cipher code and requested an administrative reset.</p>
+                            </div>
+                          </div>
+                          <button
+                            onClick={handleRegenerateSecretCode}
+                            disabled={actionLoading === 'regen_code'}
+                            className="px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-black rounded-xl text-xs font-mono font-bold uppercase transition-all shadow-lg shadow-amber-500/20 shrink-0 flex items-center"
+                          >
+                            {actionLoading === 'regen_code' ? <Loader2 size={14} className="animate-spin mr-1.5" /> : <RefreshCw size={14} className="mr-1.5" />}
+                            Regen & Email Now
+                          </button>
+                        </div>
+                      )}
+
+                      {/* PENDING MANDATORY PASSWORD CHANGE */}
+                      {inspectUser.mustChangePassword && (
+                        <div className="bg-cyan-950/30 border border-cyan-500/40 p-4 rounded-xl flex items-center space-x-3 text-xs font-mono text-cyan-300">
+                          <ShieldAlert size={20} className="text-cyan-400 shrink-0" />
+                          <span>This operator logged in using their emergency backup password. A mandatory backup password reset is pending on their next interaction.</span>
+                        </div>
+                      )}
+
                       {/* SECRET CODE REGENERATION */}
                       <div className="bg-[#050b1a] border border-blue-900/40 p-6 rounded-2xl space-y-4">
                         <div className="flex items-center text-blue-400 font-bold text-xs uppercase tracking-wider">

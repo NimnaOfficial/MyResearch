@@ -29,21 +29,19 @@ const ICONS = [Layers, Terminal, Database, Zap, ShieldAlert, Cpu, Code2, Box];
 // ==========================================
 function UnifiedMatrixBackground({ isLight }: { isLight: boolean }) {
   const bgColor = isLight ? 'bg-[#f8fafc]' : 'bg-[#010205]';
-  const combColor = isLight ? 'rgba(249, 115, 22, 0.15)' : 'rgba(249, 115, 22, 0.08)'; 
+  const combColor = isLight ? 'rgba(249, 115, 22, 0.12)' : 'rgba(249, 115, 22, 0.06)'; 
 
   return (
     <div className={`fixed inset-0 z-0 pointer-events-none ${bgColor} overflow-hidden`}>
-      <motion.div 
-        animate={{ backgroundPosition: ["0px 0px", "0px 103.92px"] }} 
-        transition={{ duration: 5, ease: "linear", repeat: Infinity }}
+      <div 
         className={`absolute inset-0 w-full h-full ${isLight ? "opacity-35" : "opacity-80 mix-blend-screen"}`} 
         style={{ 
           backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='103.92304845413264' viewBox='0 0 60 103.92304845413264' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 103.92304845413264L60 86.60254037844386L60 51.96152422706632L30 34.64101615137754L0 51.96152422706632L0 86.60254037844386Z' fill='transparent' stroke='${encodeURIComponent(combColor)}' stroke-width='1.5'/%3E%3C/svg%3E")`, 
           backgroundSize: '60px 103.92px' 
         }} 
       />
-      <motion.div animate={{ opacity: [0.1, 0.25, 0.1], scale: [1, 1.2, 1] }} transition={{ duration: 12, repeat: Infinity }} className={`absolute top-1/4 left-1/4 w-[40vw] h-[40vw] rounded-full blur-[150px] ${isLight ? 'bg-orange-500/20' : 'bg-orange-600/20'}`} />
-      <motion.div animate={{ opacity: [0.1, 0.2, 0.1], scale: [1, 1.1, 1] }} transition={{ duration: 15, repeat: Infinity, delay: 2 }} className={`absolute bottom-1/4 right-1/4 w-[50vw] h-[50vw] rounded-full blur-[180px] ${isLight ? 'bg-amber-500/20' : 'bg-orange-700/20'}`} />
+      <div className={`absolute top-1/4 left-1/4 w-[40vw] h-[40vw] rounded-full blur-[100px] pointer-events-none transform-gpu ${isLight ? 'bg-orange-500/10' : 'bg-orange-600/10'}`} />
+      <div className={`absolute bottom-1/4 right-1/4 w-[50vw] h-[50vw] rounded-full blur-[120px] pointer-events-none transform-gpu ${isLight ? 'bg-amber-500/10' : 'bg-orange-700/10'}`} />
     </div>
   );
 }
@@ -575,39 +573,57 @@ export default function ProjectMatrix() {
               <p className={`font-mono uppercase tracking-widest text-sm ${textSecondary}`}>No matrix data matches this filter.</p>
             </div>
           ) : (
-            <>
-              <div className="flex w-fit whitespace-nowrap mb-6 group cursor-none">
-                <motion.div animate={{ x: ["0%", "-50%"] }} transition={{ ease: "linear", duration: 30, repeat: Infinity }} className="flex gap-4 px-2">
+            <div className="overflow-hidden py-4 space-y-6">
+              {/* Row 1 - Ultra-Smooth Slower Speed Leftward Marquee */}
+              <div className="flex w-fit whitespace-nowrap overflow-hidden group cursor-none">
+                <motion.div 
+                  animate={{ x: ["0%", "-50%"] }} 
+                  transition={{ ease: "linear", duration: 75, repeat: Infinity }} 
+                  className="flex gap-4 px-2"
+                >
                   {[...filteredAllProjects, ...filteredAllProjects, ...filteredAllProjects, ...filteredAllProjects].map((proj, idx) => (
                     <motion.div 
                       key={idx} 
                       onClick={() => router.push(`/projects/${proj.id}`)}
-                      whileHover={{ scale: 1.05, backgroundColor: '#f97316', borderColor: '#f97316' }} 
-                      className="inline-flex items-center px-8 py-6 mx-2 border border-white/10 rounded-2xl bg-[#03060d]/80 backdrop-blur-md transition-colors group-hover:[&:not(:hover)]:opacity-50 cursor-pointer shadow-lg"
+                      whileHover={{ scale: 1.04, backgroundColor: '#ea580c', borderColor: '#ea580c' }} 
+                      className={`inline-flex items-center px-8 py-5 mx-2 border rounded-2xl backdrop-blur-md transition-all group-hover:[&:not(:hover)]:opacity-50 cursor-pointer shadow-lg ${
+                        isLightMode 
+                          ? 'bg-white/90 border-slate-300/80 text-slate-900 shadow-sm hover:text-white' 
+                          : 'bg-[#03060d]/80 border-white/10 text-white shadow-[0_10px_30px_rgba(0,0,0,0.5)]'
+                      }`}
                     >
-                      <Box size={20} className="mr-4 text-white" />
-                      <span className="text-xl font-black uppercase text-white">{proj.title}</span>
+                      <Box size={20} className={`mr-4 transition-colors ${isLightMode ? 'text-orange-600 group-hover:text-white' : 'text-orange-400'}`} />
+                      <span className="text-lg font-black uppercase tracking-wide">{proj.title}</span>
                     </motion.div>
                   ))}
                 </motion.div>
               </div>
 
-              <div className="flex w-fit whitespace-nowrap group cursor-none ml-[-1000px]">
-                <motion.div animate={{ x: ["-50%", "0%"] }} transition={{ ease: "linear", duration: 30, repeat: Infinity }} className="flex gap-4 px-2">
+              {/* Row 2 - Ultra-Smooth Slower Speed Rightward Reverse Marquee */}
+              <div className="flex w-fit whitespace-nowrap overflow-hidden group cursor-none ml-[-800px]">
+                <motion.div 
+                  animate={{ x: ["-50%", "0%"] }} 
+                  transition={{ ease: "linear", duration: 75, repeat: Infinity }} 
+                  className="flex gap-4 px-2"
+                >
                   {[...filteredAllProjects].reverse().concat([...filteredAllProjects].reverse(), [...filteredAllProjects].reverse(), [...filteredAllProjects].reverse()).map((proj, idx) => (
                     <motion.div 
                       key={idx} 
                       onClick={() => router.push(`/projects/${proj.id}`)}
-                      whileHover={{ scale: 1.05, backgroundColor: '#000', borderColor: '#f97316', color: '#f97316' }} 
-                      className="inline-flex items-center px-8 py-6 mx-2 border border-orange-500 rounded-2xl bg-orange-600 transition-colors group-hover:[&:not(:hover)]:opacity-50 cursor-pointer shadow-lg"
+                      whileHover={{ scale: 1.04, backgroundColor: '#020617', borderColor: '#ea580c' }} 
+                      className={`inline-flex items-center px-8 py-5 mx-2 border rounded-2xl transition-all group-hover:[&:not(:hover)]:opacity-50 cursor-pointer shadow-lg ${
+                        isLightMode 
+                          ? 'bg-orange-500 border-orange-600 text-white shadow-md hover:bg-slate-900' 
+                          : 'bg-orange-600 border-orange-500 text-black shadow-[0_10px_30px_rgba(249,115,22,0.3)] hover:text-orange-400'
+                      }`}
                     >
-                      <Rocket size={20} className="mr-4 text-black" />
-                      <span className="text-xl font-black uppercase text-black">{proj.title}</span>
+                      <Rocket size={20} className={`mr-4 transition-colors ${isLightMode ? 'text-white' : 'text-black group-hover:text-orange-400'}`} />
+                      <span className="text-lg font-black uppercase tracking-wide">{proj.title}</span>
                     </motion.div>
                   ))}
                 </motion.div>
               </div>
-            </>
+            </div>
           )}
         </div>
 

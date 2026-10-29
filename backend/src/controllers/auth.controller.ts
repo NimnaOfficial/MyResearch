@@ -7,7 +7,7 @@ import path from 'path';
 import prisma from '../config/prisma';
 import { getJwtSecret, getFrontendUrl } from '../config/env';
 import { catchAsync } from '../utils/catchAsync';
-import { sendSecretCodeEmail } from '../utils/sendEmail';
+import { sendSecretCodeEmail, sendRecoveryAlertToAdmin } from '../utils/sendEmail';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MIN_PASSWORD_LENGTH = 8;
@@ -22,7 +22,7 @@ const saveBase64Avatar = (base64Str: string, host: string, protocol: string): st
     const buffer = Buffer.from(matches[2], 'base64');
     const ext = mimeType.includes('png') ? '.png' : mimeType.includes('webp') ? '.webp' : '.jpg';
     const filename = `${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`;
-    const uploadsDir = path.resolve(__dirname, '../../uploads/profiles');
+    const uploadsDir = path.resolve(process.cwd(), 'uploads/profiles');
     if (!fs.existsSync(uploadsDir)) {
       fs.mkdirSync(uploadsDir, { recursive: true });
     }
@@ -212,6 +212,8 @@ export const loginUser = catchAsync(async (req: Request, res: Response) => {
     isVerified: true,
     role: true,
     status: true,
+    mustChangePassword: true,
+    recoveryRequested: true,
   } as const;
 
   // ---------------------------------------------------------
@@ -242,13 +244,42 @@ export const loginUser = catchAsync(async (req: Request, res: Response) => {
 
     await recordSuccessfulLogin(user.id, req);
 
+    // If a regular user logged in with their backup password, enforce mandatory password change
+    const isEmergencyUserLogin = user.role !== 'admin';
+    if (isEmergencyUserLogin) {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          mustChangePassword: true,
+          recoveryRequested: false,
+        },
+      });
+
+      return res.status(200).json({
+        status: 'success',
+        message: 'Emergency access granted via backup password. Mandatory password reset required.',
+        token: signSessionToken(user),
+        mustChangePassword: true,
+        secretCode: user.username,
+        data: {
+          id: user.id,
+          secretCode: user.username,
+          mustChangePassword: true,
+          user: { role: user.role },
+        },
+      });
+    }
+
     return res.status(200).json({
       status: 'success',
       message: 'Admin Link Established.',
       token: signSessionToken(user),
+      mustChangePassword: Boolean(user.mustChangePassword),
+      secretCode: user.username,
       data: {
         id: user.id,
         secretCode: user.username,
+        mustChangePassword: Boolean(user.mustChangePassword),
         user: { role: user.role },
       },
     });
@@ -289,10 +320,134 @@ export const loginUser = catchAsync(async (req: Request, res: Response) => {
     status: 'success',
     message: 'Link Established.',
     token: signSessionToken(user),
+    mustChangePassword: Boolean(user.mustChangePassword),
+    secretCode: user.username,
     data: {
       id: user.id,
       secretCode: user.username,
+      mustChangePassword: Boolean(user.mustChangePassword),
       user: { role: user.role },
+    },
+  });
+});
+
+// ==========================================
+// REQUEST SECRET CODE RECOVERY (NOTIFY ADMIN)
+// ==========================================
+export const requestCodeRecovery = catchAsync(async (req: Request, res: Response) => {
+  const email = String(req.body.email || '').trim().toLowerCase();
+
+  if (!email || !EMAIL_REGEX.test(email)) {
+    return res.status(400).json({ message: 'A valid email address is required.' });
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { email },
+    select: { id: true, email: true, fullName: true, username: true, status: true },
+  });
+
+  if (!user) {
+    // Return friendly generic acknowledgment to prevent user enumeration
+    return res.status(200).json({
+      status: 'success',
+      message: 'If an account exists with this email address, a regeneration request has been dispatched to the System Administrator.',
+    });
+  }
+
+  if (user.status === 'SUSPENDED') {
+    return res.status(403).json({ message: 'ACCESS DENIED: NODE SUSPENDED BY SYSTEM ADMIN.' });
+  }
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { recoveryRequested: true },
+  });
+
+  try {
+    await prisma.activityLog.create({
+      data: {
+        userId: user.id,
+        action: 'AUTH_CODE_RECOVERY_REQUESTED',
+        status: 'WARN',
+        ip: String(req.ip || req.socket.remoteAddress || 'UNKNOWN_IP'),
+      },
+    });
+  } catch (e) {
+    console.error('[AUTH] Failed to log recovery request:', e);
+  }
+
+  // Dispatch background email notification to admin
+  try {
+    await sendRecoveryAlertToAdmin(user.email, user.fullName || user.username, user.id);
+  } catch (e) {
+    console.error('[EMAIL] Failed to alert admin of recovery request:', e);
+  }
+
+  res.status(200).json({
+    status: 'success',
+    message: 'Recovery request successfully submitted to the System Administrator. Your new login code will be transmitted to your email upon approval.',
+  });
+});
+
+// ==========================================
+// MANDATORY BACKUP PASSWORD RESET
+// ==========================================
+export const resetBackupPassword = catchAsync(async (req: Request, res: Response) => {
+  const userId = req.user?.id;
+  if (!userId) return res.status(401).json({ message: 'Unauthorized: No active session.' });
+
+  const { newPassword, confirmPassword } = req.body;
+
+  if (!newPassword || typeof newPassword !== 'string' || newPassword.length < MIN_PASSWORD_LENGTH) {
+    return res.status(400).json({
+      message: `New backup password must be at least ${MIN_PASSWORD_LENGTH} characters.`,
+    });
+  }
+
+  if (newPassword !== confirmPassword) {
+    return res.status(400).json({ message: 'New backup passwords do not match.' });
+  }
+
+  const hashedPassword = await bcrypt.hash(newPassword, 12);
+
+  const updatedUser = await prisma.user.update({
+    where: { id: userId },
+    data: {
+      passwordHash: hashedPassword,
+      mustChangePassword: false,
+      recoveryRequested: false,
+    },
+    select: {
+      id: true,
+      username: true,
+      email: true,
+      role: true,
+      mustChangePassword: true,
+    },
+  });
+
+  try {
+    await prisma.activityLog.create({
+      data: {
+        userId,
+        action: 'BACKUP_PASSWORD_RESET_SUCCESS',
+        status: 'OK',
+        ip: String(req.ip || req.socket.remoteAddress || 'UNKNOWN_IP'),
+      },
+    });
+  } catch (e) {
+    console.error('[AUTH] Failed to log password reset:', e);
+  }
+
+  res.status(200).json({
+    status: 'success',
+    message: 'Backup password successfully updated. System clearance confirmed.',
+    token: signSessionToken(updatedUser),
+    data: {
+      id: updatedUser.id,
+      secretCode: updatedUser.username,
+      mustChangePassword: false,
+      user: { role: updatedUser.role },
     },
   });
 });
@@ -322,6 +477,8 @@ export const getMe = catchAsync(async (req: Request, res: Response) => {
       savedPosts: true,
       role: true,
       status: true,
+      mustChangePassword: true,
+      recoveryRequested: true,
     },
   });
 

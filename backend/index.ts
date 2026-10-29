@@ -29,7 +29,8 @@ app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 app.disable('x-powered-by');
 
 // Statically serve local file uploads (avatars & media)
-app.use('/uploads', express.static(path.resolve(__dirname, 'uploads')));
+const uploadsStaticPath = path.resolve(process.cwd(), 'uploads');
+app.use('/uploads', express.static(uploadsStaticPath));
 
 // ==========================================
 // CORS: only the known frontend origins may call the API from a browser

@@ -4,6 +4,7 @@ import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import prisma from '../config/prisma';
 import { catchAsync } from '../utils/catchAsync';
+import { sendRegeneratedCodeEmail } from '../utils/sendEmail';
 
 /** Records administrative actions in the system audit log */
 const recordAdminLog = async (req: Request, action: string, status: 'OK' | 'WARN' | 'ERROR' = 'OK') => {
@@ -113,6 +114,8 @@ export const getAllUsers = catchAsync(async (req: Request, res: Response) => {
       lastDevice: true,
       lastLogin: true,
       requestCount: true,
+      recoveryRequested: true,
+      mustChangePassword: true,
       logs: {
         take: 5,
         orderBy: { createdAt: 'desc' },
@@ -346,17 +349,26 @@ export const regenerateSecretCode = catchAsync(async (req: Request, res: Respons
 
   const updatedUser = await prisma.user.update({
     where: { id },
-    data: { username: newCode },
+    data: {
+      username: newCode,
+      recoveryRequested: false,
+    },
     select: { id: true, username: true, email: true },
   });
+
+  try {
+    await sendRegeneratedCodeEmail(updatedUser.email, updatedUser.username);
+  } catch (emailErr) {
+    console.error('[EMAIL] Failed to dispatch regenerated code email:', emailErr);
+  }
 
   await recordAdminLog(req, `SECRET_CODE_REGENERATED: ${updatedUser.username} (${updatedUser.email})`, 'WARN');
 
   res.status(200).json({
     status: 'success',
-    message: 'Secret cipher code successfully regenerated.',
+    message: 'Secret cipher code successfully regenerated and dispatched to user.',
     secretCode: updatedUser.username,
-    data: { ...updatedUser, secretCode: updatedUser.username },
+    data: { ...updatedUser, secretCode: updatedUser.username, recoveryRequested: false },
   });
 });
 

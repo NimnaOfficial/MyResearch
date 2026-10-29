@@ -88,10 +88,17 @@ function DataConstellation({ isLight, exploreMode }: { isLight: boolean, explore
       <group ref={gridRef} position={[0, 0, -4]}>
         <Icosahedron args={[10, 2]} material={new THREE.MeshBasicMaterial({ color: isLight ? "#94a3b8" : "#0ea5e9", wireframe: true, transparent: true, opacity: isLight ? 0.06 : 0.04 })} />
         
-        {Array.from({ length: 25 }).map((_, i) => (
-          <Float key={i} speed={2} rotationIntensity={1} floatIntensity={2} position={[(Math.random() - 0.5) * 18, (Math.random() - 0.5) * 12, (Math.random() - 0.5) * 10]}>
-            <Box args={[0.2, 0.2, 0.2]}>
-              <MeshTransmissionMaterial backside thickness={0.1} color={isLight ? "#3b82f6" : "#00f0ff"} distortionScale={0.5} temporalDistortion={0} />
+        {Array.from({ length: 14 }).map((_, i) => (
+          <Float key={i} speed={1.5} rotationIntensity={0.6} floatIntensity={1.2} position={[(Math.random() - 0.5) * 18, (Math.random() - 0.5) * 12, (Math.random() - 0.5) * 10]}>
+            <Box args={[0.22, 0.22, 0.22]}>
+              <meshPhysicalMaterial
+                color={isLight ? "#0284c7" : "#00f0ff"}
+                roughness={0.2}
+                metalness={0.8}
+                emissive={isLight ? "#0284c7" : "#00f0ff"}
+                emissiveIntensity={0.3}
+                wireframe={i % 2 === 0}
+              />
             </Box>
           </Float>
         ))}
@@ -241,16 +248,16 @@ export default function ExplorePage() {
 
       <motion.div style={{ scaleX: scrollYProgress }} className={`fixed top-0 left-0 right-0 h-1 origin-left z-[100] ${isLightMode ? 'bg-blue-600 shadow-[0_0_10px_#2563eb]' : 'bg-cyan-400 shadow-[0_0_15px_#22d3ee]'}`} />
 
-      {/* 3D CANVAS */}
+      {/* 3D CANVAS (HIGH-PERFORMANCE COMPOSITOR) */}
       <div className="fixed inset-0 z-0 pointer-events-auto">
-        <Canvas camera={{ position: [0, 0, 12], fov: 45 }}>
+        <Canvas camera={{ position: [0, 0, 12], fov: 45 }} dpr={[1, 1.5]} gl={{ powerPreference: 'high-performance', antialias: false, stencil: false }}>
           <color attach="background" args={[isLightMode ? '#f8fafc' : '#01030a']} />
-          <ambientLight intensity={isLightMode ? 0.7 : 0.15} />
-          <directionalLight position={[6, 12, 6]} intensity={isLightMode ? 2 : 5} color={isLightMode ? "#2563eb" : "#00f0ff"} />
-          <Sparkles count={500} scale={25} size={1.5} speed={0.3} opacity={isLightMode ? 0.3 : 0.6} color={isLightMode ? "#3b82f6" : "#00f0ff"} />
+          <ambientLight intensity={isLightMode ? 0.7 : 0.25} />
+          <directionalLight position={[6, 12, 6]} intensity={isLightMode ? 2 : 4} color={isLightMode ? "#2563eb" : "#00f0ff"} />
+          <Sparkles count={120} scale={25} size={1.5} speed={0.2} opacity={isLightMode ? 0.3 : 0.5} color={isLightMode ? "#3b82f6" : "#00f0ff"} />
           <DataConstellation isLight={isLightMode} exploreMode={exploreMode} />
           <EffectComposer>
-            <Bloom luminanceThreshold={isLightMode ? 0.8 : 0.1} mipmapBlur intensity={isLightMode ? 1.0 : 2.5} radius={0.9} />
+            <Bloom luminanceThreshold={isLightMode ? 0.8 : 0.15} mipmapBlur intensity={isLightMode ? 0.8 : 1.8} radius={0.8} />
           </EffectComposer>
         </Canvas>
       </div>

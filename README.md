@@ -75,7 +75,7 @@ To run the CSx Matrix on your local development environment, follow this strict 
 ### Prerequisites
 * Node.js (v18 or higher)
 * Git
-* A local PostgreSQL server OR a Supabase database URL
+* A Turso Cloud Database instance (libSQL) or local SQLite (`file:./dev.db`)
 
 ### 1. Clone the Repository
 ```bash
@@ -152,6 +152,26 @@ Status: <i>The Next.js React tree is successfully compiled. Access the secure GU
 * **Abuse protection:** rate limits on login/register/verify/feedback/PDF, strict CORS allow-list, request bodies and uploads size-limited, HTML escaped in e-mails and PDFs.
 * **Secrets:** all credentials live in environment variables. If a secret was ever committed, rotate it.
 
+
+---
+
+## ☁️ Production Deployment: Render (Backend) & Vercel (Frontend)
+
+For full step-by-step instructions, see [`deployment-guide-vercel-render.md`](./deployment-guide-vercel-render.md).
+
+### 1. Render Deployment (Backend)
+* **Root Directory:** `backend`
+* **Build Command:** `npm install && npm run build`
+* **Start Command:** `npm run start`
+* **Health Check Path:** `/api/health`
+* **Environment Variables:** Set `NODE_ENV=production`, `PORT=10000`, `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`, `JWT_SECRET`, `FRONTEND_URL`, `EMAIL_USER`, `EMAIL_PASS`.
+
+### 2. Vercel Deployment (Frontend)
+* **Framework Preset:** `Next.js`
+* **Root Directory:** `frontend`
+* **Build Command:** `next build`
+* **Environment Variables:** Set `NEXT_PUBLIC_API_URL=https://<your-render-service>.onrender.com` (no trailing slash).
+
 ## ☁️ Production Architecture & CI/CD Pipeline
 
 The CSx Core utilizes a highly automated, distributed Continuous Integration and Continuous Deployment (CI/CD) pipeline. Committing to the `main` GitHub branch triggers asynchronous webhook payloads to our cloud infrastructure:
@@ -171,7 +191,7 @@ graph TD
     classDef client fill:#0f172a,stroke:#3b82f6,stroke-width:2px,color:#fff
     classDef vercel fill:#000000,stroke:#ffffff,stroke-width:2px,color:#fff
     classDef render fill:#4623eb,stroke:#ffffff,stroke-width:2px,color:#fff
-    classDef database fill:#1c1c1c,stroke:#3ecf8e,stroke-width:2px,color:#fff
+    classDef database fill:#00e599,stroke:#000000,stroke-width:2px,color:#fff
     classDef security fill:#450a0a,stroke:#dc2626,stroke-width:2px,color:#fff
 
     %% Nodes
@@ -180,7 +200,7 @@ graph TD
     VercelEdge["Vercel Edge CDN (Frontend Hosting)"]:::vercel
     RenderAPI["Render Web Service (Node/Express API)"]:::render
     PrismaORM["Prisma Client (Data Mapper)"]:::render
-    SupabaseDB[("Supabase PostgreSQL (Data Core)")]:::database
+    TursoDB[("Turso libSQL Cloud DB (AWS ap-south-1)")]:::database
 
     %% Flows
     User -->|HTTPS GET Request| VercelEdge
@@ -190,7 +210,7 @@ graph TD
     
     User <-->|REST API / JSON| RenderAPI
     RenderAPI <-->|Schema Validation| PrismaORM
-    PrismaORM <-->|TCP/IP Connection Pool| SupabaseDB
+    PrismaORM <-->|libSQL Connection| TursoDB
 ```
 ---
 > **Dev by Sandanimne K.G.L.**
