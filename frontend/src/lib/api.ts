@@ -4,7 +4,20 @@
  * - Local dev:   set NEXT_PUBLIC_API_URL=http://localhost:5000 in frontend/.env.local
  * - Production:  set NEXT_PUBLIC_API_URL in Vercel (falls back to the live Render API if unset)
  */
-export const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000').replace(/\/+$/, '');
+const resolveApiUrl = (): string => {
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL.replace(/\/+$/, '');
+  }
+  if (typeof window !== 'undefined') {
+    const host = window.location.hostname;
+    if (host !== 'localhost' && host !== '127.0.0.1') {
+      return 'https://csx-backend.onrender.com';
+    }
+  }
+  return 'http://localhost:5000';
+};
+
+export const API_URL = resolveApiUrl();
 
 /** Helper to parse a cookie value */
 function getCookie(name: string): string | null {

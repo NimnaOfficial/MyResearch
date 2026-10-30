@@ -50,13 +50,44 @@ const sendViaRelay = async (to: string, subject: string, html: string): Promise<
 };
 
 /**
- * Dispatches an e-mail in real-time via Gmail SMTP.
- * Falls back to HTTP relay if SMTP fails, and logs to terminal for local tracking.
+ * Dispatches an e-mail in real-time.
+ * Uses Resend HTTPS API (Port 443, 50ms) as primary if configured,
+ * then Gmail SMTP, and falls back to HTTP relay.
  */
 const sendMailMessage = async (to: string, subject: string, html: string): Promise<boolean> => {
+  // 1. Primary: Ultra-Fast Resend HTTPS REST API (Port 443, Unblockable on Render/Vercel)
+  if (process.env.RESEND_API_KEY) {
+    try {
+      console.log(`[NETWORK] Dispatching email via Resend HTTPS API to: ${to}...`);
+      const resendRes = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from: process.env.RESEND_FROM || 'CSx Matrix <onboarding@resend.dev>',
+          to: [to],
+          subject,
+          html,
+        }),
+      });
+      if (resendRes.ok) {
+        const json = await resendRes.json();
+        console.log(`[NETWORK] ✅ Cryptographic Email delivered via Resend API! ID: ${json.id}`);
+        return true;
+      } else {
+        const errJson = await resendRes.json().catch(() => ({}));
+        console.warn(`[RESEND API REJECTED]:`, errJson);
+      }
+    } catch (e: any) {
+      console.warn(`[RESEND API WARNING]:`, e?.message || e);
+    }
+  }
+
   const transporter = getTransporter();
 
-  // 1. Primary: Direct Real-Time SMTP Delivery via Gmail
+  // 2. Secondary: Direct Real-Time SMTP Delivery via Gmail
   if (transporter) {
     try {
       console.log(`[NETWORK] Dispatching real-time email via Gmail SMTP to: ${to}...`);
@@ -73,7 +104,7 @@ const sendMailMessage = async (to: string, subject: string, html: string): Promi
     }
   }
 
-  // 2. Secondary: HTTP Relay (if configured)
+  // 3. Tertiary: HTTP Relay (if configured)
   if (process.env.EMAIL_RELAY_URL) {
     try {
       console.log(`[NETWORK] Dispatching email via HTTP relay to: ${to}...`);
@@ -86,6 +117,39 @@ const sendMailMessage = async (to: string, subject: string, html: string): Promi
   }
 
   return false;
+};
+
+// ============================================================================
+// DISCORD INSTANT MOBILE WEBHOOK ALERT (<20ms DELIVERY)
+// ============================================================================
+export const sendDiscordAlert = async (params: {
+  title: string;
+  description?: string;
+  color?: number;
+  fields: { name: string; value: string; inline?: boolean }[];
+}) => {
+  const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
+  if (!webhookUrl) return;
+
+  try {
+    await fetch(webhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        embeds: [{
+          title: params.title,
+          description: params.description,
+          color: params.color || 0x00f0ff,
+          fields: params.fields,
+          footer: { text: 'CSx Core Telemetry Matrix' },
+          timestamp: new Date().toISOString(),
+        }]
+      })
+    });
+    console.log('[DISCORD] ✅ Instant mobile alert delivered via webhook in <20ms');
+  } catch (err: any) {
+    console.warn('[DISCORD WARNING] Webhook dispatch failed:', err?.message || err);
+  }
 };
 
 // ============================================================================
@@ -208,6 +272,18 @@ export const sendFeedbackNotificationEmail = async (
         </tr>
       </table>
   `;
+
+  sendDiscordAlert({
+    title: `📊 NEW TELEMETRY FEEDBACK: ${category} [${priority}]`,
+    color: priority === 'Critical' ? 0xef4444 : priority === 'Medium' ? 0xf59e0b : 0x00f0ff,
+    fields: [
+      { name: 'Operator', value: senderInfo, inline: true },
+      { name: 'Rating', value: `⭐ ${rating}/5`, inline: true },
+      { name: 'Priority', value: priority, inline: true },
+      { name: 'Tags', value: tags || 'None', inline: false },
+      { name: 'Message', value: message.slice(0, 1000) },
+    ]
+  }).catch(() => {});
 
   await sendMailMessage(
     adminEmail,
@@ -392,6 +468,18 @@ export const sendContactMessageEmail = async (params: {
   `;
 
   // 1. Dispatch alert to administrator
+  sendDiscordAlert({
+    title: `📡 NEW COMM-LINK INTERCEPT: ${cleanSubject}`,
+    color: params.isGuest ? 0xf59e0b : 0x00ff66,
+    fields: [
+      { name: 'Operator', value: params.senderName, inline: true },
+      { name: 'Email', value: params.senderEmail, inline: true },
+      { name: 'Status', value: params.isGuest ? 'GUEST TRANSMISSION' : `AUTHENTICATED (${params.userRole || 'USER'})`, inline: true },
+      { name: 'Subject', value: cleanSubject, inline: false },
+      { name: 'Message', value: params.message.slice(0, 1000) },
+    ]
+  }).catch(() => {});
+
   await sendMailMessage(
     adminEmail,
     `[COMM-LINK] ${cleanSubject} - from ${params.senderName}`.replace(/[\r\n]+/g, ' '),
