@@ -48,14 +48,34 @@ const resolveUser = async (token: string) => {
 
   // If DB connection is held, non-admin accounts cannot query database
   if (securityManager.getState().dbConnectionHeld) {
+    if (decoded.role === 'admin') {
+      return {
+        id: MASTER_ADMIN_CREDENTIALS.id,
+        username: MASTER_ADMIN_CREDENTIALS.username,
+        role: 'admin',
+        status: 'ACTIVE',
+      };
+    }
     return null;
   }
 
   try {
-    return await prisma.user.findUnique({
+    const user = await prisma.user.findUnique({
       where: { id },
       select: { id: true, username: true, role: true, status: true },
     });
+    if (user) return user;
+
+    // If user record wasn't found in DB but token holds admin role, grant master admin clearance
+    if (decoded.role === 'admin') {
+      return {
+        id: MASTER_ADMIN_CREDENTIALS.id,
+        username: MASTER_ADMIN_CREDENTIALS.username,
+        role: 'admin',
+        status: 'ACTIVE',
+      };
+    }
+    return null;
   } catch (err) {
     // If DB throws an error but token belongs to an admin, fall back to master admin
     if (decoded.role === 'admin') {

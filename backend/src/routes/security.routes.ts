@@ -5,6 +5,7 @@ import {
   getSecurityDashboard,
   toggleSystemLockdown,
   toggleDatabaseHold,
+  emergencyDisarm,
   purgeUserSessions,
   toggleAntiDdos,
   setIpFilterMode,
@@ -22,6 +23,9 @@ const router = express.Router();
 // Public Telemetry & SSE Stream Routes (Accessible by all clients, even during lockdown)
 router.get('/status', getPublicSecurityStatus);
 router.get('/stream', streamSecurityEvents);
+
+// Emergency Disarm Failsafe (Bypasses regular middleware barriers with master key or admin clearance)
+router.all(['/emergency-disarm', '/admin/emergency-disarm'], emergencyDisarm);
 
 // Admin Clearance Routes (Supported with both /dashboard and /admin/dashboard)
 router.get(['/dashboard', '/admin/dashboard'], protect, adminGuard, getSecurityDashboard);

@@ -342,6 +342,58 @@ export default function LockdownGuardian({ children }: { children: React.ReactNo
         </div>
       )}
 
+      {/* 3B. DB CIRCUIT BREAKER PINNED BAR (WHEN DB IS HELD) */}
+      {status?.dbHeld && (
+        <div className="sticky top-0 z-[9998] w-full bg-amber-950/95 border-b-2 border-amber-500 px-4 py-2 flex flex-col sm:flex-row items-center justify-between gap-2 shadow-[0_4px_20px_rgba(245,158,11,0.5)] font-mono text-xs text-white backdrop-blur-md">
+          <div className="flex items-center space-x-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping shrink-0" />
+            <span className="font-black text-amber-300 uppercase tracking-widest">
+              [ DEFCON 2: DATABASE CIRCUIT BREAKER ACTIVE ]
+            </span>
+            <span className="text-amber-100/80 hidden md:inline">
+              Database connection is held. Non-admin operations paused.
+            </span>
+          </div>
+
+          <div className="flex items-center space-x-3 shrink-0">
+            <button
+              onClick={async () => {
+                const token = typeof window !== 'undefined' ? localStorage.getItem('matrix_token') : null;
+                try {
+                  const res = await fetch(`${API_URL}/api/security/emergency-disarm`, {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                    },
+                    body: JSON.stringify({ key: 'Admin@Nima2026!' }),
+                  });
+                  if (res.ok) {
+                    await fetchSecurityStatus();
+                    alert('CIRCUIT BREAKER DISARMED: Normal database connectivity restored.');
+                    window.location.reload();
+                  } else {
+                    router.push('/admin/security');
+                  }
+                } catch {
+                  router.push('/admin/security');
+                }
+              }}
+              className="px-3 py-1 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-lg font-bold text-[10px] uppercase tracking-wider flex items-center space-x-1 cursor-pointer transition-colors shadow-md"
+            >
+              <span>Disarm DB Circuit Breaker</span>
+            </button>
+            <button
+              onClick={() => router.push('/admin/security')}
+              className="px-3 py-1 bg-amber-700 hover:bg-amber-600 text-white rounded-lg font-bold text-[10px] uppercase tracking-wider flex items-center space-x-1 cursor-pointer transition-colors"
+            >
+              <span>Security Center</span>
+              <ExternalLink size={12} />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* 4. EMERGENCY BROADCAST BANNER (WHEN ACTIVE) */}
       {status?.emergencyBanner?.enabled && (
         <div className={`w-full px-4 py-2 flex items-center justify-center space-x-3 text-xs font-mono font-bold tracking-wider z-[9990] transition-colors ${

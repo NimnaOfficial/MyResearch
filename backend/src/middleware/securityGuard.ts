@@ -78,11 +78,21 @@ export const securityGuard = (req: Request, res: Response, next: NextFunction) =
 
   // 5. Database Circuit Breaker (DB Connection Held)
   if (state.dbConnectionHeld) {
-    // Only permit admin endpoints and security routes when DB is held
+    // Admins always bypass the circuit breaker so they can inspect and disarm it
+    if (currentUserRole === 'admin') {
+      return next();
+    }
+
+    // Only permit admin endpoints, security routes, and multi-protocol gateways when DB is held
     const isExemptFromDb = 
       path.startsWith('/api/security') || 
       path.startsWith('/api/admin/security') ||
-      path === '/api/auth/login';
+      path.startsWith('/api/grpc') ||
+      path.startsWith('/api/graphql') ||
+      path.startsWith('/api/soap') ||
+      path === '/api/auth/login' ||
+      path === '/api/auth/me' ||
+      path === '/api/health';
 
     if (!isExemptFromDb) {
       return res.status(503).json({

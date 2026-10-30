@@ -25,14 +25,27 @@ export default function AdminGuard({ children }: { children: React.ReactNode }) 
         
         const data = await res.json();
         
-        if (res.ok && data.data.role === 'admin') {
+        if (res.ok && data?.data?.role === 'admin') {
           setIsAuthorized(true); // Clearance Granted
+        } else if (res.status === 503 || data?.error === 'DB_CONNECTION_HELD') {
+          // Database connection held: preserve admin access so admin can access the security control console to release hold
+          const storedRole = localStorage.getItem('userRole');
+          if (storedRole === 'admin') {
+            setIsAuthorized(true);
+          } else {
+            router.push('/projects');
+          }
         } else {
           // Normal user trying to access admin
           router.push('/projects');
         }
       } catch (error) {
-        router.push('/auth');
+        const storedRole = localStorage.getItem('userRole');
+        if (storedRole === 'admin') {
+          setIsAuthorized(true);
+        } else {
+          router.push('/auth');
+        }
       } finally {
         setIsChecking(false);
       }

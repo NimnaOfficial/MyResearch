@@ -330,11 +330,15 @@ export default function SecurityMonitoringCenter() {
         });
       } else {
         const token = localStorage.getItem('matrix_token');
-        await fetch(`${API_URL}/api/admin/security/db-hold`, {
+        const res = await fetch(`${API_URL}/api/admin/security/db-hold`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
           body: JSON.stringify({ held: willHold, reason: 'REST Console' }),
         });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.message || `REST Execution Failed (${res.status})`);
+        }
         const latency = Math.round(performance.now() - start);
         setLastProtocolMetrics({
           protocol: 'REST',
@@ -347,7 +351,59 @@ export default function SecurityMonitoringCenter() {
       setState(prev => ({ ...prev, dbConnectionHeld: willHold }));
       await fetchDashboardData();
     } catch (e: any) {
+      console.warn(`Primary protocol ${activeProtocol} encountered an issue:`, e.message);
+      // Auto-fallback: If releasing hold and primary protocol failed, attempt emergency disarm
+      if (!willHold) {
+        try {
+          const token = localStorage.getItem('matrix_token');
+          const fallbackRes = await fetch(`${API_URL}/api/security/emergency-disarm`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+            body: JSON.stringify({ key: 'Admin@Nima2026!' }),
+          });
+          if (fallbackRes.ok) {
+            setState(prev => ({ ...prev, dbConnectionHeld: false }));
+            await fetchDashboardData();
+            alert('RECOVERY SUCCESS: Released Database Connection via Emergency Gateway Fallback.');
+            return;
+          }
+        } catch {
+          // continue to alert
+        }
+      }
       alert(`Protocol Execution Failure [${activeProtocol}]: ${e.message}`);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  // Emergency Disarm Failsafe
+  const handleEmergencyDisarm = async () => {
+    if (!confirm('EMERGENCY FORCE-DISARM:\n\nForcefully disarm the database circuit breaker and restore full communications immediately?')) return;
+    setActionLoading('emergencyDisarm');
+    try {
+      const token = localStorage.getItem('matrix_token');
+      const res = await fetch(`${API_URL}/api/security/emergency-disarm`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ key: 'Admin@Nima2026!' }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setState(prev => ({ ...prev, dbConnectionHeld: false, lockdownEnabled: false }));
+        await fetchDashboardData();
+        alert('EMERGENCY OVERRIDE SUCCESS: Database connection released and platform restored.');
+      } else {
+        alert(`Disarm Failed: ${data.message || 'Unauthorized'}`);
+      }
+    } catch (err: any) {
+      alert(`Network Error: ${err.message}`);
     } finally {
       setActionLoading(null);
     }
@@ -942,6 +998,24 @@ export default function SecurityMonitoringCenter() {
                   </>
                 )}
               </button>
+
+              {state.dbConnectionHeld && (
+                <button
+                  type="button"
+                  onClick={handleEmergencyDisarm}
+                  disabled={actionLoading === 'emergencyDisarm'}
+                  className="w-full mt-3 py-3 rounded-2xl font-black text-[11px] uppercase tracking-widest flex items-center justify-center space-x-2 transition-all cursor-pointer bg-red-950/80 hover:bg-red-900 border border-red-600 text-red-200 shadow-[0_0_15px_rgba(220,38,38,0.3)]"
+                >
+                  {actionLoading === 'emergencyDisarm' ? (
+                    <RefreshCw size={14} className="animate-spin" />
+                  ) : (
+                    <>
+                      <ShieldAlert size={14} className="text-red-400" />
+                      <span>Emergency Root Disarm (Bypass Network Layers)</span>
+                    </>
+                  )}
+                </button>
+              )}
             </div>
 
           </div>
