@@ -36,10 +36,10 @@ if (useCloudinary) {
   }
 
   storage = multer.diskStorage({
-    destination: (_req, _file, cb) => {
+    destination: (_req: any, _file: any, cb: (error: Error | null, destination: string) => void) => {
       cb(null, uploadsDir);
     },
-    filename: (_req, file, cb) => {
+    filename: (_req: any, file: any, cb: (error: Error | null, filename: string) => void) => {
       const ext = path.extname(file.originalname).toLowerCase() || '.png';
       const cleanName = `${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`;
       cb(null, cleanName);
@@ -52,7 +52,7 @@ const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 export const upload = multer({
   storage,
   limits: { fileSize: 5 * 1024 * 1024, files: 1 }, // 5 MB, single file
-  fileFilter: (_req, file, cb) => {
+  fileFilter: (_req: any, file: any, cb: (error: any, acceptFile?: boolean) => void) => {
     if (ALLOWED_MIME_TYPES.includes(file.mimetype)) return cb(null, true);
     const err: any = new Error('Only JPG, PNG or WEBP images are allowed.');
     err.statusCode = 400;
