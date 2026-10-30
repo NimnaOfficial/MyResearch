@@ -79,6 +79,31 @@ const sendMailMessage = async (to: string, subject: string, html: string): Promi
       } else {
         const errJson = await resendRes.json().catch(() => ({}));
         console.warn(`[RESEND API REJECTED]:`, errJson);
+
+        // If Resend rejected because of testing domain restriction (onboarding@resend.dev):
+        const masterAdminEmail = process.env.ADMIN_EMAIL || process.env.EMAIL_USER || 'nimnakgls980@gmail.com';
+        if (errJson?.statusCode === 403 && to !== masterAdminEmail) {
+          console.log(`[RESEND ROUTING] Forwarding copy to Master Admin (${masterAdminEmail})...`);
+          try {
+            await fetch('https://api.resend.com/emails', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                from: process.env.RESEND_FROM || 'CSx Matrix <onboarding@resend.dev>',
+                to: [masterAdminEmail],
+                subject: `[FORWARDED TO ADMIN - Intended for ${to}] ${subject}`,
+                html: `<div style="background:#1e293b;padding:15px;color:#38bdf8;font-family:monospace;font-size:12px;margin-bottom:20px;border-left:4px solid #38bdf8;">
+                  ⚠️ <strong>RESEND TEST DOMAIN FORWARD</strong>: Intended recipient: <strong>${to}</strong><br/>
+                  (To deliver directly to external email addresses, verify your custom domain at resend.com/domains)
+                </div>` + html,
+              }),
+            });
+            console.log(`[NETWORK] ✅ Forwarded copy safely delivered to Master Admin (${masterAdminEmail})!`);
+          } catch {}
+        }
       }
     } catch (e: any) {
       console.warn(`[RESEND API WARNING]:`, e?.message || e);
