@@ -14,31 +14,31 @@ import {
   deleteIpRecord,
   getIncidentLogs,
   clearIncidentLogs,
+  streamSecurityEvents,
 } from '../controllers/security.controller';
 
 const router = express.Router();
 
-// Public Telemetry Route (Accessible by all clients, even during lockdown)
+// Public Telemetry & SSE Stream Routes (Accessible by all clients, even during lockdown)
 router.get('/status', getPublicSecurityStatus);
+router.get('/stream', streamSecurityEvents);
 
-// Admin Clearance Area
-router.use('/admin', protect, adminGuard);
-
-router.get('/admin/dashboard', getSecurityDashboard);
-router.post('/admin/lockdown', toggleSystemLockdown);
-router.post('/admin/db-hold', toggleDatabaseHold);
-router.post('/admin/purge-sessions', purgeUserSessions);
-router.post('/admin/anti-ddos', toggleAntiDdos);
-router.post('/admin/mode', setIpFilterMode);
-router.post('/admin/banner', setEmergencyBanner);
+// Admin Clearance Routes (Supported with both /dashboard and /admin/dashboard)
+router.get(['/dashboard', '/admin/dashboard'], protect, adminGuard, getSecurityDashboard);
+router.post(['/lockdown', '/admin/lockdown'], protect, adminGuard, toggleSystemLockdown);
+router.post(['/db-hold', '/admin/db-hold'], protect, adminGuard, toggleDatabaseHold);
+router.post(['/purge-sessions', '/admin/purge-sessions'], protect, adminGuard, purgeUserSessions);
+router.post(['/anti-ddos', '/admin/anti-ddos'], protect, adminGuard, toggleAntiDdos);
+router.post(['/mode', '/admin/mode'], protect, adminGuard, setIpFilterMode);
+router.post(['/banner', '/admin/banner'], protect, adminGuard, setEmergencyBanner);
 
 // IP Radar Controls
-router.get('/admin/ips', getVisitorIps);
-router.post('/admin/ips/action', updateIpStatus);
-router.delete('/admin/ips/:ip', deleteIpRecord);
+router.get(['/ips', '/admin/ips'], protect, adminGuard, getVisitorIps);
+router.post(['/ips/action', '/admin/ips/action'], protect, adminGuard, updateIpStatus);
+router.delete(['/ips/:ip', '/admin/ips/:ip'], protect, adminGuard, deleteIpRecord);
 
 // Incident Logs
-router.get('/admin/logs', getIncidentLogs);
-router.delete('/admin/logs', clearIncidentLogs);
+router.get(['/logs', '/admin/logs'], protect, adminGuard, getIncidentLogs);
+router.delete(['/logs', '/admin/logs'], protect, adminGuard, clearIncidentLogs);
 
 export default router;

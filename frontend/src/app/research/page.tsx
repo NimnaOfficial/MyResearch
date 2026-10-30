@@ -1,6 +1,7 @@
 "use client";
 
 import { API_URL } from '@/lib/api';
+import { fetchGraphQL } from '@/lib/protocols';
 import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link'; 
@@ -174,18 +175,49 @@ export default function MasterResearchVault() {
         }
 
         const authHeader = { headers: { 'Authorization': `Bearer ${token}` } };
-        const [postsRes, releasesRes] = await Promise.all([
-          fetch(`${API_URL}/api/posts`, authHeader),
-          fetch(`${API_URL}/api/releases`, authHeader)
-        ]);
         
-        const postsData = await postsRes.json();
-        const releasesData = await releasesRes.json();
-        const posts = postsData.data || [];
-        const releases = releasesData.data || [];
+        // Multi-Protocol Architecture: Fetch research catalog via GraphQL with zero overfetching, releases via REST
+        let publishedPosts: any[] = [];
+        let draftPosts: any[] = [];
+        let releases: any[] = [];
 
-        const publishedPosts = posts.filter((p: any) => p.published === true);
-        const draftPosts = posts.filter((p: any) => p.published === false);
+        try {
+          const [gqlData, releasesRes] = await Promise.all([
+            fetchGraphQL<{ researchArticles: any[] }>(`
+              query GetResearchArticles {
+                researchArticles(limit: 50) {
+                  id
+                  title
+                  slug
+                  content
+                  type
+                  published
+                  createdAt
+                  categoryName
+                  categorySlug
+                }
+              }
+            `),
+            fetch(`${API_URL}/api/releases`, authHeader).then(r => r.json()).catch(() => ({ data: [] }))
+          ]);
+
+          if (gqlData?.researchArticles && gqlData.researchArticles.length > 0) {
+            publishedPosts = gqlData.researchArticles;
+          }
+          releases = releasesRes.data || [];
+        } catch {
+          // Fallback to standard REST API
+          const [postsRes, releasesRes] = await Promise.all([
+            fetch(`${API_URL}/api/posts`, authHeader),
+            fetch(`${API_URL}/api/releases`, authHeader)
+          ]);
+          const postsData = await postsRes.json();
+          const releasesData = await releasesRes.json();
+          const posts = postsData.data || [];
+          releases = releasesData.data || [];
+          publishedPosts = posts.filter((p: any) => p.published === true);
+          draftPosts = posts.filter((p: any) => p.published === false);
+        }
 
         const mappedRecent = publishedPosts.slice(0, 5).map((p: any) => ({
           id: p.id,

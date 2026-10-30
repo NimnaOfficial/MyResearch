@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { EventEmitter } from 'events';
 
 export interface VisitorIpRecord {
   ip: string;
@@ -55,6 +56,7 @@ export const MASTER_ADMIN_CREDENTIALS = {
 };
 
 class SecurityManager {
+  private emitter = new EventEmitter();
   private state: SecuritySystemState = {
     lockdownEnabled: false,
     dbConnectionHeld: false,
@@ -178,6 +180,23 @@ class SecurityManager {
     return { ...this.state };
   }
 
+  public subscribe(callback: (payload: any) => void) {
+    this.emitter.on('security_update', callback);
+  }
+
+  public unsubscribe(callback: (payload: any) => void) {
+    this.emitter.off('security_update', callback);
+  }
+
+  public broadcast(type: string, data?: any) {
+    this.emitter.emit('security_update', {
+      type,
+      timestamp: new Date().toISOString(),
+      state: this.getState(),
+      data,
+    });
+  }
+
   public setLockdown(enabled: boolean, actor: string = 'Master Admin'): boolean {
     this.state.lockdownEnabled = enabled;
     this.saveState();
@@ -187,6 +206,7 @@ class SecurityManager {
       actor,
       enabled ? 'All public and non-admin routes have been sealed.' : 'Platform restored to public operations.'
     );
+    this.broadcast('LOCKDOWN_CHANGED', { enabled });
     return this.state.lockdownEnabled;
   }
 
@@ -199,6 +219,7 @@ class SecurityManager {
       actor,
       held ? 'Database transactions suspended. Admin authentication operating via Hardcoded Master Credentials.' : 'Normal database querying resumed.'
     );
+    this.broadcast('DB_HOLD_CHANGED', { held });
     return this.state.dbConnectionHeld;
   }
 
@@ -211,6 +232,7 @@ class SecurityManager {
       actor,
       aggressive ? 'Rate limiters set to maximum defense profile.' : 'Standard traffic tolerance restored.'
     );
+    this.broadcast('ANTI_DDOS_CHANGED', { aggressive });
     return this.state.antiDdosAggressive;
   }
 
@@ -218,6 +240,7 @@ class SecurityManager {
     this.state.ipFilterMode = mode;
     this.saveState();
     this.logIncident('WARN', `IP FILTERING MODE SWITCHED TO: ${mode.toUpperCase()}`, actor);
+    this.broadcast('IP_MODE_CHANGED', { mode });
     return this.state.ipFilterMode;
   }
 
@@ -225,6 +248,7 @@ class SecurityManager {
     this.state.emergencyBanner = banner;
     this.saveState();
     this.logIncident('INFO', `EMERGENCY BANNER ${banner.enabled ? 'PUBLISHED' : 'DISABLED'}`, actor, banner.message);
+    this.broadcast('EMERGENCY_BANNER_CHANGED', banner);
     return this.state.emergencyBanner;
   }
 
@@ -232,6 +256,7 @@ class SecurityManager {
     this.state.sessionRevocationTimestamp = Date.now();
     this.saveState();
     this.logIncident('CRITICAL', 'GLOBAL SESSION PURGE EXECUTED', actor, 'All non-admin JWT credentials revoked immediately.');
+    this.broadcast('SESSIONS_PURGED', { timestamp: this.state.sessionRevocationTimestamp });
     return this.state.sessionRevocationTimestamp;
   }
 
@@ -336,6 +361,7 @@ class SecurityManager {
 
     this.saveState();
     this.saveVisitorIps();
+    this.broadcast('IP_STATUS_UPDATED', record);
     return record;
   }
 
@@ -347,6 +373,7 @@ class SecurityManager {
     this.saveState();
     this.saveVisitorIps();
     this.logIncident('INFO', `IP RECORD PURGED: ${ip}`, actor);
+    this.broadcast('IP_DELETED', { ip });
     return deleted;
   }
 

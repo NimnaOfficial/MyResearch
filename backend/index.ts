@@ -16,6 +16,9 @@ import showcaseRoutes from './src/routes/showcase.routes';
 import faqRoutes from './src/routes/faq.routes';
 import categoryRoutes from './src/routes/category.routes';
 import securityRoutes from './src/routes/security.routes';
+import graphqlRoutes from './src/routes/graphql.routes';
+import grpcRoutes from './src/routes/grpc.routes';
+import soapRoutes from './src/routes/soap.routes';
 import { securityGuard } from './src/middleware/securityGuard';
 import { errorHandler, notFoundHandler } from './src/middleware/errorHandler';
 
@@ -66,10 +69,25 @@ app.use(securityGuard);
 
 // Health Check
 app.get('/api/health', (_req: Request, res: Response) => {
-  res.status(200).json({ status: 'active', message: 'Matrix API Online.' });
+  res.status(200).json({ 
+    status: 'active', 
+    message: 'Matrix API Online.',
+    protocols: {
+      REST: 'Active (/api/*)',
+      GraphQL: 'Active (/api/graphql)',
+      gRPC: 'Active (/api/grpc/*)',
+      SOAP: 'Active (/api/soap/security?wsdl)',
+      SSE: 'Active (/api/security/stream)',
+    }
+  });
 });
 
-// Mount routes
+// Multi-Protocol API Engines
+app.use('/api/graphql', graphqlRoutes);
+app.use('/api/grpc', grpcRoutes);
+app.use('/api/soap/security', soapRoutes);
+
+// Mount REST & Security routes
 app.use('/api/security', securityRoutes);
 app.use('/api/admin/security', securityRoutes);
 app.use('/api/auth', authRoutes);

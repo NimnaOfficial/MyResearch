@@ -253,3 +253,46 @@ export const clearIncidentLogs = catchAsync(async (req: Request, res: Response) 
     message: 'Incident audit trail purged.',
   });
 });
+
+// ==========================================
+// REAL-TIME SERVER-SENT EVENTS (SSE) STREAM
+// ==========================================
+export const streamSecurityEvents = (req: Request, res: Response) => {
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache, no-transform',
+    'Connection': 'keep-alive',
+    'Access-Control-Allow-Origin': '*',
+  });
+
+  // Initial event stream handshake
+  const snapshot = {
+    type: 'CONNECTED',
+    timestamp: new Date().toISOString(),
+    state: securityManager.getState(),
+  };
+  res.write(`data: ${JSON.stringify(snapshot)}\n\n`);
+
+  const onUpdate = (payload: any) => {
+    try {
+      res.write(`data: ${JSON.stringify(payload)}\n\n`);
+    } catch {
+      // Stream closed
+    }
+  };
+
+  securityManager.subscribe(onUpdate);
+
+  const heartbeat = setInterval(() => {
+    try {
+      res.write(`: heartbeat\n\n`);
+    } catch {
+      clearInterval(heartbeat);
+    }
+  }, 20000);
+
+  req.on('close', () => {
+    clearInterval(heartbeat);
+    securityManager.unsubscribe(onUpdate);
+  });
+};

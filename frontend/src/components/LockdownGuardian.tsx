@@ -8,6 +8,7 @@ import {
   RefreshCw, Radio, CheckCircle2, X, ExternalLink 
 } from 'lucide-react';
 import { API_URL } from '@/lib/api';
+import { subscribeSecurityStream } from '@/lib/protocols';
 
 interface SecurityStatus {
   lockdown: boolean;
@@ -61,13 +62,33 @@ export default function LockdownGuardian({ children }: { children: React.ReactNo
     checkIdentity();
     fetchSecurityStatus();
 
-    // Poll every 8 seconds for real-time emergency responsiveness
+    // 1. Instant Real-Time Push Stream (SSE)
+    const unsubscribe = subscribeSecurityStream((event) => {
+      if (event && event.state) {
+        const s = event.state;
+        const defcon = s.lockdownEnabled ? 1 : s.dbConnectionHeld ? 2 : 5;
+        setStatus({
+          lockdown: s.lockdownEnabled,
+          dbHeld: s.dbConnectionHeld,
+          antiDdos: s.antiDdosAggressive,
+          ipFilterMode: s.ipFilterMode,
+          emergencyBanner: s.emergencyBanner,
+          defconLevel: defcon,
+          threatStatus: defcon === 1 ? 'DEFCON 1' : 'DEFCON 5',
+        });
+      }
+    });
+
+    // 2. Fallback polling for maximum network redundancy
     const interval = setInterval(() => {
       checkIdentity();
       fetchSecurityStatus();
-    }, 8000);
+    }, 15000);
 
-    return () => clearInterval(interval);
+    return () => {
+      unsubscribe();
+      clearInterval(interval);
+    };
   }, [checkIdentity, fetchSecurityStatus]);
 
   const handleManualProbe = async () => {
