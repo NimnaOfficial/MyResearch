@@ -6,6 +6,7 @@ import "./globals.css";
 import SmoothScroll from '@/components/SmoothScroll';
 import AdminCipherGate from "@/components/AdminCipherGate";
 import MobileBlocker from "@/components/MobileBlocker";
+import LockdownGuardian from "@/components/LockdownGuardian";
 import { ThemeProvider } from "@/context/ThemeContext";
 
 // Initialize standard and tech-themed fonts
@@ -44,12 +45,18 @@ export default function RootLayout({
             <AdminCipherGate />
             
             {/* ========================================= */}
-            {/* THE MOMENTUM SCROLLING ENGINE             */}
-            {/* Wraps the entire canvas for buttery scroll*/}
+            {/* DEFCON 1 LOCKDOWN & DEFENSE GUARDIAN     */}
+            {/* Enforces emergency system-wide lockdown   */}
             {/* ========================================= */}
-            <SmoothScroll>
-              {children}
-            </SmoothScroll>
+            <LockdownGuardian>
+              {/* ========================================= */}
+              {/* THE MOMENTUM SCROLLING ENGINE             */}
+              {/* Wraps the entire canvas for buttery scroll*/}
+              {/* ========================================= */}
+              <SmoothScroll>
+                {children}
+              </SmoothScroll>
+            </LockdownGuardian>
 
           </MobileBlocker>
         </ThemeProvider>

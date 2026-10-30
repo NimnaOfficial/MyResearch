@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { LayoutDashboard, Users, Database, Server, Radio, LogOut, Bell, Activity, TerminalSquare } from 'lucide-react';
+import { LayoutDashboard, Users, Database, Server, Radio, LogOut, Bell, Activity, TerminalSquare, ShieldAlert } from 'lucide-react';
 import AdminGuard from '@/components/AdminGuard';
 import CustomCursor from '@/components/CustomCursor';
 import AdminPanicEject from '@/components/AdminPanicEject';
@@ -18,6 +18,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { name: 'BLUEPRINTS', path: '/admin/research', icon: Database },
     { name: 'API_VAULT', path: '/admin/projects', icon: Server },
     { name: 'SYS_CONFIG', path: '/admin/system', icon: Radio },
+    { name: 'CYBER_DEFENSE', path: '/admin/security', icon: ShieldAlert },
   ];
 
   const handleLogout = () => {

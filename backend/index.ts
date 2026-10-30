@@ -15,6 +15,8 @@ import adminRoutes from './src/routes/admin.routes';
 import showcaseRoutes from './src/routes/showcase.routes';
 import faqRoutes from './src/routes/faq.routes';
 import categoryRoutes from './src/routes/category.routes';
+import securityRoutes from './src/routes/security.routes';
+import { securityGuard } from './src/middleware/securityGuard';
 import { errorHandler, notFoundHandler } from './src/middleware/errorHandler';
 
 // Fail fast on missing/insecure configuration
@@ -59,12 +61,17 @@ app.use((req: Request, _res: Response, next) => {
   next();
 });
 
+// Perimeter Security Guard: IP Radar, Whitelist/Blacklist, DEFCON Lockdown, and DB Circuit Breaker
+app.use(securityGuard);
+
 // Health Check
 app.get('/api/health', (_req: Request, res: Response) => {
   res.status(200).json({ status: 'active', message: 'Matrix API Online.' });
 });
 
 // Mount routes
+app.use('/api/security', securityRoutes);
+app.use('/api/admin/security', securityRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/posts', postRoutes);
 app.use('/api/releases', releaseRoutes);

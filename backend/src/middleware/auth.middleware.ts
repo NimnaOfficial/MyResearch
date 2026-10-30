@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import prisma from '../config/prisma';
 import { getJwtSecret } from '../config/env';
+import { securityManager, MASTER_ADMIN_CREDENTIALS } from '../config/securityState';
 
 // Tell TypeScript that authenticated requests carry a lightweight 'user' object
 declare global {
@@ -34,10 +35,39 @@ const resolveUser = async (token: string) => {
   const id = decoded.id || decoded.userId;
   if (!id) throw new Error('Token has no subject');
 
-  return prisma.user.findUnique({
-    where: { id },
-    select: { id: true, username: true, role: true, status: true },
-  });
+  // Master Admin Fallback: Works seamlessly even when DB connection is held or down
+  const isMasterAdmin = id === MASTER_ADMIN_CREDENTIALS.id || (decoded.role === 'admin' && securityManager.getState().dbConnectionHeld);
+  if (isMasterAdmin) {
+    return {
+      id: MASTER_ADMIN_CREDENTIALS.id,
+      username: MASTER_ADMIN_CREDENTIALS.username,
+      role: 'admin',
+      status: 'ACTIVE',
+    };
+  }
+
+  // If DB connection is held, non-admin accounts cannot query database
+  if (securityManager.getState().dbConnectionHeld) {
+    return null;
+  }
+
+  try {
+    return await prisma.user.findUnique({
+      where: { id },
+      select: { id: true, username: true, role: true, status: true },
+    });
+  } catch (err) {
+    // If DB throws an error but token belongs to an admin, fall back to master admin
+    if (decoded.role === 'admin') {
+      return {
+        id: MASTER_ADMIN_CREDENTIALS.id,
+        username: MASTER_ADMIN_CREDENTIALS.username,
+        role: 'admin',
+        status: 'ACTIVE',
+      };
+    }
+    throw err;
+  }
 };
 
 // ==========================================

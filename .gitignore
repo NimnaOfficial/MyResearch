@@ -77,6 +77,8 @@ logs/
 *.log
 backend/uploads/
 uploads/
+backend/data/
+data/
 temp/
 tmp/
 
