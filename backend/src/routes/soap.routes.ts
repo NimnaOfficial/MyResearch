@@ -1,6 +1,9 @@
 import express, { Request, Response } from 'express';
 import crypto from 'crypto';
+import jwt from 'jsonwebtoken';
 import { securityManager } from '../config/securityState';
+import { getJwtSecret } from '../config/env';
+import prisma from '../config/prisma';
 
 const router = express.Router();
 
@@ -250,6 +253,71 @@ router.post('/', async (req: Request, res: Response) => {
     </sec:HoldDatabaseConnectionResponse>
   </soapenv:Body>
 </soapenv:Envelope>`);
+  }
+
+  // 4. OPERATION: VerifySecurityToken
+  if (xmlBody.includes('VerifySecurityToken')) {
+    const token = extractTag('token');
+    if (!token) {
+      return res.status(400).send(`<?xml version="1.0" encoding="UTF-8"?>
+<soapenv:Envelope xmlns:soapenv="http://www.w3.org/2003/05/soap-envelope" xmlns:sec="http://csx.matrix.io/security/v1">
+  <soapenv:Body>
+    <sec:VerifySecurityTokenResponse>
+      <sec:status>ERROR</sec:status>
+      <sec:statusCode>400</sec:statusCode>
+      <sec:message>Missing verification token in SOAP envelope.</sec:message>
+      <sec:timestamp>${now}</sec:timestamp>
+    </sec:VerifySecurityTokenResponse>
+  </soapenv:Body>
+</soapenv:Envelope>`);
+    }
+
+    try {
+      const decoded = jwt.verify(token, getJwtSecret()) as jwt.JwtPayload;
+      if (decoded.purpose !== 'verify' || !decoded.id) {
+        throw new Error('Not a valid verification token');
+      }
+
+      const userId = decoded.id as string;
+      if (!securityManager.getState().dbConnectionHeld) {
+        await prisma.user.update({
+          where: { id: userId },
+          data: { isVerified: true },
+        });
+      }
+
+      const hash = crypto.createHash('sha256').update(`VERIFY-OK-${userId}-${now}`).digest('hex');
+
+      return res.status(200).send(`<?xml version="1.0" encoding="UTF-8"?>
+<soapenv:Envelope xmlns:soapenv="http://www.w3.org/2003/05/soap-envelope" xmlns:sec="http://csx.matrix.io/security/v1">
+  <soapenv:Header>
+    <sec:WS-SecurityTimestamp>${now}</sec:WS-SecurityTimestamp>
+    <sec:AuditStamp>${hash}</sec:AuditStamp>
+  </soapenv:Header>
+  <soapenv:Body>
+    <sec:VerifySecurityTokenResponse>
+      <sec:status>SUCCESS</sec:status>
+      <sec:statusCode>200</sec:statusCode>
+      <sec:message>Cryptographic Identity Token Verified Successfully.</sec:message>
+      <sec:userId>${userId}</sec:userId>
+      <sec:timestamp>${now}</sec:timestamp>
+      <sec:digitalSignature>${hash}</sec:digitalSignature>
+    </sec:VerifySecurityTokenResponse>
+  </soapenv:Body>
+</soapenv:Envelope>`);
+    } catch (err: any) {
+      return res.status(400).send(`<?xml version="1.0" encoding="UTF-8"?>
+<soapenv:Envelope xmlns:soapenv="http://www.w3.org/2003/05/soap-envelope" xmlns:sec="http://csx.matrix.io/security/v1">
+  <soapenv:Body>
+    <sec:VerifySecurityTokenResponse>
+      <sec:status>INVALID</sec:status>
+      <sec:statusCode>400</sec:statusCode>
+      <sec:message>Security token rejected or expired.</sec:message>
+      <sec:timestamp>${now}</sec:timestamp>
+    </sec:VerifySecurityTokenResponse>
+  </soapenv:Body>
+</soapenv:Envelope>`);
+    }
   }
 
   // Default SOAP Fault

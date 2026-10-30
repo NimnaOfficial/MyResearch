@@ -1,6 +1,7 @@
 "use client";
 
 import { API_URL } from '@/lib/api';
+import { submitFeedbackViaGrpc } from '@/lib/protocols';
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence, useMotionValue, useTransform } from 'framer-motion';
 import { Canvas } from '@react-three/fiber';
@@ -280,23 +281,16 @@ export default function MasterFeedbackVault() {
     const token = localStorage.getItem('matrix_token');
 
     try {
-      const res = await fetch(`${API_URL}/api/feedback/submit`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { "Authorization": `Bearer ${token}` } : {})
-        },
-        body: JSON.stringify({
-          rating,
-          category: feedbackType,
-          priority,
-          recommend,
-          tags: taggedItems.map(t => `${t.id} (${t.title})`).join(', '),
-          message,
-        }),
+      const result = await submitFeedbackViaGrpc({
+        rating,
+        category: feedbackType,
+        priority,
+        recommend,
+        tags: taggedItems.map(t => `${t.id} (${t.title})`).join(', '),
+        message,
       });
       
-      if (res.ok) {
+      if (result.success) {
         setIsSuccess(true);
         setTimeout(() => {
           setIsSuccess(false);

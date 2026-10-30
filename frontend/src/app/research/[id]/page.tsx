@@ -1,6 +1,7 @@
 "use client";
 
 import { API_URL } from '@/lib/api';
+import { fetchGraphQL } from '@/lib/protocols';
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -318,14 +319,47 @@ export default function ResearchDetailPage() {
     const fetchResearch = async () => {
       setIsLoading(true);
       try {
-        const viewerToken = localStorage.getItem('matrix_token');
-        const res = await fetch(`${API_URL}/api/posts/${researchId}`, {
-          headers: viewerToken ? { 'Authorization': `Bearer ${viewerToken}` } : {}
-        });
-        if (res.ok) {
-          const json = await res.json();
-          const dbData = json.data;
-          
+        let dbData: any = null;
+
+        // 1. Fast GraphQL single query with SWR caching
+        try {
+          const gqlQuery = `
+            query GetArticleDetails($id: String!) {
+              article(id: $id) {
+                id
+                title
+                slug
+                content
+                type
+                published
+                createdAt
+                categoryName
+                heroImg
+                advancedData
+              }
+            }
+          `;
+          const gqlRes = await fetchGraphQL<{ article: any }>(gqlQuery, { id: researchId }, { ttlMs: 45000 });
+          if (gqlRes?.article) {
+            dbData = gqlRes.article;
+          }
+        } catch {
+          // fallback to REST below
+        }
+
+        // 2. REST Fallback if GraphQL didn't return
+        if (!dbData) {
+          const viewerToken = localStorage.getItem('matrix_token');
+          const res = await fetch(`${API_URL}/api/posts/${researchId}`, {
+            headers: viewerToken ? { 'Authorization': `Bearer ${viewerToken}` } : {}
+          });
+          if (res.ok) {
+            const json = await res.json();
+            dbData = json.data;
+          }
+        }
+
+        if (dbData) {
           let parsedAdvanced = {};
           try { if (dbData.advancedData) parsedAdvanced = JSON.parse(dbData.advancedData); } catch(e){}
 

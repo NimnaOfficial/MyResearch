@@ -14,9 +14,14 @@ const schema = buildSchema(`
     article(id: String!): ResearchArticle
     categories: [ArticleCategory!]!
 
-    # Project Vault
+    # Project Vault & Showcases
     projects(publishedOnly: Boolean): [ProjectRelease!]!
     project(id: String!): ProjectRelease
+    showcases: [ShowcaseItem!]!
+    faqs: [FaqItem!]!
+
+    # User Vault
+    userVault: UserVaultData
 
     # Cyber Defense & Security Telemetry
     securityStatus: SecurityStatus!
@@ -32,6 +37,10 @@ const schema = buildSchema(`
     setPerimeterRule(ip: String!, status: String!, notes: String): VisitorIpRecord!
     purgeAllSessions: Boolean!
     publishEmergencyBanner(enabled: Boolean!, message: String!, level: String!): SecurityStatus!
+
+    # User Vault Mutations
+    saveArticle(articleId: String!): Boolean!
+    unsaveArticle(articleId: String!): Boolean!
   }
 
   type ResearchArticle {
@@ -44,6 +53,8 @@ const schema = buildSchema(`
     createdAt: String!
     categoryName: String
     categorySlug: String
+    heroImg: String
+    advancedData: String
   }
 
   type ArticleCategory {
@@ -59,8 +70,29 @@ const schema = buildSchema(`
     version: String!
     releaseNotes: String!
     downloadUrl: String
+    heroImg: String
+    advancedData: String
     published: Boolean!
     createdAt: String!
+  }
+
+  type ShowcaseItem {
+    id: ID!
+    title: String!
+    videoUrl: String!
+    thumbnailUrl: String
+    description: String
+  }
+
+  type FaqItem {
+    id: ID!
+    query: String!
+    response: String!
+  }
+
+  type UserVaultData {
+    savedPosts: [ResearchArticle!]!
+    savedProjects: [ProjectRelease!]!
   }
 
   type SecurityStatus {
@@ -133,6 +165,8 @@ const rootResolvers = {
         createdAt: p.createdAt ? p.createdAt.toISOString() : new Date().toISOString(),
         categoryName: p.Category?.name || p.type || 'General',
         categorySlug: p.Category?.slug || 'general',
+        heroImg: p.heroImg,
+        advancedData: p.advancedData,
       }));
 
       if (args.search) {
@@ -178,6 +212,8 @@ const rootResolvers = {
         createdAt: p.createdAt ? p.createdAt.toISOString() : new Date().toISOString(),
         categoryName: p.Category?.name || 'General',
         categorySlug: p.Category?.slug || 'general',
+        heroImg: p.heroImg,
+        advancedData: p.advancedData,
       };
     } catch {
       return null;
@@ -212,6 +248,8 @@ const rootResolvers = {
         version: r.version,
         releaseNotes: r.releaseNotes,
         downloadUrl: r.downloadUrl,
+        heroImg: r.heroImg,
+        advancedData: r.advancedData,
         published: r.published,
         createdAt: r.publishedAt ? r.publishedAt.toISOString() : new Date().toISOString(),
       }));
@@ -231,11 +269,73 @@ const rootResolvers = {
         version: r.version,
         releaseNotes: r.releaseNotes,
         downloadUrl: r.downloadUrl,
+        heroImg: r.heroImg,
+        advancedData: r.advancedData,
         published: r.published,
         createdAt: r.publishedAt ? r.publishedAt.toISOString() : new Date().toISOString(),
       };
     } catch {
       return null;
+    }
+  },
+
+  showcases: async () => {
+    if (securityManager.getState().dbConnectionHeld) return [];
+    try {
+      return await prisma.showcase.findMany({ orderBy: { createdAt: 'desc' } });
+    } catch {
+      return [];
+    }
+  },
+
+  faqs: async () => {
+    if (securityManager.getState().dbConnectionHeld) return [];
+    try {
+      return await prisma.faq.findMany({ orderBy: { createdAt: 'desc' } });
+    } catch {
+      return [];
+    }
+  },
+
+  userVault: async (_args: any, context: any) => {
+    if (securityManager.getState().dbConnectionHeld || !context.user) return { savedPosts: [], savedProjects: [] };
+    try {
+      const u = await prisma.user.findUnique({
+        where: { id: context.user.id },
+        include: {
+          savedPosts: { include: { Category: true } },
+          savedReleases: true,
+        },
+      });
+      if (!u) return { savedPosts: [], savedProjects: [] };
+      return {
+        savedPosts: u.savedPosts.map(p => ({
+          id: p.id,
+          title: p.title,
+          slug: p.slug,
+          content: p.content,
+          type: p.type || 'Research',
+          published: p.published,
+          createdAt: p.createdAt ? p.createdAt.toISOString() : new Date().toISOString(),
+          categoryName: p.Category?.name || 'General',
+          categorySlug: p.Category?.slug || 'general',
+          heroImg: p.heroImg,
+          advancedData: p.advancedData,
+        })),
+        savedProjects: u.savedReleases.map(r => ({
+          id: r.id,
+          projectName: r.projectName,
+          version: r.version,
+          releaseNotes: r.releaseNotes,
+          downloadUrl: r.downloadUrl,
+          heroImg: r.heroImg,
+          advancedData: r.advancedData,
+          published: r.published,
+          createdAt: r.publishedAt ? r.publishedAt.toISOString() : new Date().toISOString(),
+        })),
+      };
+    } catch {
+      return { savedPosts: [], savedProjects: [] };
     }
   },
 

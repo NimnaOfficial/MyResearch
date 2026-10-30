@@ -8,6 +8,21 @@ export const securityGuard = (req: Request, res: Response, next: NextFunction) =
   const userAgent = req.headers['user-agent'] || 'UNKNOWN';
   const path = req.path;
 
+  // 0. Defense Cloaking & Header Obfuscation (Hides server fingerprint from network sniffers)
+  res.removeHeader('X-Powered-By');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+
+  // 0B. Automated Exploitation & Honeypot Trap
+  const EXPLOIT_PROBES = [/\.env/i, /\.git/i, /wp-admin/i, /phpmyadmin/i, /actuator/i, /select.*from/i, /union.*select/i, /<script>/i];
+  if (EXPLOIT_PROBES.some(p => p.test(path) || p.test(String(req.query?.q || '')))) {
+    securityManager.setIpStatus(clientIp, 'blacklisted', `Malicious vulnerability probe: ${path}`, 'Automated Cyber Shield');
+    securityManager.logIncident('CRITICAL', `EXPLOIT PROBE DETECTED & IP ISOLATED: ${clientIp}`, 'Cyber Shield', `Path: ${path}`, clientIp);
+    return res.status(403).json({ error: 'PERIMETER_PROBE_ISOLATED', message: 'Access Denied.' });
+  }
+
   // Extract token if present (without blocking or throwing)
   let currentUserRole: string | null = null;
   let currentUserIdentifier: string = 'GUEST';

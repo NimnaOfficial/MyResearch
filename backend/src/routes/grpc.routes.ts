@@ -1,6 +1,8 @@
 import express, { Request, Response } from 'express';
 import { securityManager } from '../config/securityState';
-import { protect, adminGuard } from '../middleware/auth.middleware';
+import prisma from '../config/prisma';
+import jwt from 'jsonwebtoken';
+import { getJwtSecret } from '../config/env';
 
 const router = express.Router();
 
@@ -43,6 +45,98 @@ router.post('/:service/:method', async (req: Request, res: Response) => {
           status: 'HEALTHY',
           engine: 'gRPC-Web Micro-Gateway v2.4',
           timestamp: new Date().toISOString(),
+          latencyMs: Date.now() - startTime,
+        });
+      }
+
+      if (method === 'RecordPulse') {
+        const clientIp = req.ip || req.socket.remoteAddress || '127.0.0.1';
+        securityManager.recordTraffic(clientIp, String(req.headers['user-agent'] || 'gRPC-Web'), payload.path || '/pulse', payload.user || 'GUEST');
+        res.setHeader('grpc-status', '0');
+        res.setHeader('grpc-message', 'OK');
+        return res.status(200).json({
+          recorded: true,
+          latencyMs: Date.now() - startTime,
+        });
+      }
+    }
+
+    // 2. FeedbackService (Public High-Speed RPC)
+    if (service === 'FeedbackService') {
+      if (method === 'SubmitFeedback') {
+        const { rating, category, priority, recommend, tags, message } = payload;
+        
+        // Rapid sentiment calculation
+        const r = Number(rating) || 5;
+        const sentiment = r >= 4 ? 'POSITIVE' : r === 3 ? 'NEUTRAL' : 'CRITICAL';
+
+        // Extract optional user ID from token
+        let userId: string | null = null;
+        const authHeader = req.headers.authorization;
+        if (authHeader && authHeader.startsWith('Bearer ')) {
+          try {
+            const rawToken = authHeader.slice(7).trim().replace(/"/g, '');
+            const decoded = jwt.verify(rawToken, getJwtSecret()) as any;
+            if (decoded?.id) userId = decoded.id;
+          } catch {}
+        }
+
+        let createdId = `fb-${Date.now()}`;
+        if (!securityManager.getState().dbConnectionHeld) {
+          try {
+            const fb = await prisma.feedback.create({
+              data: {
+                userId,
+                rating: r,
+                category: String(category || 'GENERAL').toUpperCase(),
+                priority: String(priority || 'NORMAL').toUpperCase(),
+                recommend: Boolean(recommend),
+                tags: String(tags || ''),
+                message: String(message || '').slice(0, 1000),
+              },
+            });
+            createdId = fb.id;
+          } catch (e) {
+            console.warn('[gRPC Feedback] DB write fallback:', e);
+          }
+        }
+
+        res.setHeader('grpc-status', '0');
+        res.setHeader('grpc-message', 'OK');
+        return res.status(200).json({
+          success: true,
+          feedbackId: createdId,
+          sentiment,
+          score: r,
+          timestamp: new Date().toISOString(),
+          latencyMs: Date.now() - startTime,
+        });
+      }
+
+      if (method === 'GetPublicFeedback') {
+        let items: any[] = [];
+        if (!securityManager.getState().dbConnectionHeld) {
+          try {
+            items = await prisma.feedback.findMany({
+              where: { rating: { gte: 3 } },
+              take: 10,
+              orderBy: { createdAt: 'desc' },
+              select: {
+                id: true,
+                rating: true,
+                category: true,
+                message: true,
+                createdAt: true,
+              },
+            });
+          } catch {}
+        }
+        res.setHeader('grpc-status', '0');
+        res.setHeader('grpc-message', 'OK');
+        return res.status(200).json({
+          success: true,
+          count: items.length,
+          items,
           latencyMs: Date.now() - startTime,
         });
       }

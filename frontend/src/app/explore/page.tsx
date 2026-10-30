@@ -1,5 +1,6 @@
 "use client";
 import { API_URL } from '@/lib/api';
+import { fetchGraphQL } from '@/lib/protocols';
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
 import { Search, Filter, Star, Eye, Clock, Database, Code2, Cpu, Hexagon, Lock, Compass, X, Loader2 } from 'lucide-react';
@@ -139,60 +140,132 @@ export default function ExplorePage() {
   useEffect(() => {
     const fetchMatrixData = async () => {
       try {
-        const [postsRes, releasesRes] = await Promise.all([
-          fetch(`${API_URL}/api/posts`).catch(() => null),
-          fetch(`${API_URL}/api/releases`).catch(() => null)
-        ]);
-
         let combinedData: any[] = [];
 
-        // 1. Process Research Posts
-        if (postsRes && postsRes.ok) {
-          const postsJson = await postsRes.json();
-          const mappedPosts = (postsJson.data || []).filter((p: any) => p.published).map((p: any) => {
-            let adv = {} as any;
-            try { if(p.advancedData) adv = JSON.parse(p.advancedData); } catch(e) {}
-            
-            return {
-              id: `post_${p.id}`,
-              title: p.title,
-              type: p.type || 'Research',
-              category: 'Research',
-              rating: String(adv.metadata?.explorerRating || 'N/A'),
-              views: String(adv.metadata?.explorerViews || 'N/A'),
-              date: new Date(p.createdAt).toLocaleDateString(),
-              preview: stripMarkdown(p.content).substring(0, 120) + '...', // 🔥 Sanitized Preview
-              status: 'Active',
-              icon: Database,
-              file: `research_${p.id.substring(0,4)}.md`,
-              timestamp: new Date(p.createdAt).getTime()
-            };
-          });
-          combinedData = [...combinedData, ...mappedPosts];
-        }
+        try {
+          const gqlQuery = `
+            query GetExploreCatalog {
+              researchArticles(limit: 60) {
+                id
+                title
+                slug
+                content
+                type
+                published
+                createdAt
+                categoryName
+                advancedData
+              }
+              projects(publishedOnly: true) {
+                id
+                projectName
+                version
+                releaseNotes
+                downloadUrl
+                heroImg
+                advancedData
+                published
+                createdAt
+              }
+            }
+          `;
+          const data = await fetchGraphQL<{ researchArticles: any[]; projects: any[] }>(gqlQuery, {}, { ttlMs: 45000 });
 
-        // 2. Process Project Releases
-        if (releasesRes && releasesRes.ok) {
-          const releasesJson = await releasesRes.json();
-          const mappedReleases = (releasesJson.data || []).filter((r: any) => r.published).map((r: any) => {
-            let radv = {} as any;
-            try { if (r.advancedData) radv = JSON.parse(r.advancedData); } catch (e) {}
-            return {
-            id: `release_${r.id}`,
-            title: r.projectName,
-            type: 'Project',
-            category: 'Projects',
-            rating: String(radv.explorerRating || 'N/A'),
-            views: String(radv.explorerViews || 'N/A'),
-            date: new Date(r.publishedAt).toLocaleDateString(),
-            preview: stripMarkdown(r.releaseNotes).substring(0, 120) + '...', // 🔥 Sanitized Preview
-            status: 'Active',
-            icon: Hexagon,
-            file: `v${r.version}.sys`,
-            timestamp: new Date(r.publishedAt).getTime()
-            };
-          });
-          combinedData = [...combinedData, ...mappedReleases];
+          if (data?.researchArticles) {
+            const mappedPosts = data.researchArticles.filter((p: any) => p.published).map((p: any) => {
+              let adv = {} as any;
+              try { if (p.advancedData) adv = JSON.parse(p.advancedData); } catch (e) {}
+              return {
+                id: `post_${p.id}`,
+                title: p.title,
+                type: p.type || 'Research',
+                category: 'Research',
+                rating: String(adv.metadata?.explorerRating || 'N/A'),
+                views: String(adv.metadata?.explorerViews || 'N/A'),
+                date: new Date(p.createdAt).toLocaleDateString(),
+                preview: stripMarkdown(p.content).substring(0, 120) + '...',
+                status: 'Active',
+                icon: Database,
+                file: `research_${p.id.substring(0, 4)}.md`,
+                timestamp: new Date(p.createdAt).getTime(),
+              };
+            });
+            combinedData = [...combinedData, ...mappedPosts];
+          }
+
+          if (data?.projects) {
+            const mappedReleases = data.projects.filter((r: any) => r.published).map((r: any) => {
+              let radv = {} as any;
+              try { if (r.advancedData) radv = JSON.parse(r.advancedData); } catch (e) {}
+              return {
+                id: `release_${r.id}`,
+                title: r.projectName,
+                type: 'Project',
+                category: 'Projects',
+                rating: String(radv.explorerRating || 'N/A'),
+                views: String(radv.explorerViews || 'N/A'),
+                date: new Date(r.createdAt).toLocaleDateString(),
+                preview: stripMarkdown(r.releaseNotes).substring(0, 120) + '...',
+                status: 'Active',
+                icon: Hexagon,
+                file: `v${r.version}.sys`,
+                timestamp: new Date(r.createdAt).getTime(),
+              };
+            });
+            combinedData = [...combinedData, ...mappedReleases];
+          }
+        } catch {
+          // REST Fallback
+          const [postsRes, releasesRes] = await Promise.all([
+            fetch(`${API_URL}/api/posts`).catch(() => null),
+            fetch(`${API_URL}/api/releases`).catch(() => null),
+          ]);
+
+          if (postsRes && postsRes.ok) {
+            const postsJson = await postsRes.json();
+            const mappedPosts = (postsJson.data || []).filter((p: any) => p.published).map((p: any) => {
+              let adv = {} as any;
+              try { if (p.advancedData) adv = JSON.parse(p.advancedData); } catch (e) {}
+              return {
+                id: `post_${p.id}`,
+                title: p.title,
+                type: p.type || 'Research',
+                category: 'Research',
+                rating: String(adv.metadata?.explorerRating || 'N/A'),
+                views: String(adv.metadata?.explorerViews || 'N/A'),
+                date: new Date(p.createdAt).toLocaleDateString(),
+                preview: stripMarkdown(p.content).substring(0, 120) + '...',
+                status: 'Active',
+                icon: Database,
+                file: `research_${p.id.substring(0, 4)}.md`,
+                timestamp: new Date(p.createdAt).getTime(),
+              };
+            });
+            combinedData = [...combinedData, ...mappedPosts];
+          }
+
+          if (releasesRes && releasesRes.ok) {
+            const releasesJson = await releasesRes.json();
+            const mappedReleases = (releasesJson.data || []).filter((r: any) => r.published).map((r: any) => {
+              let radv = {} as any;
+              try { if (r.advancedData) radv = JSON.parse(r.advancedData); } catch (e) {}
+              return {
+                id: `release_${r.id}`,
+                title: r.projectName,
+                type: 'Project',
+                category: 'Projects',
+                rating: String(radv.explorerRating || 'N/A'),
+                views: String(radv.explorerViews || 'N/A'),
+                date: new Date(r.publishedAt).toLocaleDateString(),
+                preview: stripMarkdown(r.releaseNotes).substring(0, 120) + '...',
+                status: 'Active',
+                icon: Hexagon,
+                file: `v${r.version}.sys`,
+                timestamp: new Date(r.publishedAt).getTime(),
+              };
+            });
+            combinedData = [...combinedData, ...mappedReleases];
+          }
         }
 
         setRealData(combinedData);

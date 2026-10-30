@@ -1,6 +1,7 @@
 "use client";
 
 import { API_URL } from '@/lib/api';
+import { verifyTokenViaSoap } from '@/lib/protocols';
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Canvas, useFrame } from '@react-three/fiber';
@@ -64,22 +65,16 @@ function VerifyMatrixContent() {
       }
 
       try {
-        const response = await fetch(`${API_URL}/api/auth/verify`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token }),
-        });
+        const result = await verifyTokenViaSoap(token);
 
-        const data = await response.json();
-
-        if (response.ok) {
+        if (result.success) {
           setStatus('success');
-          setMessage('Identity Verified. Your cipher is now active.');
+          setMessage(result.message || 'Identity Verified via Cryptographic Security Envelope.');
           // Auto-redirect to the main gateway after 3 seconds
           setTimeout(() => router.push('/'), 3500);
         } else {
           setStatus('error');
-          setMessage(data.message || 'The neural token has expired or is invalid.');
+          setMessage(result.message || 'The neural token has expired or is invalid.');
         }
       } catch (error) {
         setStatus('error');

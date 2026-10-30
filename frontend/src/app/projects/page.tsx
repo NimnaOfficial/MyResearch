@@ -1,6 +1,7 @@
 "use client";
 
 import { API_URL } from '@/lib/api';
+import { fetchGraphQL } from '@/lib/protocols';
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence, useTransform, useMotionValue, useAnimationFrame } from 'framer-motion';
@@ -116,20 +117,56 @@ export default function ProjectMatrix() {
   useEffect(() => {
     const hydrateMatrix = async () => {
       try {
-        const [relRes, showRes, faqRes] = await Promise.all([
-          fetch(`${API_URL}/api/releases`).catch(() => null),
-          fetch(`${API_URL}/api/showcase`).catch(() => null),
-          fetch(`${API_URL}/api/faqs`).catch(() => null)
-        ]);
+        let releases: any[] = [];
+        let showcasesData: any[] = [];
+        let faqsData: any[] = [];
 
-        // Safely parse JSON to prevent crashes if a route 404s
-        let releases = [];
-        let showcasesData = [];
-        let faqsData = [];
-
-        if (relRes && relRes.ok) { try { releases = (await relRes.json()).data || []; } catch(e) {} }
-        if (showRes && showRes.ok) { try { showcasesData = (await showRes.json()).data || []; } catch(e) {} }
-        if (faqRes && faqRes.ok) { try { faqsData = (await faqRes.json()).data || []; } catch(e) {} }
+        try {
+          // Fast single roundtrip via GraphQL with instant micro-caching
+          const gqlQuery = `
+            query GetProjectsPageData {
+              projects {
+                id
+                projectName
+                version
+                releaseNotes
+                downloadUrl
+                heroImg
+                advancedData
+                published
+                createdAt
+              }
+              showcases {
+                id
+                title
+                videoUrl
+                thumbnailUrl
+                description
+              }
+              faqs {
+                id
+                query
+                response
+              }
+            }
+          `;
+          const data = await fetchGraphQL<{ projects: any[]; showcases: any[]; faqs: any[] }>(gqlQuery, {}, { ttlMs: 45000 });
+          if (data?.projects) {
+            releases = data.projects;
+            showcasesData = data.showcases || [];
+            faqsData = data.faqs || [];
+          }
+        } catch {
+          // Transparent REST fallback
+          const [relRes, showRes, faqRes] = await Promise.all([
+            fetch(`${API_URL}/api/releases`).catch(() => null),
+            fetch(`${API_URL}/api/showcase`).catch(() => null),
+            fetch(`${API_URL}/api/faqs`).catch(() => null)
+          ]);
+          if (relRes && relRes.ok) { try { releases = (await relRes.json()).data || []; } catch(e) {} }
+          if (showRes && showRes.ok) { try { showcasesData = (await showRes.json()).data || []; } catch(e) {} }
+          if (faqRes && faqRes.ok) { try { faqsData = (await faqRes.json()).data || []; } catch(e) {} }
+        }
 
         // 1. Process Core Releases (Projects ONLY)
         const parsedReleases = releases.map((r: any, i: number) => {
