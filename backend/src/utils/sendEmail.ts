@@ -3,109 +3,193 @@ import { escapeHtml } from './escapeHtml';
 
 dotenv.config();
 
-// Fallback HTTP Relay (if configured)
+// ============================================================================
+// 1. GOOGLE APPS SCRIPT / HTTPS WEBHOOK RELAY DISPATCHER (PORT 443)
+// Delivers from your Gmail to ANY recipient worldwide. Zero custom domain needed!
+// ============================================================================
 const RELAY_TIMEOUT_MS = 10000;
 
 const sendViaRelay = async (to: string, subject: string, html: string): Promise<boolean> => {
-  const relayUrl = process.env.EMAIL_RELAY_URL;
+  const relayUrl = process.env.EMAIL_RELAY_URL?.trim();
   if (!relayUrl) return false;
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), RELAY_TIMEOUT_MS);
 
   try {
+    console.log(`[NETWORK] Dispatching email via HTTPS Webhook Relay to: ${to}...`);
     const response = await fetch(relayUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ to, subject, html }),
       signal: controller.signal,
+      redirect: 'follow',
     });
-    return response.ok;
-  } catch (e) {
+
+    if (response.ok) {
+      console.log(`[NETWORK] ✅ Cryptographic Email delivered via HTTPS Webhook Relay!`);
+      return true;
+    }
+
+    const txt = await response.text().catch(() => '');
+    console.warn(`[RELAY REJECTED] Status ${response.status}:`, txt.slice(0, 200));
+    return false;
+  } catch (e: any) {
+    console.warn(`[RELAY ERROR]:`, e?.message || e);
     return false;
   } finally {
     clearTimeout(timer);
   }
 };
 
-/**
- * Pure HTTPS Cryptographic Email Dispatcher via Resend REST API (Port 443).
- * Zero SMTP, Zero Port Blocking, Zero Datacenter IP Timeouts.
- */
-const sendMailMessage = async (to: string, subject: string, html: string): Promise<boolean> => {
+// ============================================================================
+// 2. BREVO REST API DISPATCHER (PORT 443)
+// Delivers to ANY recipient worldwide (300/day free). Single sender verification only!
+// ============================================================================
+const sendViaBrevo = async (to: string, subject: string, html: string): Promise<boolean> => {
+  const apiKey = (process.env.BREVO_API_KEY || '').trim();
+  if (!apiKey) return false;
+
+  const senderEmail = (
+    process.env.BREVO_SENDER_EMAIL ||
+    process.env.ADMIN_EMAIL ||
+    'nimnakgls980@gmail.com'
+  ).trim();
+  const senderName = (process.env.BREVO_SENDER_NAME || 'CSx Matrix').trim();
+
+  try {
+    console.log(`[NETWORK] Dispatching email via Brevo REST API to: ${to}...`);
+    const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: {
+        accept: 'application/json',
+        'api-key': apiKey,
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        sender: { name: senderName, email: senderEmail },
+        to: [{ email: to }],
+        subject,
+        htmlContent: html,
+      }),
+    });
+
+    if (response.ok) {
+      const json = (await response.json().catch(() => ({}))) as any;
+      console.log(
+        `[NETWORK] ✅ Cryptographic Email delivered via Brevo REST API! MessageId: ${
+          json?.messageId || 'OK'
+        }`
+      );
+      return true;
+    }
+
+    const errJson = (await response.json().catch(() => ({}))) as any;
+    console.warn(`[BREVO REJECTED]:`, errJson?.message || errJson);
+    return false;
+  } catch (e: any) {
+    console.warn(`[BREVO ERROR]:`, e?.message || e);
+    return false;
+  }
+};
+
+// ============================================================================
+// 3. RESEND REST API DISPATCHER (PORT 443)
+// Fast HTTPS delivery. In testing mode, routes securely to admin if external recipient rejected.
+// ============================================================================
+const sendViaResend = async (to: string, subject: string, html: string): Promise<boolean> => {
   const apiKey = (process.env.RESEND_API_KEY || '').trim();
+  if (!apiKey) return false;
+
   const fromEmail = process.env.RESEND_FROM || 'CSx Matrix <onboarding@resend.dev>';
   const masterAdminEmail = process.env.ADMIN_EMAIL || 'nimnakgls980@gmail.com';
 
-  if (apiKey) {
-    try {
-      console.log(`[NETWORK] Dispatching email via Resend HTTPS API to: ${to}...`);
-      const resendRes = await fetch('https://api.resend.com/emails', {
+  try {
+    console.log(`[NETWORK] Dispatching email via Resend HTTPS API to: ${to}...`);
+    const resendRes = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: fromEmail,
+        to: [to],
+        subject,
+        html,
+      }),
+    });
+
+    if (resendRes.ok) {
+      const json = (await resendRes.json()) as any;
+      console.log(`[NETWORK] ✅ Cryptographic Email delivered via Resend API! ID: ${json.id}`);
+      return true;
+    }
+
+    const errJson = (await resendRes.json().catch(() => ({}))) as any;
+    console.warn(`[RESEND API REJECTED]:`, errJson?.message || errJson);
+
+    // In Resend free onboarding testing mode, sending to unverified external emails returns 403:
+    // Auto-forward the full cryptographic payload directly to the Master Admin email so no transmission is ever lost!
+    if (errJson?.statusCode === 403 && to !== masterAdminEmail) {
+      console.log(`[RESEND ROUTING] Forwarding verified security payload to Master Admin (${masterAdminEmail})...`);
+      const forwardRes = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${apiKey}`,
+          Authorization: `Bearer ${apiKey}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           from: fromEmail,
-          to: [to],
-          subject,
-          html,
-        }),
-      });
-
-      if (resendRes.ok) {
-        const json = (await resendRes.json()) as any;
-        console.log(`[NETWORK] ✅ Cryptographic Email delivered via Resend API! ID: ${json.id}`);
-        return true;
-      }
-
-      const errJson = (await resendRes.json().catch(() => ({}))) as any;
-      console.warn(`[RESEND API REJECTED]:`, errJson?.message || errJson);
-
-      // In Resend free onboarding testing mode, sending to unverified external emails returns 403:
-      // Auto-forward the full cryptographic payload directly to the Master Admin email so no transmission is ever lost!
-      if (errJson?.statusCode === 403 && to !== masterAdminEmail) {
-        console.log(`[RESEND ROUTING] Forwarding verified security payload to Master Admin (${masterAdminEmail})...`);
-        const forwardRes = await fetch('https://api.resend.com/emails', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${apiKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            from: fromEmail,
-            to: [masterAdminEmail],
-            subject: `[FORWARDED TO ADMIN - For ${to}] ${subject}`,
-            html: `
+          to: [masterAdminEmail],
+          subject: `[FORWARDED TO ADMIN - For ${to}] ${subject}`,
+          html:
+            `
               <div style="background:#0f172a;padding:16px;border-left:4px solid #00f0ff;color:#94a3b8;font-family:monospace;font-size:12px;margin-bottom:20px;border-radius:4px;">
                 <p style="margin:0 0 5px 0;color:#00f0ff;font-weight:bold;letter-spacing:1px;">⚠️ RESEND TEST MODE FORWARD</p>
                 <p style="margin:0;">Intended Recipient: <strong style="color:#ffffff;">${escapeHtml(to)}</strong></p>
-                <p style="margin:5px 0 0 0;font-size:11px;color:#64748b;">(To deliver directly to external inboxes worldwide, verify your custom domain in resend.com/domains)</p>
+                <p style="margin:5px 0 0 0;font-size:11px;color:#64748b;">(Resend test mode only delivers to owner. Configure BREVO_API_KEY or EMAIL_RELAY_URL to send to any user in the world without a custom domain!)</p>
               </div>
             ` + html,
-          }),
-        });
+        }),
+      });
 
-        if (forwardRes.ok) {
-          console.log(`[NETWORK] ✅ Forwarded copy safely delivered to Master Admin (${masterAdminEmail})!`);
-          return true;
-        }
+      if (forwardRes.ok) {
+        console.log(`[NETWORK] ✅ Forwarded copy safely delivered to Master Admin (${masterAdminEmail})!`);
+        return true;
       }
-    } catch (e: any) {
-      console.warn(`[RESEND API WARNING]:`, e?.message || e);
     }
+  } catch (e: any) {
+    console.warn(`[RESEND API WARNING]:`, e?.message || e);
   }
 
-  // 2. Secondary: HTTP Relay (if configured)
+  return false;
+};
+
+/**
+ * Unified Cloud Email Engine (Port 443 HTTPS only).
+ * Zero SMTP, Zero Port Blocking, Zero Datacenter IP Timeouts.
+ */
+const sendMailMessage = async (to: string, subject: string, html: string): Promise<boolean> => {
+  // 1. Google Apps Script Webhook Relay (delivers to ANY recipient from your Gmail with 0 domain verification)
   if (process.env.EMAIL_RELAY_URL) {
-    const relayOk = await sendViaRelay(to, subject, html);
-    if (relayOk) {
-      console.log(`[NETWORK] ✅ Cryptographic Email delivered via HTTP relay!`);
-      return true;
-    }
+    const relaySuccess = await sendViaRelay(to, subject, html);
+    if (relaySuccess) return true;
   }
 
+  // 2. Brevo REST API (delivers to ANY recipient in the world, 300 free/day, 0 domain verification needed)
+  if (process.env.BREVO_API_KEY) {
+    const brevoSuccess = await sendViaBrevo(to, subject, html);
+    if (brevoSuccess) return true;
+  }
+
+  // 3. Resend HTTPS API (delivers to any recipient if domain verified, or routes to admin in test mode)
+  if (process.env.RESEND_API_KEY) {
+    const resendSuccess = await sendViaResend(to, subject, html);
+    if (resendSuccess) return true;
+  }
+
+  console.warn(`[NETWORK ALERT] No configured email dispatch engine could send the email to: ${to}`);
   return false;
 };
 
@@ -195,7 +279,7 @@ export const sendSecretCodeEmail = async (toEmail: string, secretCode: string, v
   console.log(`[RECIPIENT]   : ${toEmail}`);
   console.log(`[SECRET CODE] : ${secretCode}`);
   console.log(`[VERIFY URL]  : ${verifyUrl}`);
-  console.log(`[DELIVERY]    : RESEND HTTPS API (PORT 443)`);
+  console.log(`[DELIVERY]    : HTTPS CLOUD ENGINE (PORT 443)`);
   console.log(`======================================================\n`);
 
   return sent;

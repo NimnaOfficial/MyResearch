@@ -156,7 +156,8 @@ export const registerUser = catchAsync(async (req: Request, res: Response) => {
   const verifyToken = jwt.sign({ id: newUser.id, purpose: 'verify' }, getJwtSecret(), {
     expiresIn: '1h',
   });
-  const verifyUrl = `${getFrontendUrl()}/verify?token=${verifyToken}`;
+  const clientOrigin = req.get('origin') || req.get('referer');
+  const verifyUrl = `${getFrontendUrl(clientOrigin)}/verify?token=${verifyToken}`;
 
   try {
     await sendSecretCodeEmail(email, generatedSecretCode, verifyUrl);
