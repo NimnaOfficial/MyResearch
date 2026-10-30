@@ -1,5 +1,5 @@
 "use client";
-import { API_URL } from '@/lib/api';
+import { API_URL, handleSafeAdminLogout } from '@/lib/api';
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -184,10 +184,8 @@ export default function AdvancedSettingsMatrix() {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('matrix_token');
-    localStorage.removeItem('userRole');
-    router.push('/auth');
+  const handleLogout = async () => {
+    await handleSafeAdminLogout(() => router.push('/auth'));
   };
 
   const [requestStatus, setRequestStatus] = useState<'idle' | 'sending' | 'sent'>('idle');

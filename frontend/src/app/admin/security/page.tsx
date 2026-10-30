@@ -23,6 +23,7 @@ interface VisitorIp {
   lastUser: string;
   notes?: string;
   country?: string;
+  isImmune?: boolean;
 }
 
 interface IncidentLog {
@@ -47,6 +48,7 @@ interface SecurityState {
   };
   blacklistedIps: string[];
   whitelistedIps: string[];
+  adminImmuneIps?: string[];
   sessionRevocationTimestamp: number;
 }
 
@@ -88,7 +90,7 @@ export default function SecurityMonitoringCenter() {
 
   // Filter & Search States
   const [ipSearch, setIpSearch] = useState('');
-  const [ipStatusFilter, setIpStatusFilter] = useState<'all' | 'blacklisted' | 'whitelisted' | 'allowed'>('all');
+  const [ipStatusFilter, setIpStatusFilter] = useState<'all' | 'blacklisted' | 'whitelisted' | 'allowed' | 'immune'>('all');
   const [incidentFilter, setIncidentFilter] = useState<'all' | 'CRITICAL' | 'WARN' | 'INFO'>('all');
 
   // Manual IP Adder State
@@ -556,6 +558,13 @@ export default function SecurityMonitoringCenter() {
 
   // 7. IP Status Action
   const handleUpdateIpStatus = async (ip: string, status: 'allowed' | 'blacklisted' | 'whitelisted', notes?: string) => {
+    if (status === 'blacklisted') {
+      const isImmune = state.adminImmuneIps?.includes(ip) || visitorIps.find(x => x.ip === ip)?.isImmune;
+      if (isImmune) {
+        alert('SECURITY DIRECTIVE VIOLATION: Cannot blacklist active administrator node under any condition. Realtime zero-block immunity is active.');
+        return;
+      }
+    }
     setActionLoading(`ip-${ip}`);
     const start = performance.now();
 
@@ -682,10 +691,14 @@ export default function SecurityMonitoringCenter() {
     return visitorIps.filter(item => {
       const q = ipSearch.toLowerCase().trim();
       const matchQuery = !q || item.ip.toLowerCase().includes(q) || item.lastUser.toLowerCase().includes(q) || item.userAgent.toLowerCase().includes(q) || (item.notes && item.notes.toLowerCase().includes(q));
-      const matchStatus = ipStatusFilter === 'all' || item.status === ipStatusFilter;
+      const isImmune = Boolean(item.isImmune || state.adminImmuneIps?.includes(item.ip) || item.notes?.includes('ADMIN IP IMMUNITY') || item.lastUser === 'root_master');
+      const matchStatus = 
+        ipStatusFilter === 'all' ? true :
+        ipStatusFilter === 'immune' ? isImmune :
+        item.status === ipStatusFilter;
       return matchQuery && matchStatus;
     });
-  }, [visitorIps, ipSearch, ipStatusFilter]);
+  }, [visitorIps, ipSearch, ipStatusFilter, state.adminImmuneIps]);
 
   // Filtered Incidents
   const filteredIncidents = useMemo(() => {
@@ -1230,6 +1243,7 @@ export default function SecurityMonitoringCenter() {
                 className="px-3 py-2.5 bg-black/60 border border-slate-700 rounded-xl text-xs text-white uppercase font-bold cursor-pointer"
               >
                 <option value="all">All ({visitorIps.length})</option>
+                <option value="immune">🛡️ Immune Admin IPs ({state.adminImmuneIps?.length || 1})</option>
                 <option value="blacklisted">Blacklisted</option>
                 <option value="whitelisted">Whitelisted</option>
                 <option value="allowed">Allowed / Neutral</option>
@@ -1286,14 +1300,22 @@ export default function SecurityMonitoringCenter() {
                     filteredIps.map((item) => {
                       const isBlacklisted = item.status === 'blacklisted';
                       const isWhitelisted = item.status === 'whitelisted';
+                      const isImmune = Boolean(item.isImmune || state.adminImmuneIps?.includes(item.ip) || item.notes?.includes('ADMIN IP IMMUNITY') || item.lastUser === 'root_master');
 
                       return (
-                        <tr key={item.ip} className="hover:bg-white/[0.02] transition-colors group">
+                        <tr key={item.ip} className={`transition-colors group ${isImmune ? 'bg-amber-500/[0.04] hover:bg-amber-500/[0.08]' : 'hover:bg-white/[0.02]'}`}>
                           
                           {/* IP Address */}
                           <td className="py-4 px-6">
-                            <div className="flex items-center space-x-2">
-                              <span className="font-bold text-white tracking-wider">{item.ip}</span>
+                            <div className="flex items-center flex-wrap gap-2">
+                              <span className={`font-bold tracking-wider ${isImmune ? 'text-amber-300 drop-shadow-[0_0_8px_rgba(245,158,11,0.4)]' : 'text-white'}`}>
+                                {item.ip}
+                              </span>
+                              {isImmune && (
+                                <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/50 shadow-[0_0_10px_rgba(245,158,11,0.3)] inline-flex items-center">
+                                  🛡️ IMMUNE ADMIN IP (ZERO-BLOCK)
+                                </span>
+                              )}
                               <button
                                 type="button"
                                 onClick={() => handleCopyIp(item.ip)}
@@ -1311,15 +1333,21 @@ export default function SecurityMonitoringCenter() {
 
                           {/* Status Badge */}
                           <td className="py-4 px-4">
-                            <span className={`px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-widest border ${
-                              isBlacklisted 
-                                ? 'bg-red-600/20 text-red-400 border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.3)]' 
-                                : isWhitelisted 
-                                ? 'bg-emerald-600/20 text-emerald-400 border-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.3)]' 
-                                : 'bg-slate-800 text-slate-400 border-slate-700'
-                            }`}>
-                              {item.status}
-                            </span>
+                            {isImmune ? (
+                              <span className="px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-widest border bg-cyan-600/20 text-cyan-300 border-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.3)]">
+                                IMMUNE (CLEARANCE)
+                              </span>
+                            ) : (
+                              <span className={`px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-widest border ${
+                                isBlacklisted 
+                                  ? 'bg-red-600/20 text-red-400 border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.3)]' 
+                                  : isWhitelisted 
+                                  ? 'bg-emerald-600/20 text-emerald-400 border-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.3)]' 
+                                  : 'bg-slate-800 text-slate-400 border-slate-700'
+                              }`}>
+                                {item.status}
+                              </span>
+                            )}
                           </td>
 
                           {/* Hits */}
@@ -1329,7 +1357,7 @@ export default function SecurityMonitoringCenter() {
 
                           {/* Identity */}
                           <td className="py-4 px-4">
-                            <span className={`text-[11px] font-bold ${item.lastUser === 'GUEST' ? 'text-slate-500' : 'text-cyan-400'}`}>
+                            <span className={`text-[11px] font-bold ${item.lastUser === 'GUEST' ? 'text-slate-500' : isImmune ? 'text-amber-400' : 'text-cyan-400'}`}>
                               {item.lastUser}
                             </span>
                           </td>
@@ -1348,19 +1376,28 @@ export default function SecurityMonitoringCenter() {
                           {/* Action Buttons */}
                           <td className="py-4 px-6 text-right">
                             <div className="flex items-center justify-end space-x-1.5">
-                              {!isBlacklisted && (
-                                <button
-                                  type="button"
-                                  onClick={() => handleUpdateIpStatus(item.ip, 'blacklisted', `Banned via ${activeProtocol}`)}
-                                  disabled={actionLoading === `ip-${item.ip}`}
-                                  className="px-2.5 py-1 bg-red-950/70 hover:bg-red-900 border border-red-700/60 text-red-300 rounded-lg text-[10px] font-bold uppercase tracking-wider cursor-pointer transition-colors"
-                                  title={`Blacklist IP via ${activeProtocol}`}
+                              {isImmune ? (
+                                <span
+                                  className="px-2.5 py-1 bg-amber-950/40 border border-amber-500/40 text-amber-300 rounded-lg text-[10px] font-bold uppercase tracking-wider cursor-not-allowed inline-flex items-center space-x-1"
+                                  title="Cannot blacklist active administrator node (Zero-block immunity armed)"
                                 >
-                                  Ban
-                                </button>
+                                  <Lock size={11} className="mr-1 text-amber-400" /> IMMUNE NODE
+                                </span>
+                              ) : (
+                                !isBlacklisted && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleUpdateIpStatus(item.ip, 'blacklisted', `Banned via ${activeProtocol}`)}
+                                    disabled={actionLoading === `ip-${item.ip}`}
+                                    className="px-2.5 py-1 bg-red-950/70 hover:bg-red-900 border border-red-700/60 text-red-300 rounded-lg text-[10px] font-bold uppercase tracking-wider cursor-pointer transition-colors"
+                                    title={`Blacklist IP via ${activeProtocol}`}
+                                  >
+                                    Ban
+                                  </button>
+                                )
                               )}
 
-                              {!isWhitelisted && (
+                              {!isWhitelisted && !isImmune && (
                                 <button
                                   type="button"
                                   onClick={() => handleUpdateIpStatus(item.ip, 'whitelisted', `Whitelisted via ${activeProtocol}`)}
@@ -1372,7 +1409,7 @@ export default function SecurityMonitoringCenter() {
                                 </button>
                               )}
 
-                              {(isBlacklisted || isWhitelisted) && (
+                              {(isBlacklisted || isWhitelisted) && !isImmune && (
                                 <button
                                   type="button"
                                   onClick={() => handleUpdateIpStatus(item.ip, 'allowed')}
@@ -1384,15 +1421,17 @@ export default function SecurityMonitoringCenter() {
                                 </button>
                               )}
 
-                              <button
-                                type="button"
-                                onClick={() => handleDeleteIp(item.ip)}
-                                disabled={actionLoading === `del-${item.ip}`}
-                                className="p-1 text-slate-500 hover:text-red-400 transition-colors ml-1"
-                                title="Delete IP record from radar"
-                              >
-                                <Trash2 size={13} />
-                              </button>
+                              {!isImmune && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteIp(item.ip)}
+                                  disabled={actionLoading === `del-${item.ip}`}
+                                  className="p-1 text-slate-500 hover:text-red-400 transition-colors ml-1"
+                                  title="Delete IP record from radar"
+                                >
+                                  <Trash2 size={13} />
+                                </button>
+                              )}
                             </div>
                           </td>
 
@@ -1605,6 +1644,18 @@ export default function SecurityMonitoringCenter() {
               <div className="flex justify-between items-center pb-3 border-b border-slate-800">
                 <span className="text-slate-400">MASTER ADMIN IDENTIFIER:</span>
                 <span className="text-white font-bold">{hardcodedStatus?.masterEmail || 'nimnakgls980@gmail.com'}</span>
+              </div>
+              <div className="flex justify-between items-center pb-3 border-b border-slate-800">
+                <span className="text-slate-400">ADMIN IP IMMUNITY:</span>
+                <span className="text-amber-400 font-bold">ARMED (ZERO-BLOCK GUARANTEE)</span>
+              </div>
+              <div className="flex justify-between items-center pb-3 border-b border-slate-800">
+                <span className="text-slate-400">ACTIVE IMMUNE NODES:</span>
+                <span className="text-cyan-400 font-bold">{state.adminImmuneIps?.join(', ') || '127.0.0.1, ::1'}</span>
+              </div>
+              <div className="flex justify-between items-center pb-3 border-b border-slate-800">
+                <span className="text-slate-400">SESSION DURATION:</span>
+                <span className="text-emerald-400 font-bold">10-YEAR IMMORTAL VAULT</span>
               </div>
               <div className="flex justify-between items-center pb-3 border-b border-slate-800">
                 <span className="text-slate-400">DATABASE DEPENDENCY:</span>

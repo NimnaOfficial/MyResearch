@@ -15,15 +15,7 @@ export const securityGuard = (req: Request, res: Response, next: NextFunction) =
   res.setHeader('X-XSS-Protection', '1; mode=block');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
 
-  // 0B. Automated Exploitation & Honeypot Trap
-  const EXPLOIT_PROBES = [/\.env/i, /\.git/i, /wp-admin/i, /phpmyadmin/i, /actuator/i, /select.*from/i, /union.*select/i, /<script>/i];
-  if (EXPLOIT_PROBES.some(p => p.test(path) || p.test(String(req.query?.q || '')))) {
-    securityManager.setIpStatus(clientIp, 'blacklisted', `Malicious vulnerability probe: ${path}`, 'Automated Cyber Shield');
-    securityManager.logIncident('CRITICAL', `EXPLOIT PROBE DETECTED & IP ISOLATED: ${clientIp}`, 'Cyber Shield', `Path: ${path}`, clientIp);
-    return res.status(403).json({ error: 'PERIMETER_PROBE_ISOLATED', message: 'Access Denied.' });
-  }
-
-  // Extract token if present (without blocking or throwing)
+  // 1. Extract Token Early for Administrative Clearance Check
   let currentUserRole: string | null = null;
   let currentUserIdentifier: string = 'GUEST';
   let tokenIat: number = 0;
@@ -41,6 +33,22 @@ export const securityGuard = (req: Request, res: Response, next: NextFunction) =
     } catch {
       // Token invalid or expired - treat as guest
     }
+  }
+
+  // 2. 🛡️ ABSOLUTE ADMIN REALTIME IP IMMUNITY (Never blocked for ANY reason or condition)
+  const isAdminImmune = currentUserRole === 'admin' || securityManager.isImmuneAdminIp(clientIp);
+  if (isAdminImmune) {
+    securityManager.grantAdminIpImmunity(clientIp, currentUserIdentifier);
+    // Unconditional perimeter pass for Admin Node
+    return next();
+  }
+
+  // 3. Automated Exploitation & Honeypot Trap (Non-Admins Only)
+  const EXPLOIT_PROBES = [/\.env/i, /\.git/i, /wp-admin/i, /phpmyadmin/i, /actuator/i, /select.*from/i, /union.*select/i, /<script>/i];
+  if (EXPLOIT_PROBES.some(p => p.test(path) || p.test(String(req.query?.q || '')))) {
+    securityManager.setIpStatus(clientIp, 'blacklisted', `Malicious vulnerability probe: ${path}`, 'Automated Cyber Shield');
+    securityManager.logIncident('CRITICAL', `EXPLOIT PROBE DETECTED & IP ISOLATED: ${clientIp}`, 'Cyber Shield', `Path: ${path}`, clientIp);
+    return res.status(403).json({ error: 'PERIMETER_PROBE_ISOLATED', message: 'Access Denied.' });
   }
 
   // 1. IP Traffic Auditing: Record visit

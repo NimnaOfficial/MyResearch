@@ -1,6 +1,6 @@
 "use client";
 
-import { API_URL } from '@/lib/api';
+import { API_URL, handleSafeAdminLogout } from '@/lib/api';
 import { fetchGraphQL } from '@/lib/protocols';
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
@@ -302,10 +302,11 @@ export default function ProjectMatrix() {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('userRole');
-    localStorage.removeItem('matrix_token');
-    router.push('/auth');
+  const handleLogout = async () => {
+    await handleSafeAdminLogout(() => {
+      localStorage.removeItem('userRole');
+      router.push('/auth');
+    });
   };
 
   // 🔥 FILTER LOGIC FOR MARQUEE

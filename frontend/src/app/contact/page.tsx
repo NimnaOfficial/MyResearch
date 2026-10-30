@@ -1,4 +1,5 @@
 "use client";
+import { handleSafeAdminLogout } from '@/lib/api';
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useForm, ValidationError } from '@formspree/react';
@@ -122,6 +123,14 @@ export default function ContactPage() {
     }
   }, []);
 
+  const handleLogout = async () => {
+    await handleSafeAdminLogout(() => {
+      localStorage.removeItem('userRole');
+      setIsAuthenticated(false);
+      window.location.href = '/auth';
+    });
+  };
+
   // Clock Logic for Profile Header
   useEffect(() => {
     const updateClock = () => {
@@ -224,7 +233,7 @@ export default function ContactPage() {
                       <Star size={14} className="mr-3 text-cyan-400 group-hover:drop-shadow-[0_0_8px_rgba(0,240,255,0.8)]" /> Saved Links
                     </button>
                     <div className={`h-px w-full my-1 ${isLightMode ? 'bg-slate-200' : 'bg-slate-800/50'}`} />
-                    <button type="button" aria-label="Terminate Link" className={`flex items-center px-4 py-3 text-xs font-bold uppercase tracking-widest text-red-500 rounded-xl transition-all group ${isLightMode ? 'hover:bg-red-50' : 'hover:bg-red-500/10'}`}>
+                    <button type="button" aria-label="Terminate Link" onClick={handleLogout} className={`flex items-center px-4 py-3 text-xs font-bold uppercase tracking-widest text-red-500 rounded-xl transition-all group ${isLightMode ? 'hover:bg-red-50' : 'hover:bg-red-500/10'}`}>
                       <LogOut size={14} className="mr-3 text-red-500 group-hover:drop-shadow-[0_0_8px_rgba(239,68,68,0.8)]" /> Terminate Link
                     </button>
                   </motion.div>

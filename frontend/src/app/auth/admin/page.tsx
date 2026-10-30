@@ -1,6 +1,6 @@
 "use client";
 
-import { API_URL } from '@/lib/api';
+import { API_URL, persistAdminSession } from '@/lib/api';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -30,8 +30,7 @@ export default function SecretAdminLogin() {
 
       if (res.ok && data.token) {
         if (data.data.user.role === 'admin') {
-          localStorage.setItem('matrix_token', data.token);
-          localStorage.setItem('userRole', 'admin');
+          persistAdminSession(data.token);
           router.push('/admin'); // Warp to the Command Core Layout
         } else {
           setError('ERR_CLEARANCE_DENIED: ELEVATED PRIVILEGES REQUIRED.');

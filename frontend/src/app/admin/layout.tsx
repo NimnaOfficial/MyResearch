@@ -2,15 +2,40 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { LayoutDashboard, Users, Database, Server, Radio, LogOut, Bell, Activity, TerminalSquare, ShieldAlert } from 'lucide-react';
+import { LayoutDashboard, Users, Database, Server, Radio, LogOut, Bell, Activity, TerminalSquare, ShieldAlert, Lock } from 'lucide-react';
 import AdminGuard from '@/components/AdminGuard';
 import CustomCursor from '@/components/CustomCursor';
 import AdminPanicEject from '@/components/AdminPanicEject';
+import { handleSafeAdminLogout, API_URL } from '@/lib/api';
+import { subscribeSecurityStream } from '@/lib/protocols';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
+  const [criticalProtocolActive, setCriticalProtocolActive] = useState(false);
+
+  useEffect(() => {
+    // Check initial critical status
+    fetch(`${API_URL}/api/security/status`)
+      .then(res => res.json())
+      .then(json => {
+        if (json?.data?.lockdown || json?.data?.dbHeld) {
+          setCriticalProtocolActive(true);
+        }
+      })
+      .catch(() => {});
+
+    // Subscribe to SSE stream for realtime protocol updates
+    const unsubscribe = subscribeSecurityStream((event) => {
+      if (event?.state) {
+        setCriticalProtocolActive(Boolean(event.state.lockdownEnabled || event.state.dbConnectionHeld));
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   const navLinks = [
     { name: 'DASHBOARD', path: '/admin', icon: LayoutDashboard },
@@ -21,10 +46,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { name: 'CYBER_DEFENSE', path: '/admin/security', icon: ShieldAlert },
   ];
 
-  const handleLogout = () => {
-    localStorage.removeItem('matrix_token');
-    localStorage.removeItem('userRole');
-    router.push('/auth');
+  const handleLogout = async () => {
+    await handleSafeAdminLogout(() => router.push('/auth'));
   };
 
   return (
@@ -110,10 +133,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               </div>
               <button 
                 onClick={handleLogout} 
-                className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-950/30 rounded-xl transition-colors ml-1"
-                title="Disconnect / Logout"
+                className={`p-2 rounded-xl transition-all ml-1 flex items-center space-x-1 ${
+                  criticalProtocolActive 
+                    ? 'text-amber-400 bg-amber-950/40 border border-amber-500/40 cursor-not-allowed hover:bg-amber-900/50' 
+                    : 'text-slate-400 hover:text-red-400 hover:bg-red-950/30'
+                }`}
+                title={criticalProtocolActive ? "DISCONNECT PROHIBITED: High-stakes protocol active (Lockdown/DB Held)" : "Disconnect / Logout"}
               >
-                <LogOut size={17} />
+                {criticalProtocolActive ? <Lock size={16} className="text-amber-400 animate-pulse" /> : <LogOut size={17} />}
               </button>
             </div>
           </div>

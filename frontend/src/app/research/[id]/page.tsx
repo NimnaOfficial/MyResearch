@@ -1,6 +1,6 @@
 "use client";
 
-import { API_URL } from '@/lib/api';
+import { API_URL, handleSafeAdminLogout } from '@/lib/api';
 import { fetchGraphQL } from '@/lib/protocols';
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
@@ -496,10 +496,11 @@ export default function ResearchDetailPage() {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('userRole');
-    localStorage.removeItem('matrix_token');
-    window.location.href = '/auth';
+  const handleLogout = async () => {
+    await handleSafeAdminLogout(() => {
+      localStorage.removeItem('userRole');
+      window.location.href = '/auth';
+    });
   };
 
   if (isLoading || !data) {

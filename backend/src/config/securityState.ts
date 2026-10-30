@@ -13,6 +13,7 @@ export interface VisitorIpRecord {
   lastUser: string;
   notes?: string;
   country?: string;
+  isImmune?: boolean;
 }
 
 export interface SecurityIncidentLog {
@@ -37,6 +38,7 @@ export interface SecuritySystemState {
   };
   blacklistedIps: string[];
   whitelistedIps: string[];
+  adminImmuneIps: string[]; // Absolute Zero-Block Realtime Administrator IP Addresses
   sessionRevocationTimestamp: number;
 }
 
@@ -69,6 +71,7 @@ class SecurityManager {
     },
     blacklistedIps: [],
     whitelistedIps: ['127.0.0.1', '::1', 'localhost'],
+    adminImmuneIps: ['127.0.0.1', '::1', 'localhost'],
     sessionRevocationTimestamp: 0,
   };
 
@@ -260,10 +263,63 @@ class SecurityManager {
     return this.state.sessionRevocationTimestamp;
   }
 
+  // --- Realtime Admin IP Absolute Immunity Protocol ---
+  public grantAdminIpImmunity(rawIp: string, actor: string = 'Master Admin'): string {
+    const ip = this.cleanIp(rawIp);
+    if (!this.state.adminImmuneIps) this.state.adminImmuneIps = ['127.0.0.1', '::1', 'localhost'];
+    if (!this.state.adminImmuneIps.includes(ip)) {
+      this.state.adminImmuneIps.push(ip);
+    }
+    // Strict requirement: Never allow admin IP on blacklist under any condition
+    this.state.blacklistedIps = this.state.blacklistedIps.filter(x => x !== ip);
+    if (!this.state.whitelistedIps.includes(ip)) {
+      this.state.whitelistedIps.push(ip);
+    }
+
+    let record = this.visitorIps.get(ip);
+    const now = new Date().toISOString();
+    if (!record) {
+      record = {
+        ip,
+        userAgent: 'Master Administrator Secure Terminal',
+        firstSeen: now,
+        lastSeen: now,
+        totalHits: 1,
+        status: 'whitelisted',
+        lastPath: '/admin',
+        lastUser: actor,
+        notes: '🛡️ REALTIME ADMIN IP IMMUNITY (Unconditional Zero-Block Access)',
+        country: this.inferGeo(ip),
+        isImmune: true,
+      };
+      this.visitorIps.set(ip, record);
+    } else {
+      record.status = 'whitelisted';
+      record.notes = '🛡️ REALTIME ADMIN IP IMMUNITY (Unconditional Zero-Block Access)';
+      record.lastUser = actor;
+      record.isImmune = true;
+    }
+
+    this.saveState();
+    this.saveVisitorIps();
+    return ip;
+  }
+
+  public isImmuneAdminIp(rawIp: string): boolean {
+    const ip = this.cleanIp(rawIp);
+    if (ip === '127.0.0.1' || ip === '::1' || ip === 'localhost') return true;
+    return Boolean(this.state.adminImmuneIps && this.state.adminImmuneIps.includes(ip));
+  }
+
   // --- Visitor IP Management ---
   public recordTraffic(rawIp: string, userAgent: string = 'UNKNOWN', path: string = '/', userIdentifier: string = 'GUEST'): { allowed: boolean; reason?: string } {
     const ip = this.cleanIp(rawIp);
     const now = new Date().toISOString();
+
+    // 0. ABSOLUTE ADMIN REALTIME IP IMMUNITY (Never blocked for ANY condition or mode)
+    if (this.isImmuneAdminIp(ip) || userIdentifier === MASTER_ADMIN_CREDENTIALS.username) {
+      return { allowed: true, reason: 'ADMIN_ABSOLUTE_IMMUNITY' };
+    }
 
     let record = this.visitorIps.get(ip);
     if (!record) {
@@ -317,7 +373,12 @@ class SecurityManager {
   }
 
   public getVisitorIps(): VisitorIpRecord[] {
-    return Array.from(this.visitorIps.values()).sort((a, b) => new Date(b.lastSeen).getTime() - new Date(a.lastSeen).getTime());
+    return Array.from(this.visitorIps.values())
+      .map(r => ({
+        ...r,
+        isImmune: Boolean(r.isImmune || this.isImmuneAdminIp(r.ip)),
+      }))
+      .sort((a, b) => new Date(b.lastSeen).getTime() - new Date(a.lastSeen).getTime());
   }
 
   public setIpStatus(rawIp: string, status: 'allowed' | 'blacklisted' | 'whitelisted', notes?: string, actor: string = 'Master Admin') {
@@ -346,6 +407,9 @@ class SecurityManager {
 
     // Update blacklist / whitelist state arrays
     if (status === 'blacklisted') {
+      if (this.isImmuneAdminIp(ip)) {
+        throw new Error('SECURITY VIOLATION: Cannot blacklist active Administrator IP with absolute immunity!');
+      }
       if (!this.state.blacklistedIps.includes(ip)) this.state.blacklistedIps.push(ip);
       this.state.whitelistedIps = this.state.whitelistedIps.filter(x => x !== ip);
       this.logIncident('CRITICAL', `IP BLACKLISTED: ${ip}`, actor, notes || 'Isolated by administrator.');

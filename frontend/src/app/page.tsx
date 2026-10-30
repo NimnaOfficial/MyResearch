@@ -1,5 +1,5 @@
 "use client";
-import { API_URL } from '@/lib/api';
+import { API_URL, handleSafeAdminLogout } from '@/lib/api';
 import { useRef, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Canvas, useFrame } from '@react-three/fiber';
@@ -242,8 +242,11 @@ export default function WelcomePage() {
             const result = await res.json();
             setUserData(result.data);
           } else {
-            setHasToken(false);
-            localStorage.removeItem('matrix_token');
+            const role = localStorage.getItem('userRole');
+            if (role !== 'admin') {
+              setHasToken(false);
+              localStorage.removeItem('matrix_token');
+            }
           }
         } catch (err) {
           console.error("Failed to fetch user matrix data", err);
@@ -281,12 +284,13 @@ export default function WelcomePage() {
     sessionStorage.setItem('csxpedia_booted', 'true');
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('userRole');
-    localStorage.removeItem('matrix_token');
-    setHasToken(false);
-    setUserData(null);
-    router.push('/auth');
+  const handleLogout = async () => {
+    await handleSafeAdminLogout(() => {
+      localStorage.removeItem('userRole');
+      setHasToken(false);
+      setUserData(null);
+      router.push('/auth');
+    });
   };
 
   useEffect(() => {

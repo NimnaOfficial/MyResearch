@@ -1,6 +1,6 @@
 "use client";
 
-import { API_URL } from '@/lib/api';
+import { API_URL, handleSafeAdminLogout } from '@/lib/api';
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -292,10 +292,11 @@ export default function ReleaseDetailIDE() {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('userRole');
-    localStorage.removeItem('matrix_token');
-    window.location.href = '/auth';
+  const handleLogout = async () => {
+    await handleSafeAdminLogout(() => {
+      localStorage.removeItem('userRole');
+      window.location.href = '/auth';
+    });
   };
 
   // Safe programmatic scroll handler

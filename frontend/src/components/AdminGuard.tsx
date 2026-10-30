@@ -1,6 +1,6 @@
 "use client";
 
-import { API_URL } from '@/lib/api';
+import { API_URL, getToken } from '@/lib/api';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ShieldAlert, Loader2 } from 'lucide-react';
@@ -12,7 +12,7 @@ export default function AdminGuard({ children }: { children: React.ReactNode }) 
 
   useEffect(() => {
     const verifyClearance = async () => {
-      const token = localStorage.getItem('matrix_token');
+      const token = getToken();
       if (!token) {
         router.push('/auth');
         return;

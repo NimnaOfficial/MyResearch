@@ -1,6 +1,6 @@
 "use client";
 
-import { API_URL } from '@/lib/api';
+import { API_URL, handleSafeAdminLogout } from '@/lib/api';
 import { fetchGraphQL } from '@/lib/protocols';
 import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -380,10 +380,11 @@ export default function MasterResearchVault() {
     }
   }, [showcaseRecent, activeRecent]);
 
-  const handleLogout = () => {
-    localStorage.removeItem('matrix_token');
-    localStorage.removeItem('userRole');
-    router.push('/auth');
+  const handleLogout = async () => {
+    await handleSafeAdminLogout(() => {
+      localStorage.removeItem('userRole');
+      router.push('/auth');
+    });
   };
 
   const textPrimary = isLightMode ? "text-slate-900" : "text-white";

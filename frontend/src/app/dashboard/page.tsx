@@ -1,6 +1,6 @@
 "use client";
 
-import { API_URL } from '@/lib/api';
+import { API_URL, handleSafeAdminLogout } from '@/lib/api';
 import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
@@ -90,21 +90,32 @@ export default function UserDashboard() {
           setUserData(result.data);
           setLoading(false);
         } else {
-          localStorage.removeItem('matrix_token');
-          router.push('/auth');
+          const role = localStorage.getItem('userRole');
+          if (role !== 'admin') {
+            localStorage.removeItem('matrix_token');
+            router.push('/auth');
+          } else {
+            setLoading(false);
+          }
         }
       } catch (err) {
-        localStorage.removeItem('matrix_token');
-        router.push('/auth');
+        const role = localStorage.getItem('userRole');
+        if (role !== 'admin') {
+          localStorage.removeItem('matrix_token');
+          router.push('/auth');
+        } else {
+          setLoading(false);
+        }
       }
     };
     fetchIdentity();
   }, [router]);
 
-  const handleLogout = () => {
-    localStorage.removeItem('matrix_token');
-    localStorage.removeItem('userRole');
-    router.push('/auth');
+  const handleLogout = async () => {
+    await handleSafeAdminLogout(() => {
+      localStorage.removeItem('userRole');
+      router.push('/auth');
+    });
   };
 
   const bgPrimary = isLightMode ? "bg-[#f8fafc]" : "bg-[#010309]";

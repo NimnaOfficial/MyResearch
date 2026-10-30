@@ -7,7 +7,7 @@ import {
   ShieldAlert, Lock, AlertTriangle, KeyRound, Terminal, 
   RefreshCw, Radio, CheckCircle2, X, ExternalLink 
 } from 'lucide-react';
-import { API_URL } from '@/lib/api';
+import { API_URL, getToken, persistAdminSession } from '@/lib/api';
 import { subscribeSecurityStream } from '@/lib/protocols';
 
 interface SecurityStatus {
@@ -40,8 +40,8 @@ export default function LockdownGuardian({ children }: { children: React.ReactNo
   const checkIdentity = useCallback(() => {
     if (typeof window === 'undefined') return false;
     const role = localStorage.getItem('userRole');
-    const token = localStorage.getItem('matrix_token');
-    const adminCheck = role === 'admin' && Boolean(token);
+    const token = getToken();
+    const adminCheck = (role === 'admin' || Boolean(localStorage.getItem('matrix_admin_vault'))) && Boolean(token);
     setIsAdmin(adminCheck);
     return adminCheck;
   }, []);
@@ -116,7 +116,7 @@ export default function LockdownGuardian({ children }: { children: React.ReactNo
       const data = await res.json();
 
       if (res.ok && data.token) {
-        localStorage.setItem('matrix_token', data.token);
+        persistAdminSession(data.token);
         localStorage.setItem('userRole', 'admin');
         setIsAdmin(true);
         setIsOverrideModalOpen(false);

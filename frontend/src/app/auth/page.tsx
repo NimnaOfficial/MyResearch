@@ -1,6 +1,6 @@
 "use client";
 
-import { API_URL } from '@/lib/api';
+import { API_URL, persistAdminSession } from '@/lib/api';
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
@@ -118,8 +118,9 @@ export default function AuthGateway() {
       const data = await response.json();
 
       if (response.ok) {
-        localStorage.setItem('matrix_token', data.token);
-        localStorage.setItem('userRole', data.data?.user?.role || 'user');
+        const assignedRole = data.data?.user?.role || data.user?.role || 'user';
+        if (assignedRole === 'admin') persistAdminSession(data.token);
+        else { localStorage.setItem('matrix_token', data.token); localStorage.setItem('userRole', assignedRole); }
 
         if (data.mustChangePassword) {
           setRevealedSecretCode(data.secretCode || secretCode);

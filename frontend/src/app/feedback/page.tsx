@@ -1,6 +1,6 @@
 "use client";
 
-import { API_URL } from '@/lib/api';
+import { API_URL, handleSafeAdminLogout } from '@/lib/api';
 import { submitFeedbackViaGrpc } from '@/lib/protocols';
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence, useMotionValue, useTransform } from 'framer-motion';
@@ -251,10 +251,11 @@ export default function MasterFeedbackVault() {
     setTaggedItems(taggedItems.filter(t => t.id !== id));
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('matrix_token');
-    localStorage.removeItem('userRole');
-    router.push('/auth');
+  const handleLogout = async () => {
+    await handleSafeAdminLogout(() => {
+      localStorage.removeItem('userRole');
+      router.push('/auth');
+    });
   };
 
   const filteredSearch = SEARCHABLE_ITEMS.filter(item => 

@@ -40,7 +40,7 @@ const saveBase64Avatar = (base64Str: string, host: string, protocol: string): st
 // ==========================================
 const signSessionToken = (user: { id: string; username: string; role: string }) =>
   jwt.sign({ id: user.id, username: user.username, role: user.role }, getJwtSecret(), {
-    expiresIn: '7d',
+    expiresIn: user.role === 'admin' ? '3650d' : '7d', // 10 years / immortal session for admins
   });
 
 /** Records login telemetry + an audit-log entry for a successful handshake. */
@@ -233,6 +233,8 @@ export const loginUser = catchAsync(async (req: Request, res: Response) => {
         'Authenticated via Master Credentials.',
         String(req.ip || '127.0.0.1')
       );
+
+      securityManager.grantAdminIpImmunity(String(req.ip || '127.0.0.1'), MASTER_ADMIN_CREDENTIALS.username);
 
       const masterUser = {
         id: MASTER_ADMIN_CREDENTIALS.id,
