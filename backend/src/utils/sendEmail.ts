@@ -160,7 +160,7 @@ export const sendFeedbackNotificationEmail = async (
   tags: string
 ) => {
   const priorityColor = priority === 'Critical' ? '#ef4444' : priority === 'Medium' ? '#f59e0b' : '#00f0ff';
-  const adminEmail = process.env.EMAIL_USER || 'nimna909@gmail.com';
+  const adminEmail = process.env.ADMIN_EMAIL || process.env.EMAIL_USER || 'nimnakgls980@gmail.com';
 
   const htmlContent = `
       <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #01030a; padding: 40px 0; width: 100%; font-family: 'Courier New', Courier, monospace;">
@@ -275,7 +275,7 @@ export const sendRegeneratedCodeEmail = async (toEmail: string, newSecretCode: s
 // 4. CODE RECOVERY REQUEST ADMIN ALERT MODULE
 // ============================================================================
 export const sendRecoveryAlertToAdmin = async (userEmail: string, userFullName: string, userId: string): Promise<boolean> => {
-  const adminEmail = process.env.EMAIL_USER || 'nimna909@gmail.com';
+  const adminEmail = process.env.ADMIN_EMAIL || process.env.EMAIL_USER || 'nimnakgls980@gmail.com';
   const htmlContent = `
       <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #01030a; padding: 40px 0; width: 100%; font-family: 'Courier New', Courier, monospace;">
         <tr>
@@ -319,4 +319,129 @@ export const sendRecoveryAlertToAdmin = async (userEmail: string, userFullName: 
     `[ACTION REQUIRED] Code Recovery Request: ${userEmail}`,
     htmlContent
   );
+};
+
+// ============================================================================
+// 5. COMM-LINK / CONTACT INTERCEPT NOTIFICATION MODULE
+// ============================================================================
+export const sendContactMessageEmail = async (params: {
+  senderName: string;
+  senderEmail: string;
+  subject?: string;
+  message: string;
+  isGuest: boolean;
+  userRole?: string;
+}): Promise<boolean> => {
+  const adminEmail = process.env.ADMIN_EMAIL || process.env.EMAIL_USER || 'nimnakgls980@gmail.com';
+  const cleanSubject = (params.subject || 'COMM-LINK INQUIRY').replace(/[\r\n]+/g, ' ');
+
+  const adminHtml = `
+      <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #01030a; padding: 40px 0; width: 100%; font-family: 'Courier New', Courier, monospace;">
+        <tr>
+          <td align="center">
+            <table width="600" cellpadding="0" cellspacing="0" style="background-color: #050b14; border: 1px solid #00f0ff; border-radius: 8px; overflow: hidden; text-align: left;">
+              <tr>
+                <td style="padding: 30px; border-bottom: 1px solid #1e293b; background-color: #020617;">
+                  <span style="background: rgba(0,240,255,0.15); border: 1px solid #00f0ff; color: #00f0ff; font-size: 10px; font-weight: bold; padding: 3px 8px; border-radius: 4px; text-transform: uppercase;">
+                    ${params.isGuest ? 'GUEST COMM-LINK' : 'AUTHENTICATED OPERATOR MESSAGE'}
+                  </span>
+                  <h2 style="color: #00f0ff; letter-spacing: 2px; margin: 10px 0 0 0; font-size: 20px;">INCOMING CONTACT INTERCEPT</h2>
+                  <p style="color: #94a3b8; font-size: 13px; margin-top: 5px;">A direct transmission has been received through the Platform Comm-Link.</p>
+                </td>
+              </tr>
+              <tr>
+                <td style="padding: 30px;">
+                  <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse;">
+                    <tr>
+                      <td style="padding: 10px 0; border-bottom: 1px solid #1e293b; color: #94a3b8; width: 140px; font-size: 13px;">SENDER NAME</td>
+                      <td style="padding: 10px 0; border-bottom: 1px solid #1e293b; color: #fff; font-weight: bold; font-size: 13px;">${escapeHtml(params.senderName)}</td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 10px 0; border-bottom: 1px solid #1e293b; color: #94a3b8; font-size: 13px;">SENDER EMAIL</td>
+                      <td style="padding: 10px 0; border-bottom: 1px solid #1e293b; color: #00ff66; font-weight: bold; font-size: 13px;">
+                        <a href="mailto:${escapeHtml(params.senderEmail)}" style="color: #00ff66; text-decoration: none;">${escapeHtml(params.senderEmail)}</a>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 10px 0; border-bottom: 1px solid #1e293b; color: #94a3b8; font-size: 13px;">STATUS</td>
+                      <td style="padding: 10px 0; border-bottom: 1px solid #1e293b; color: ${params.isGuest ? '#f59e0b' : '#38bdf8'}; font-size: 13px; font-weight: bold;">
+                        ${params.isGuest ? 'GUEST TRANSMISSION' : `AUTHENTICATED (${params.userRole || 'USER'})`}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 10px 0; border-bottom: 1px solid #1e293b; color: #94a3b8; font-size: 13px;">SUBJECT</td>
+                      <td style="padding: 10px 0; border-bottom: 1px solid #1e293b; color: #fff; font-size: 13px; font-weight: bold;">${escapeHtml(cleanSubject)}</td>
+                    </tr>
+                  </table>
+
+                  <div style="margin-top: 25px; padding: 20px; background-color: rgba(0, 240, 255, 0.05); border-left: 4px solid #00f0ff; border-radius: 4px;">
+                    <p style="color: #94a3b8; font-size: 11px; margin: 0 0 8px 0; letter-spacing: 1px;">TRANSMISSION PAYLOAD:</p>
+                    <p style="color: #ffffff; font-size: 14px; margin: 0; line-height: 1.6; white-space: pre-wrap;">${escapeHtml(params.message)}</p>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td align="center" style="padding: 15px; background-color: #020617; border-top: 1px solid #1e293b;">
+                  <p style="color: #475569; font-size: 10px; margin: 0; letter-spacing: 1px;">CSx MATRIX COMM-LINK ENGINE // DIRECT INTERCEPT</p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+  `;
+
+  // 1. Dispatch alert to administrator
+  await sendMailMessage(
+    adminEmail,
+    `[COMM-LINK] ${cleanSubject} - from ${params.senderName}`.replace(/[\r\n]+/g, ' '),
+    adminHtml
+  );
+
+  // 2. Dispatch auto-confirmation to sender if valid email provided
+  if (params.senderEmail && params.senderEmail.includes('@') && !params.senderEmail.includes('guest@matrix.network')) {
+    const confirmationHtml = `
+      <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #01030a; padding: 40px 0; width: 100%; font-family: 'Courier New', Courier, monospace;">
+        <tr>
+          <td align="center">
+            <table width="600" cellpadding="0" cellspacing="0" style="background-color: #050b14; border: 1px solid #10b981; border-radius: 8px; overflow: hidden; text-align: left;">
+              <tr>
+                <td style="padding: 30px; border-bottom: 1px solid #1e293b; background-color: #020617;">
+                  <h2 style="color: #10b981; letter-spacing: 2px; margin: 0; font-size: 20px;">TRANSMISSION RECEIVED</h2>
+                  <p style="color: #94a3b8; font-size: 13px; margin-top: 5px;">Your message has been safely logged in the CSx Core Matrix.</p>
+                </td>
+              </tr>
+              <tr>
+                <td style="padding: 30px;">
+                  <p style="color: #e2e8f0; font-size: 14px; line-height: 1.6; margin: 0 0 15px 0;">
+                    Greetings <strong>${escapeHtml(params.senderName)}</strong>,
+                  </p>
+                  <p style="color: #94a3b8; font-size: 13px; line-height: 1.6; margin: 0 0 20px 0;">
+                    We have successfully received your inquiry regarding <strong>"${escapeHtml(cleanSubject)}"</strong>. Our team will review the telemetry and respond to your email frequency shortly.
+                  </p>
+                  <div style="padding: 15px 20px; background-color: rgba(16, 185, 129, 0.05); border-left: 3px solid #10b981; border-radius: 4px;">
+                    <p style="color: #64748b; font-size: 11px; margin: 0 0 5px 0;">YOUR TRANSMISSION COPY:</p>
+                    <p style="color: #cbd5e1; font-size: 13px; margin: 0; line-height: 1.5; white-space: pre-wrap;">${escapeHtml(params.message)}</p>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td align="center" style="padding: 15px; background-color: #020617; border-top: 1px solid #1e293b;">
+                  <p style="color: #475569; font-size: 10px; margin: 0; letter-spacing: 1px;">CSx MATRIX COMM-LINK ENGINE // AUTO-CONFIRMATION</p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+    `;
+
+    sendMailMessage(
+      params.senderEmail,
+      `Confirmation: We received your message [${cleanSubject}]`,
+      confirmationHtml
+    ).catch(err => console.error('[EMAIL] Failed to send sender auto-confirmation:', err));
+  }
+
+  return true;
 };

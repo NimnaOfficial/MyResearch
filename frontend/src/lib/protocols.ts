@@ -1,4 +1,4 @@
-import { API_URL } from './api';
+import { API_URL, getToken } from './api';
 
 // ==========================================
 // 🛡️ API CLOAKING & SHIELD SECURITY ENGINE
@@ -64,7 +64,7 @@ export async function fetchGraphQL<T = any>(
 }
 
 async function fetchGraphQLDirect<T = any>(query: string, variables?: Record<string, any>): Promise<T> {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('matrix_token') : null;
+  const token = typeof window !== 'undefined' ? getToken() : null;
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     ...getShieldHeaders(),
@@ -92,7 +92,7 @@ export async function callGrpc<T = any>(
   method: string, 
   payload: Record<string, any> = {}
 ): Promise<{ data: T; latencyMs: number; status: string }> {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('matrix_token') : null;
+  const token = typeof window !== 'undefined' ? getToken() : null;
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     'Accept': 'application/grpc-web+json',
@@ -140,7 +140,7 @@ export async function submitFeedbackViaGrpc(feedback: {
   } catch (err) {
     console.warn('[gRPC Feedback] Primary RPC failed, falling back to REST:', err);
     // Automatic transparent fallback to REST
-    const token = typeof window !== 'undefined' ? localStorage.getItem('matrix_token') : null;
+    const token = typeof window !== 'undefined' ? getToken() : null;
     const res = await fetch(`${API_URL}/api/feedback/submit`, {
       method: 'POST',
       headers: {
@@ -154,6 +154,41 @@ export async function submitFeedbackViaGrpc(feedback: {
       success: res.ok,
       feedbackId: json.data?.id || 'rest-fb',
       latencyMs: 50,
+    };
+  }
+}
+
+/** High-speed gRPC Contact Comm-Link submission with automatic transparent REST fallback */
+export async function sendContactMessage(payload: {
+  name?: string;
+  email?: string;
+  subject?: string;
+  message: string;
+}): Promise<{ success: boolean; messageId: string; latencyMs: number }> {
+  try {
+    const rpcRes = await callGrpc('ContactService', 'SendMessage', payload);
+    return {
+      success: true,
+      messageId: rpcRes.data.messageId || 'msg-ok',
+      latencyMs: rpcRes.latencyMs,
+    };
+  } catch (err) {
+    console.warn('[gRPC Contact] Primary RPC failed, falling back to REST /api/contact/send:', err);
+    const token = typeof window !== 'undefined' ? getToken() : null;
+    const res = await fetch(`${API_URL}/api/contact/send`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify(payload),
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.message || 'Failed to dispatch transmission.');
+    return {
+      success: true,
+      messageId: json.data?.messageId || 'rest-msg',
+      latencyMs: 70,
     };
   }
 }

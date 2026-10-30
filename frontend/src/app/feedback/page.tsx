@@ -278,8 +278,12 @@ export default function MasterFeedbackVault() {
   // 🔥 FIRST-PARTY LOCAL DATABASE SUBMISSION 🔥
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const cleanMsg = message.trim();
+    if (!cleanMsg) {
+      alert("Please provide a telemetry message before transmitting.");
+      return;
+    }
     setIsSubmitting(true);
-    const token = localStorage.getItem('matrix_token');
 
     try {
       const result = await submitFeedbackViaGrpc({
@@ -288,7 +292,7 @@ export default function MasterFeedbackVault() {
         priority,
         recommend,
         tags: taggedItems.map(t => `${t.id} (${t.title})`).join(', '),
-        message,
+        message: cleanMsg,
       });
       
       if (result.success) {
@@ -302,10 +306,11 @@ export default function MasterFeedbackVault() {
           setFeedbackType('Feature Request');
         }, 3000);
       } else {
-        alert("Telemetry submission failed. Ensure you are authorized.");
+        alert("Telemetry submission could not be verified. Please retry.");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Submission failed:", error);
+      alert(error?.message || "Telemetry submission failed.");
     } finally {
       setIsSubmitting(false);
     }

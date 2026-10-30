@@ -3,6 +3,7 @@ import { securityManager } from '../config/securityState';
 import prisma from '../config/prisma';
 import jwt from 'jsonwebtoken';
 import { getJwtSecret } from '../config/env';
+import { sendFeedbackNotificationEmail, sendContactMessageEmail } from '../utils/sendEmail';
 
 const router = express.Router();
 
@@ -101,6 +102,23 @@ router.post('/:service/:method', async (req: Request, res: Response) => {
           }
         }
 
+        // Dispatch real-time telemetry notification to admin
+        let senderInfo = 'GUEST OPERATOR';
+        if (userId) {
+          try {
+            const u = await prisma.user.findUnique({ where: { id: userId }, select: { fullName: true, username: true, email: true } });
+            if (u) senderInfo = `${u.fullName || u.username} (${u.email})`;
+          } catch {}
+        }
+        sendFeedbackNotificationEmail(
+          senderInfo,
+          r,
+          String(category || 'GENERAL'),
+          String(priority || 'NORMAL'),
+          String(message || ''),
+          String(tags || 'None')
+        ).catch(e => console.error('[gRPC EMAIL] Feedback alert failed:', e));
+
         res.setHeader('grpc-status', '0');
         res.setHeader('grpc-message', 'OK');
         return res.status(200).json({
@@ -137,6 +155,82 @@ router.post('/:service/:method', async (req: Request, res: Response) => {
           success: true,
           count: items.length,
           items,
+          latencyMs: Date.now() - startTime,
+        });
+      }
+    }
+
+    // 2.5 ContactService (Public High-Speed RPC)
+    if (service === 'ContactService') {
+      if (method === 'SendMessage') {
+        const { name, email, subject, message } = payload;
+        let senderName = String(name || '').trim();
+        let senderEmail = String(email || '').trim().toLowerCase();
+        const cleanSubject = String(subject || 'Comm-Link Inquiry').trim().slice(0, 150);
+        const cleanMessage = String(message || '').trim().slice(0, 5000);
+
+        if (!cleanMessage) {
+          res.setHeader('grpc-status', '3'); // INVALID_ARGUMENT
+          return res.status(400).json({ success: false, message: 'Message payload is required.' });
+        }
+
+        let userId: string | null = null;
+        let userRole = 'guest';
+        const authHeader = req.headers.authorization;
+        if (authHeader && authHeader.startsWith('Bearer ')) {
+          try {
+            const rawToken = authHeader.slice(7).trim().replace(/"/g, '');
+            const decoded = jwt.verify(rawToken, getJwtSecret()) as any;
+            if (decoded?.id) {
+              userId = decoded.id;
+              userRole = decoded.role || 'user';
+              const u = await prisma.user.findUnique({ where: { id: decoded.id }, select: { fullName: true, username: true, email: true } });
+              if (u) {
+                senderName = u.fullName || u.username || senderName;
+                senderEmail = u.email || senderEmail;
+              }
+            }
+          } catch {}
+        }
+
+        if (!senderName) senderName = senderEmail ? senderEmail.split('@')[0] : 'Guest Operator';
+        if (!senderEmail) senderEmail = 'guest@matrix.network';
+
+        let createdId = `msg-${Date.now()}`;
+        if (!securityManager.getState().dbConnectionHeld) {
+          try {
+            const record = await prisma.feedback.create({
+              data: {
+                userId,
+                rating: 5,
+                category: 'CONTACT',
+                priority: userId ? 'HIGH' : 'MEDIUM',
+                tags: `Subject: ${cleanSubject} | From: ${senderName} <${senderEmail}>`,
+                recommend: true,
+                message: cleanMessage,
+              },
+            });
+            createdId = record.id;
+          } catch (e) {
+            console.warn('[gRPC Contact] DB write fallback:', e);
+          }
+        }
+
+        sendContactMessageEmail({
+          senderName,
+          senderEmail,
+          subject: cleanSubject,
+          message: cleanMessage,
+          isGuest: !userId,
+          userRole,
+        }).catch(e => console.error('[gRPC Contact] Email dispatch failed:', e));
+
+        res.setHeader('grpc-status', '0');
+        res.setHeader('grpc-message', 'OK');
+        return res.status(200).json({
+          success: true,
+          messageId: createdId,
+          timestamp: new Date().toISOString(),
           latencyMs: Date.now() - startTime,
         });
       }
