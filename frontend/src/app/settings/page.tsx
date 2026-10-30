@@ -9,7 +9,7 @@ import * as THREE from 'three';
 import { 
   User, Shield, Laptop, LogOut, AlertTriangle, CheckCircle2, Lock, Camera, Send, ChevronRight,
   Mail, KeyRound, Bookmark, ArchiveRestore, FileText, ScanFace, Loader2, Type, Hash, Phone,
-  X, UploadCloud, ArrowLeft 
+  X, UploadCloud, ArrowLeft, RotateCw, RotateCcw, Sparkles, Sliders, Wand2, RefreshCw, ZoomIn, ZoomOut
 } from 'lucide-react';
 
 import Cropper from 'react-easy-crop';
@@ -20,6 +20,16 @@ import BottomNav from '@/components/BottomNav';
 import ThemeToggle from '@/components/ThemeToggle';
 import { useTheme } from '@/context/ThemeContext';
 import Footer from '@/components/Footer';
+
+// ==========================================
+// PRESET CYBERNETIC AVATARS
+// ==========================================
+const CYBER_PRESET_AVATARS = [
+  { id: 'synth-ai', name: 'Neural Core', url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=400&auto=format&fit=crop' },
+  { id: 'cyber-op', name: 'Cyber Operator', url: 'https://images.unsplash.com/photo-1534447677768-be436bb09401?q=80&w=400&auto=format&fit=crop' },
+  { id: 'sentinel', name: 'Sentinel Node', url: 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?q=80&w=400&auto=format&fit=crop' },
+  { id: 'matrix-flux', name: 'Quantum Flux', url: 'https://images.unsplash.com/photo-1509228468518-180dd4864904?q=80&w=400&auto=format&fit=crop' }
+];
 
 // ==========================================
 // 3D HIGH-TECH INTERACTIVE TOPOGRAPHY
@@ -72,12 +82,15 @@ export default function AdvancedSettingsMatrix() {
     fullName: "", age: "", phone: "", password: "", confirmPassword: ""
   });
 
-  // Advanced Cropper States
+  // Advanced Cropper & Visual Editor States
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
+  const [rotation, setRotation] = useState(0);
+  const [filterStyle, setFilterStyle] = useState<'none' | 'cyber' | 'matrix' | 'mono' | 'vibrant'>('none');
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [showPresets, setShowPresets] = useState(false);
 
   const updateForm = (field: keyof typeof formData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -308,8 +321,8 @@ export default function AdvancedSettingsMatrix() {
                   <motion.div variants={springItem} className="flex flex-col md:flex-row items-center md:items-start justify-between w-full mb-12 gap-8">
                     
                     <div className="flex flex-col md:flex-row items-center md:items-start space-y-6 md:space-y-0 md:space-x-8">
-                      {/* FILE INPUT TRIGGER */}
-                      <motion.div whileHover={{ scale: 1.05, rotate: 5 }} whileTap={{ scale: 0.95 }} className="relative group cursor-pointer shrink-0">
+                      {/* FILE INPUT TRIGGER & AVATAR BADGE */}
+                      <div className="relative group shrink-0 flex flex-col items-center">
                         <input 
                           type="file" 
                           id="profilePicUpload" 
@@ -321,11 +334,13 @@ export default function AdvancedSettingsMatrix() {
                               setSelectedImage(URL.createObjectURL(file));
                               setCrop({ x: 0, y: 0 }); 
                               setZoom(1);
+                              setRotation(0);
+                              setFilterStyle('none');
                             }
                             e.target.value = ''; 
                           }}
                         />
-                        <label htmlFor="profilePicUpload" className="w-32 h-32 rounded-full bg-gradient-to-tr from-[#0044ff] to-[#00f0ff] p-[3px] shadow-[0_0_40px_rgba(0,102,255,0.4)] flex cursor-pointer">
+                        <label htmlFor="profilePicUpload" className="w-32 h-32 rounded-full bg-gradient-to-tr from-[#0044ff] via-[#00f0ff] to-[#00ff66] p-[3px] shadow-[0_0_40px_rgba(0,102,255,0.4)] flex cursor-pointer group-hover:scale-105 transition-transform duration-300">
                           <div className={`w-full h-full rounded-full flex items-center justify-center overflow-hidden relative ${isLightMode ? 'bg-white' : 'bg-[#01030a]'}`}>
                             {userData?.profilePic ? (
                               <img src={userData.profilePic} alt="Profile" className="w-full h-full object-cover" />
@@ -334,40 +349,126 @@ export default function AdvancedSettingsMatrix() {
                             )}
                             <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                               <Camera size={24} className="text-[#00f0ff] mb-2" />
-                              <span className="text-[10px] font-bold text-white tracking-widest">Update</span>
+                              <span className="text-[10px] font-bold text-white tracking-widest uppercase">Upload</span>
                             </div>
                           </div>
                         </label>
-                      </motion.div>
-                      <div className="text-center md:text-left mt-4 md:mt-2">
-                        <h2 className={`text-4xl md:text-5xl font-black uppercase tracking-tighter ${textPrimary}`}>{displayName}</h2>
-                        {userData?.profilePic && (
+                      </div>
+
+                      <div className="text-center md:text-left mt-2 flex flex-col items-center md:items-start">
+                        <h2 className={`text-3xl md:text-5xl font-black uppercase tracking-tighter ${textPrimary}`}>{displayName}</h2>
+                        
+                        {/* ADVANCED AVATAR CONTROLS */}
+                        <div className="mt-4 flex flex-wrap gap-2 justify-center md:justify-start">
+                          {userData?.profilePic && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedImage(userData.profilePic);
+                                setCrop({ x: 0, y: 0 });
+                                setZoom(1);
+                                setRotation(0);
+                                setFilterStyle('none');
+                              }}
+                              className={`px-3 py-1.5 rounded-xl border text-[11px] font-mono uppercase tracking-wider font-bold flex items-center space-x-1.5 transition-all cursor-pointer ${
+                                isLightMode 
+                                  ? 'bg-blue-50 border-blue-200 text-blue-600 hover:bg-blue-100' 
+                                  : 'bg-cyan-500/10 border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/20 hover:shadow-[0_0_15px_rgba(0,240,255,0.3)]'
+                              }`}
+                            >
+                              <Wand2 size={13} />
+                              <span>Re-Edit Current</span>
+                            </button>
+                          )}
+
+                          <label
+                            htmlFor="profilePicUpload"
+                            className={`px-3 py-1.5 rounded-xl border text-[11px] font-mono uppercase tracking-wider font-bold flex items-center space-x-1.5 transition-all cursor-pointer ${
+                              isLightMode 
+                                ? 'bg-slate-100 border-slate-300 text-slate-700 hover:bg-slate-200' 
+                                : 'bg-white/5 border-white/10 text-slate-300 hover:bg-white/10 hover:text-white'
+                            }`}
+                          >
+                            <Camera size={13} />
+                            <span>{userData?.profilePic ? 'Upload New' : 'Choose Photo'}</span>
+                          </label>
+
                           <button
                             type="button"
-                            onClick={async () => {
-                              if (!confirm("Remove current profile picture?")) return;
-                              const token = localStorage.getItem('matrix_token');
-                              try {
-                                const res = await fetch(`${API_URL}/api/auth/update`, {
-                                  method: 'PUT',
-                                  headers: {
-                                    'Authorization': `Bearer ${token}`,
-                                    'Content-Type': 'application/json'
-                                  },
-                                  body: JSON.stringify({ profilePic: null })
-                                });
-                                if (res.ok) {
-                                  setUserData((prev: any) => ({ ...prev, profilePic: null }));
-                                }
-                              } catch (err) {
-                                console.error(err);
-                              }
-                            }}
-                            className="mt-2 text-[10px] font-mono uppercase tracking-widest text-red-500 hover:text-red-400 transition-colors cursor-pointer flex items-center justify-center md:justify-start"
+                            onClick={() => setShowPresets(!showPresets)}
+                            className={`px-3 py-1.5 rounded-xl border text-[11px] font-mono uppercase tracking-wider font-bold flex items-center space-x-1.5 transition-all cursor-pointer ${
+                              isLightMode 
+                                ? 'bg-purple-50 border-purple-200 text-purple-600 hover:bg-purple-100' 
+                                : 'bg-purple-500/10 border-purple-500/30 text-purple-400 hover:bg-purple-500/20'
+                            }`}
                           >
-                            <X size={12} className="mr-1" /> Reset to Default
+                            <Sparkles size={13} />
+                            <span>Presets</span>
                           </button>
-                        )}
+
+                          {userData?.profilePic && (
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                if (!confirm("Remove current profile picture and revert to system default?")) return;
+                                const token = localStorage.getItem('matrix_token');
+                                try {
+                                  const res = await fetch(`${API_URL}/api/auth/update`, {
+                                    method: 'PUT',
+                                    headers: {
+                                      'Authorization': `Bearer ${token}`,
+                                      'Content-Type': 'application/json'
+                                    },
+                                    body: JSON.stringify({ profilePic: null })
+                                  });
+                                  if (res.ok) {
+                                    setUserData((prev: any) => ({ ...prev, profilePic: null }));
+                                  }
+                                } catch (err) {
+                                  console.error(err);
+                                }
+                              }}
+                              className="px-3 py-1.5 rounded-xl border border-red-500/20 text-[11px] font-mono uppercase tracking-wider text-red-500 hover:bg-red-500/10 transition-colors cursor-pointer flex items-center space-x-1"
+                            >
+                              <X size={12} />
+                              <span>Reset</span>
+                            </button>
+                          )}
+                        </div>
+
+                        {/* CYBERNETIC PRESETS DRAWER */}
+                        <AnimatePresence>
+                          {showPresets && (
+                            <motion.div
+                              initial={{ opacity: 0, height: 0 }}
+                              animate={{ opacity: 1, height: 'auto' }}
+                              exit={{ opacity: 0, height: 0 }}
+                              className="mt-4 p-3 rounded-2xl border bg-black/40 border-[#00f0ff]/20 flex flex-wrap gap-3 items-center"
+                            >
+                              <span className="text-[10px] font-mono uppercase tracking-widest text-[#00f0ff] w-full">Select Cybernetic Preset:</span>
+                              {CYBER_PRESET_AVATARS.map((preset) => (
+                                <button
+                                  key={preset.id}
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedImage(preset.url);
+                                    setCrop({ x: 0, y: 0 });
+                                    setZoom(1);
+                                    setRotation(0);
+                                    setFilterStyle('none');
+                                    setShowPresets(false);
+                                  }}
+                                  className="group flex flex-col items-center space-y-1 p-1 rounded-xl hover:bg-white/5 transition-colors cursor-pointer"
+                                >
+                                  <div className="w-12 h-12 rounded-full border border-cyan-400/40 overflow-hidden group-hover:scale-110 group-hover:border-cyan-400 transition-all">
+                                    <img src={preset.url} alt={preset.name} className="w-full h-full object-cover" />
+                                  </div>
+                                  <span className="text-[9px] font-mono text-slate-400 group-hover:text-cyan-400">{preset.name}</span>
+                                </button>
+                              ))}
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
                       </div>
                     </div>
 
@@ -597,33 +698,38 @@ export default function AdvancedSettingsMatrix() {
       </div>
       
       {/* ========================================== */}
-      {/* ADVANCED CROPPER MODAL (ROOT LEVEL PROJECTION) */}
+      {/* ADVANCED MODERN AVATAR STUDIO MODAL */}
       {/* ========================================== */}
       <AnimatePresence>
         {selectedImage && (
           <motion.div 
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className={`fixed inset-0 z-[9999] flex items-center justify-center bg-black/90 backdrop-blur-md p-4 pointer-events-auto cursor-default`}
+            className={`fixed inset-0 z-[9999] flex items-center justify-center bg-black/90 backdrop-blur-md p-4 pointer-events-auto cursor-default overflow-y-auto`}
           >
             <motion.div 
               initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }}
-              className={`w-full max-w-lg p-6 rounded-[2.5rem] border ${isLightMode ? 'bg-white border-slate-200' : 'bg-[#01020a] border-[#00f0ff]/30'} shadow-2xl overflow-hidden`}
+              className={`w-full max-w-xl p-6 md:p-8 rounded-[2.5rem] border ${isLightMode ? 'bg-white border-slate-200' : 'bg-[#01020a] border-[#00f0ff]/30'} shadow-2xl overflow-hidden my-8`}
             >
               <div className="flex justify-between items-center mb-6">
                 <div>
-                  <h3 className={`text-xl font-black uppercase tracking-widest ${isLightMode ? 'text-slate-800' : 'text-white'}`}>Adjust Avatar</h3>
-                  <p className={`text-[10px] font-mono tracking-widest ${textSecondary}`}>Pinch & drag to align matrix projection.</p>
+                  <div className="flex items-center space-x-2">
+                    <Sliders size={18} className="text-[#00f0ff]" />
+                    <h3 className={`text-xl font-black uppercase tracking-widest ${isLightMode ? 'text-slate-800' : 'text-white'}`}>Avatar Studio</h3>
+                  </div>
+                  <p className={`text-[10px] font-mono tracking-widest ${textSecondary}`}>Rotate, zoom, apply cyber filters & crop your matrix projection.</p>
                 </div>
-                <button onClick={() => setSelectedImage(null)} title="Close image cropper" className="p-3 rounded-2xl hover:bg-red-500/10 border border-transparent hover:border-red-500/30 text-red-500 transition-all cursor-pointer">
+                <button onClick={() => setSelectedImage(null)} title="Close image cropper" className="p-2.5 rounded-2xl hover:bg-red-500/10 border border-transparent hover:border-red-500/30 text-red-500 transition-all cursor-pointer">
                   <X size={20} />
                 </button>
               </div>
               
-              <div className="relative w-full h-[350px] sm:h-[400px] bg-black rounded-3xl overflow-hidden mb-8 border border-slate-800 shadow-[inset_0_0_50px_rgba(0,0,0,0.8)] cursor-grab active:cursor-grabbing">
+              {/* CROPPER CANVAS CONTAINER */}
+              <div className="relative w-full h-[320px] sm:h-[360px] bg-black rounded-3xl overflow-hidden mb-6 border border-slate-800 shadow-[inset_0_0_50px_rgba(0,0,0,0.8)] cursor-grab active:cursor-grabbing">
                 <Cropper
                   image={selectedImage}
                   crop={crop}
                   zoom={zoom}
+                  rotation={rotation}
                   aspect={1}
                   cropShape="round"
                   showGrid={false}
@@ -631,25 +737,98 @@ export default function AdvancedSettingsMatrix() {
                   onZoomChange={setZoom}
                   onCropComplete={(_, croppedPixels) => setCroppedAreaPixels(croppedPixels)}
                   style={{
-                    containerStyle: { background: '#050505', borderRadius: '1.5rem' },
-                    cropAreaStyle: { border: '2px solid #00f0ff', boxShadow: '0 0 0 9999em rgba(0,0,0,0.8), 0 0 20px rgba(0,240,255,0.5)' }
+                    containerStyle: { 
+                      background: '#050505', 
+                      borderRadius: '1.5rem',
+                      filter: filterStyle === 'cyber' ? 'contrast(120%) saturate(140%) hue-rotate(185deg)' :
+                              filterStyle === 'matrix' ? 'contrast(130%) saturate(160%) hue-rotate(90deg)' :
+                              filterStyle === 'mono' ? 'grayscale(100%) contrast(125%)' :
+                              filterStyle === 'vibrant' ? 'saturate(150%) contrast(110%)' : 'none'
+                    },
+                    cropAreaStyle: { border: '2px solid #00f0ff', boxShadow: '0 0 0 9999em rgba(0,0,0,0.8), 0 0 25px rgba(0,240,255,0.6)' }
                   }}
                 />
               </div>
 
-              <div className="mb-8 px-2">
-                <div className="flex justify-between items-center mb-2">
-                  <label className={`text-[10px] font-bold uppercase tracking-widest ${textSecondary}`}>Zoom Level</label>
-                  <span className={`text-[10px] font-mono ${textSecondary}`}>{zoom.toFixed(1)}x</span>
+              {/* TOOLBAR: ROTATION & ZOOM */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6 p-3 rounded-2xl border bg-black/20 border-white/5">
+                {/* ROTATION BUTTONS */}
+                <div className="flex items-center justify-between px-2">
+                  <span className={`text-[10px] font-bold uppercase tracking-wider font-mono ${textSecondary}`}>Rotate:</span>
+                  <div className="flex space-x-2">
+                    <button
+                      type="button"
+                      title="Rotate Counter-Clockwise"
+                      onClick={() => setRotation((r) => (r - 90 + 360) % 360)}
+                      className="px-3 py-1.5 rounded-lg border border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/20 text-xs font-mono flex items-center space-x-1"
+                    >
+                      <RotateCcw size={13} /> <span>-90°</span>
+                    </button>
+                    <button
+                      type="button"
+                      title="Rotate Clockwise"
+                      onClick={() => setRotation((r) => (r + 90) % 360)}
+                      className="px-3 py-1.5 rounded-lg border border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/20 text-xs font-mono flex items-center space-x-1"
+                    >
+                      <RotateCw size={13} /> <span>+90°</span>
+                    </button>
+                    <button
+                      type="button"
+                      title="Reset Rotation"
+                      onClick={() => setRotation(0)}
+                      className="px-2 py-1.5 rounded-lg border border-slate-700 text-slate-400 hover:text-white text-xs font-mono"
+                    >
+                      <RefreshCw size={13} />
+                    </button>
+                  </div>
                 </div>
-                <input 
-                  type="range" min={1} max={3} step={0.1} value={zoom} onChange={(e) => setZoom(Number(e.target.value))}
-                  className="w-full accent-[#00f0ff] h-1 bg-slate-800 rounded-full appearance-none cursor-pointer"
-                  title="Zoom Level"
-                  aria-label="Zoom Level"
-                />
+
+                {/* ZOOM CONTROLS */}
+                <div className="flex items-center space-x-2 px-2">
+                  <button type="button" onClick={() => setZoom(z => Math.max(1, z - 0.2))} className="p-1 rounded text-slate-400 hover:text-white">
+                    <ZoomOut size={14} />
+                  </button>
+                  <input 
+                    type="range" min={1} max={3} step={0.1} value={zoom} onChange={(e) => setZoom(Number(e.target.value))}
+                    className="w-full accent-[#00f0ff] h-1.5 bg-slate-800 rounded-full appearance-none cursor-pointer"
+                    title="Zoom Level"
+                    aria-label="Zoom Level"
+                  />
+                  <button type="button" onClick={() => setZoom(z => Math.min(3, z + 0.2))} className="p-1 rounded text-slate-400 hover:text-white">
+                    <ZoomIn size={14} />
+                  </button>
+                  <span className={`text-[10px] font-mono shrink-0 ${textSecondary}`}>{zoom.toFixed(1)}x</span>
+                </div>
               </div>
 
+              {/* VISUAL FILTER PRESETS */}
+              <div className="mb-6">
+                <label className={`text-[10px] font-bold uppercase tracking-widest block mb-2 font-mono ${textSecondary}`}>Color Filter Presets:</label>
+                <div className="grid grid-cols-5 gap-2">
+                  {[
+                    { id: 'none', label: 'Raw' },
+                    { id: 'cyber', label: 'Cyber' },
+                    { id: 'matrix', label: 'Matrix' },
+                    { id: 'mono', label: 'Mono' },
+                    { id: 'vibrant', label: 'Vivid' }
+                  ].map((filter) => (
+                    <button
+                      key={filter.id}
+                      type="button"
+                      onClick={() => setFilterStyle(filter.id as any)}
+                      className={`py-1.5 text-[10px] font-mono font-bold uppercase rounded-lg border transition-all ${
+                        filterStyle === filter.id 
+                          ? 'bg-[#00f0ff] text-black border-[#00f0ff] shadow-[0_0_15px_rgba(0,240,255,0.4)]' 
+                          : 'bg-black/30 border-white/10 text-slate-400 hover:text-white hover:border-white/30'
+                      }`}
+                    >
+                      {filter.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* ACTION BUTTONS */}
               <div className="flex space-x-4">
                 <button 
                   onClick={() => setSelectedImage(null)} disabled={isUploading}
@@ -662,7 +841,7 @@ export default function AdvancedSettingsMatrix() {
                   onClick={async () => {
                     setIsUploading(true);
                     try {
-                      const croppedBlob = await getCroppedImg(selectedImage, croppedAreaPixels);
+                      const croppedBlob = await getCroppedImg(selectedImage, croppedAreaPixels, rotation, filterStyle);
                       if (!croppedBlob) throw new Error("Image crop failed");
 
                       const uploadFormData = new FormData();
@@ -690,7 +869,7 @@ export default function AdvancedSettingsMatrix() {
                   className="flex-[2] flex items-center justify-center py-4 rounded-xl bg-gradient-to-r from-[#0066ff] to-[#00f0ff] text-black font-black uppercase tracking-widest text-xs hover:shadow-[0_0_30px_rgba(0,240,255,0.4)] transition-all disabled:opacity-50 cursor-pointer"
                 >
                   {isUploading ? <Loader2 className="animate-spin mr-2" size={18} /> : <UploadCloud className="mr-2" size={18} />}
-                  {isUploading ? 'Transmitting...' : 'Confirm & Upload'}
+                  {isUploading ? 'Transmitting...' : 'Apply & Save Avatar'}
                 </button>
               </div>
             </motion.div>

@@ -111,9 +111,8 @@ function CitationNodeGraph({ isLight, topics, title }: { isLight: boolean, topic
 
   return (
     <motion.div 
-      drag dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }} dragElastic={0.15}
-      whileHover={{ scale: 1.02, y: -5, rotateX: 2, rotateY: -2, zIndex: 50, boxShadow: "0 20px 40px rgba(0,255,102,0.15)" }}
-      className={`w-full h-full min-h-[350px] rounded-[2rem] border flex items-center justify-center relative overflow-hidden group transition-colors duration-500 cursor-grab active:cursor-grabbing hover:border-[#00ff66]/50 ${isLight ? 'bg-white/50 border-slate-300 shadow-sm' : 'bg-[#050b14]/80 backdrop-blur-xl border-[#00ff66]/10 shadow-[inset_0_0_20px_rgba(0,0,0,0.5)]'}`}
+      whileHover={{ y: -3, boxShadow: "0 20px 40px rgba(0,255,102,0.15)" }}
+      className={`w-full h-full min-h-[350px] rounded-[2rem] border flex items-center justify-center relative overflow-hidden group transition-all duration-300 hover:border-[#00ff66]/50 ${isLight ? 'bg-white/50 border-slate-300 shadow-sm' : 'bg-[#050b14]/80 backdrop-blur-xl border-[#00ff66]/10 shadow-[inset_0_0_20px_rgba(0,0,0,0.5)]'}`}
     >
       <div className="absolute top-6 left-6 flex items-center space-x-2 z-10 bg-black/40 px-3 py-1.5 rounded-lg backdrop-blur-md border border-white/5">
         <Network size={14} className="text-[#00ff66]" />
@@ -166,9 +165,8 @@ function DataSourcesRepository({ data, isLight }: { data: any, isLight: boolean 
 
   return (
     <motion.div 
-      drag dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }} dragElastic={0.1}
-      whileHover={{ scale: 1.02, y: -5, rotateX: 2, rotateY: 2, zIndex: 50, boxShadow: "0 20px 40px rgba(0,255,102,0.15)" }}
-      className={`w-full rounded-[2rem] border flex flex-col p-6 md:p-8 transition-colors duration-500 cursor-grab active:cursor-grabbing hover:border-[#00ff66]/50 ${isLight ? 'bg-white/50 border-slate-300 shadow-sm' : 'bg-[#050b14]/80 backdrop-blur-xl border-[#00ff66]/10 shadow-[inset_0_0_20px_rgba(0,0,0,0.5)]'}`}
+      whileHover={{ y: -3, boxShadow: "0 20px 40px rgba(0,255,102,0.15)" }}
+      className={`w-full rounded-[2rem] border flex flex-col p-6 md:p-8 transition-all duration-300 hover:border-[#00ff66]/50 ${isLight ? 'bg-white/50 border-slate-300 shadow-sm' : 'bg-[#050b14]/80 backdrop-blur-xl border-[#00ff66]/10 shadow-[inset_0_0_20px_rgba(0,0,0,0.5)]'}`}
     >
       <div className="flex items-center space-x-3 mb-6 md:mb-8">
         <Database size={16} className="text-[#00ff66]" />
@@ -560,7 +558,7 @@ export default function ResearchDetailPage() {
       </header>
 
       {/* FLOATING NAVIGATION PILL */}
-      <div className="sticky top-28 z-40 w-full flex justify-center px-4 md:px-6 pointer-events-auto mt-32 mb-10">
+      <div className="sticky top-24 z-40 w-full flex justify-center px-4 md:px-6 pointer-events-auto mt-24 mb-6">
         <div className={`flex flex-wrap items-center justify-center gap-2 p-1.5 md:p-2 rounded-[2rem] md:rounded-full border shadow-2xl backdrop-blur-xl ${isLightMode ? 'bg-white/80 border-slate-300' : 'bg-black/40 border-[#00ff66]/30'}`}>
           {navItems.map(tab => (
             <button 
@@ -579,7 +577,7 @@ export default function ResearchDetailPage() {
       </div>
 
       {/* THE FLUID RESEARCH GRID */}
-      <div className="flex-1 w-full max-w-[1500px] mx-auto pb-10 px-4 md:px-6 lg:px-12 relative z-10 flex flex-col xl:flex-row items-start gap-6 md:gap-8 pointer-events-auto">
+      <div className="flex-1 w-full max-w-7xl mx-auto pb-12 px-4 sm:px-6 lg:px-8 relative z-10 flex flex-col xl:flex-row items-start gap-6 md:gap-8 pointer-events-auto">
         
         {/* CENTER CONSOLE */}
         <motion.div variants={containerVariants} initial="hidden" animate="show" viewport={{ once: true, margin: "-50px" }} className={`flex-1 flex flex-col gap-6 md:gap-8 min-w-0`}>
@@ -587,9 +585,8 @@ export default function ResearchDetailPage() {
           {/* Hero Banner */}
           <motion.div 
             variants={itemVariants} 
-            drag dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }} dragElastic={0.05}
-            whileHover={{ scale: 1.01, y: -5, rotateX: 1, rotateY: -1, zIndex: 50, boxShadow: "0 30px 60px rgba(0,0,0,0.5)" }}
-            className={`w-full min-h-[350px] h-auto rounded-[2rem] md:rounded-[3rem] border relative overflow-hidden flex flex-col justify-between p-6 sm:p-8 md:p-14 shadow-2xl group transition-all duration-500 cursor-grab active:cursor-grabbing hover:border-[#00ff66]/50 ${borderCol} ${isLightMode ? 'bg-white/80 backdrop-blur-xl' : 'bg-[#050b14]/60 backdrop-blur-3xl'}`}
+            whileHover={{ y: -3, boxShadow: "0 25px 50px rgba(0,0,0,0.4)" }}
+            className={`w-full min-h-[350px] h-auto rounded-[2rem] md:rounded-[3rem] border relative overflow-hidden flex flex-col justify-between p-6 sm:p-8 md:p-12 shadow-2xl group transition-all duration-300 hover:border-[#00ff66]/50 ${borderCol} ${isLightMode ? 'bg-white/80 backdrop-blur-xl' : 'bg-[#050b14]/60 backdrop-blur-3xl'}`}
           >
              {isImageURL ? (
                 <img src={data.heroImg} alt="Banner" className="absolute inset-0 w-full h-full object-cover opacity-30 group-hover:opacity-50 transition-opacity duration-700" />
@@ -644,9 +641,8 @@ export default function ResearchDetailPage() {
           <div id="abstract-section" className="grid grid-cols-1 xl:grid-cols-12 gap-6 md:gap-8 scroll-mt-32">
             <motion.div 
               variants={itemVariants} 
-              drag dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }} dragElastic={0.1}
-              whileHover={{ scale: 1.02, y: -5, rotateX: 2, rotateY: 2, zIndex: 50, boxShadow: "0 20px 40px rgba(0,255,102,0.15)", borderColor: '#00ff66' }} 
-              className={`xl:col-span-7 p-6 sm:p-8 md:p-10 rounded-[2rem] md:rounded-[3rem] border transition-colors duration-300 relative overflow-hidden cursor-grab active:cursor-grabbing ${isLightMode ? 'bg-white/80 backdrop-blur-xl border-slate-300 shadow-lg' : 'bg-black/20 backdrop-blur-3xl border-white/10 shadow-[0_10px_30px_rgba(0,0,0,0.5)]'}`}
+              whileHover={{ y: -3, boxShadow: "0 20px 40px rgba(0,255,102,0.12)", borderColor: '#00ff66' }} 
+              className={`xl:col-span-7 p-6 sm:p-8 md:p-10 rounded-[2rem] md:rounded-[3rem] border transition-all duration-300 relative overflow-hidden ${isLightMode ? 'bg-white/80 backdrop-blur-xl border-slate-300 shadow-lg' : 'bg-black/20 backdrop-blur-3xl border-white/10 shadow-[0_10px_30px_rgba(0,0,0,0.5)]'}`}
             >
                <div className="absolute top-0 right-0 w-32 h-32 bg-[#00ff66]/5 rounded-bl-[100px]" />
                <div className="flex items-center space-x-3 mb-6 md:mb-8 relative z-10">
@@ -666,9 +662,8 @@ export default function ResearchDetailPage() {
               {data.metrics && data.metrics.map((metric: any, i: number) => (
                 <motion.div 
                   variants={itemVariants} key={i} 
-                  drag dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }} dragElastic={0.1}
-                  whileHover={{ scale: 1.02, x: -5, zIndex: 50, borderColor: '#00ff66', boxShadow: "0 10px 20px rgba(0,255,102,0.1)" }} 
-                  className={`px-6 md:px-8 py-5 md:py-6 rounded-2xl md:rounded-[2rem] border flex items-center justify-between transition-all flex-1 cursor-grab active:cursor-grabbing ${isLightMode ? 'bg-white/80 backdrop-blur-xl border-slate-300' : 'bg-black/20 backdrop-blur-3xl border-white/5'}`}
+                  whileHover={{ x: -3, borderColor: '#00ff66', boxShadow: "0 10px 20px rgba(0,255,102,0.1)" }} 
+                  className={`px-6 md:px-8 py-5 md:py-6 rounded-2xl md:rounded-[2rem] border flex items-center justify-between transition-all flex-1 ${isLightMode ? 'bg-white/80 backdrop-blur-xl border-slate-300' : 'bg-black/20 backdrop-blur-3xl border-white/5'}`}
                 >
                   <span className={`text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] ${textSecondary}`}>{metric.label}</span>
                   <div className="flex items-center space-x-4 md:space-x-6">
@@ -684,9 +679,8 @@ export default function ResearchDetailPage() {
           <motion.div 
             id="methodology-section"
             variants={itemVariants} 
-            drag dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }} dragElastic={0.05}
-            whileHover={{ scale: 1.01, y: -5, rotateX: 1, rotateY: 1, zIndex: 50, boxShadow: "0 20px 50px rgba(0,0,0,0.6)", borderColor: '#00ff66' }} 
-            className={`w-full p-6 sm:p-8 md:p-14 rounded-[2rem] md:rounded-[3rem] border transition-colors duration-300 relative overflow-hidden cursor-grab active:cursor-grabbing scroll-mt-32 ${isLightMode ? 'bg-white/80 backdrop-blur-xl border-slate-300 shadow-lg' : 'bg-black/20 backdrop-blur-3xl border-white/10 shadow-[0_10px_30px_rgba(0,0,0,0.5)]'}`}
+            whileHover={{ y: -3, boxShadow: "0 20px 50px rgba(0,0,0,0.4)", borderColor: '#00ff66' }} 
+            className={`w-full p-6 sm:p-8 md:p-12 rounded-[2rem] md:rounded-[3rem] border transition-all duration-300 relative overflow-hidden scroll-mt-32 ${isLightMode ? 'bg-white/80 backdrop-blur-xl border-slate-300 shadow-lg' : 'bg-black/20 backdrop-blur-3xl border-white/10 shadow-[0_10px_30px_rgba(0,0,0,0.5)]'}`}
           >
              <div className="flex items-center space-x-3 mb-6 md:mb-8 relative z-10">
                <Microscope size={22} className="text-[#00ff66]" />
@@ -714,9 +708,8 @@ export default function ResearchDetailPage() {
           <motion.div 
             id="conclusion-section"
             variants={itemVariants} 
-            drag dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }} dragElastic={0.05}
-            whileHover={{ scale: 1.01, y: -5, rotateX: 1, rotateY: -1, zIndex: 50, boxShadow: "0 20px 50px rgba(0,255,102,0.15)", borderColor: '#00ff66' }} 
-            className={`w-full p-6 sm:p-8 md:p-14 rounded-[2rem] md:rounded-[3rem] border transition-colors duration-300 relative overflow-hidden cursor-grab active:cursor-grabbing scroll-mt-32 ${isLightMode ? 'bg-white/80 backdrop-blur-xl border-slate-300 shadow-lg' : 'bg-black/20 backdrop-blur-3xl border-[#00ff66]/20 shadow-[0_0_40px_rgba(0,255,102,0.1)]'}`}
+            whileHover={{ y: -3, boxShadow: "0 20px 50px rgba(0,255,102,0.15)", borderColor: '#00ff66' }} 
+            className={`w-full p-6 sm:p-8 md:p-12 rounded-[2rem] md:rounded-[3rem] border transition-all duration-300 relative overflow-hidden scroll-mt-32 ${isLightMode ? 'bg-white/80 backdrop-blur-xl border-slate-300 shadow-lg' : 'bg-black/20 backdrop-blur-3xl border-[#00ff66]/20 shadow-[0_0_40px_rgba(0,255,102,0.1)]'}`}
           >
              <div className="absolute -top-20 -left-20 w-48 md:w-64 h-48 md:h-64 bg-[#00ff66]/10 rounded-full blur-[80px]" />
              <div className="flex items-center space-x-3 mb-6 md:mb-8 relative z-10">
@@ -748,12 +741,11 @@ export default function ResearchDetailPage() {
         </motion.div>
       </div>
 
-      <div className="w-full max-w-[1500px] mx-auto px-4 md:px-6 lg:px-12 mb-20 relative z-10 pointer-events-auto">
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-16 relative z-10 pointer-events-auto">
         <motion.div 
-          initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: "-50px" }} transition={{ type: "spring", stiffness: 100 }}
-          drag dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }} dragElastic={0.05}
-          whileHover={{ scale: 1.01, y: -5, rotateX: 1, rotateY: -1, zIndex: 50, boxShadow: "0 20px 50px rgba(0,0,0,0.8)" }} 
-          className={`w-full rounded-[2rem] border overflow-hidden shadow-2xl h-auto cursor-grab active:cursor-grabbing ${isLightMode ? 'bg-slate-900 border-slate-700' : 'bg-[#02050a]/90 backdrop-blur-xl border-[#00ff66]/20 shadow-[0_10px_50px_rgba(0,0,0,0.8)]'}`}
+          initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: "-50px" }} transition={{ type: "spring", stiffness: 100 }}
+          whileHover={{ y: -3, boxShadow: "0 20px 50px rgba(0,0,0,0.6)" }} 
+          className={`w-full rounded-[2rem] border overflow-hidden shadow-2xl h-auto ${isLightMode ? 'bg-slate-900 border-slate-700' : 'bg-[#02050a]/90 backdrop-blur-xl border-[#00ff66]/20 shadow-[0_10px_50px_rgba(0,0,0,0.8)]'}`}
         >
           <div className="h-10 md:h-12 border-b border-[#00ff66]/20 bg-black/40 flex items-center px-4 justify-between relative">
             <div className="flex items-center space-x-2 relative z-10">

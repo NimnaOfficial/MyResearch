@@ -238,12 +238,26 @@ export default function MasterResearchVault() {
   // ==========================================
   const isMatchCategory = (item: any, filterId: string) => {
     if (filterId === 'all') return true;
-    const catText = (item.tech + ' ' + item.categoryName + ' ' + item.categorySlug).toLowerCase();
-    if (filterId === 'ai') return catText.includes('ai') || catText.includes('neural') || catText.includes('algorithm');
-    if (filterId === 'sec') return catText.includes('security') || catText.includes('cipher') || catText.includes('auth');
-    if (filterId === 'db') return catText.includes('database') || catText.includes('data engineering') || catText.includes('pipeline');
-    if (filterId === 'docs') return catText.includes('doc') || catText.includes('standard');
-    if (filterId === 'math') return catText.includes('math') || catText.includes('symbolic') || catText.includes('model');
+    const slug = (item.categorySlug || '').toLowerCase();
+    const name = (item.categoryName || '').toLowerCase();
+    const tech = (item.tech || '').toLowerCase();
+    const all = `${slug} ${name} ${tech}`;
+
+    if (filterId === 'ai') {
+      return slug === 'ai-research' || (all.includes('ai') && !slug.includes('math')) || all.includes('neural') || all.includes('nlp');
+    }
+    if (filterId === 'sec') {
+      return slug.includes('sec') || all.includes('security') || all.includes('auth') || all.includes('cipher');
+    }
+    if (filterId === 'db') {
+      return slug.includes('data') || all.includes('database') || all.includes('data engineering') || all.includes('pipeline');
+    }
+    if (filterId === 'docs') {
+      return slug.includes('doc') || all.includes('documentation') || all.includes('standard');
+    }
+    if (filterId === 'math') {
+      return slug.includes('math') || all.includes('mathematical') || all.includes('symbolic');
+    }
     return false;
   };
 
@@ -273,7 +287,8 @@ export default function MasterResearchVault() {
       const matchesSearch = !query || 
         item.title.toLowerCase().includes(query) || 
         item.desc.toLowerCase().includes(query) ||
-        item.tech.toLowerCase().includes(query);
+        item.tech.toLowerCase().includes(query) ||
+        item.categoryName.toLowerCase().includes(query);
       
       const matchesCat = isMatchCategory(item, activeFilter);
       return matchesSearch && matchesCat;
@@ -290,10 +305,10 @@ export default function MasterResearchVault() {
     return list;
   }, [allResources, searchQuery, activeFilter, sortBy]);
 
-  // Synchronize Recent Insights with active filter & search results
-  const filteredRecent = useMemo(() => {
-    return filteredResources.slice(0, 5);
-  }, [filteredResources]);
+  // Stable showcase for Recent Insights
+  const showcaseRecent = useMemo(() => {
+    return recentResearch.slice(0, 5);
+  }, [recentResearch]);
 
   // Live Clock
   useEffect(() => {
@@ -311,27 +326,27 @@ export default function MasterResearchVault() {
 
   // Smooth Auto-Accordion Logic
   useEffect(() => {
-    if (isHoveringRecent || filteredRecent.length <= 1) return;
+    if (isHoveringRecent || showcaseRecent.length <= 1) return;
     const interval = setInterval(() => {
       setActiveRecent((prev: any) => {
-        const currentIndex = filteredRecent.findIndex(p => p.id === prev);
-        const nextIndex = currentIndex === -1 ? 0 : (currentIndex + 1) % filteredRecent.length;
-        return filteredRecent[nextIndex]?.id || null;
+        const currentIndex = showcaseRecent.findIndex(p => p.id === prev);
+        const nextIndex = currentIndex === -1 ? 0 : (currentIndex + 1) % showcaseRecent.length;
+        return showcaseRecent[nextIndex]?.id || null;
       });
     }, 6000); 
     return () => clearInterval(interval);
-  }, [isHoveringRecent, filteredRecent]);
+  }, [isHoveringRecent, showcaseRecent]);
 
   // Auto-Select first item on Search / Filter change
   useEffect(() => {
-    if (filteredRecent.length > 0) {
-      if (!filteredRecent.some(i => i.id === activeRecent)) {
-        setActiveRecent(filteredRecent[0].id);
+    if (showcaseRecent.length > 0) {
+      if (!showcaseRecent.some(i => i.id === activeRecent)) {
+        setActiveRecent(showcaseRecent[0].id);
       }
     } else {
       setActiveRecent(null);
     }
-  }, [filteredRecent, activeRecent]);
+  }, [showcaseRecent, activeRecent]);
 
   const handleLogout = () => {
     localStorage.removeItem('matrix_token');
@@ -420,11 +435,11 @@ export default function MasterResearchVault() {
       <div className="w-full flex-1 overflow-y-auto overflow-x-hidden pb-40 custom-scrollbar relative z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
 
-          {/* TOP COMMAND DECK: SEARCH & REFINED HORIZONTAL FILTER / SORTING BAR */}
+          {/* TOP COMMAND DECK: SEARCH MATRIX BAR */}
           <motion.div initial="hidden" animate="visible" variants={spatialReveal} className="mb-20 flex flex-col items-center">
             
             {/* Search Input Bar */}
-            <div className="w-full max-w-3xl mb-8 flex justify-center">
+            <div className="w-full max-w-3xl flex justify-center">
               <motion.div 
                 layout initial={{ width: "90%" }} animate={{ width: searchFocused ? "100%" : "90%" }} transition={ultraSmoothSpring}
                 className={`relative flex items-center backdrop-blur-xl rounded-full overflow-hidden transition-all duration-500 ${glassBg} ${searchFocused ? 'ring-2 ring-[#00ff66] shadow-[0_0_40px_rgba(0,255,102,0.2)]' : 'hover:border-[#00f0ff]/40'}`}
@@ -438,88 +453,23 @@ export default function MasterResearchVault() {
                   className={`bg-transparent border-none font-mono text-sm py-4 pr-12 w-full focus:outline-none ${textPrimary} placeholder-slate-400`}
                 />
                 {searchQuery && (
-                  <button onClick={() => setSearchQuery('')} className="p-3 mr-2 text-slate-400 hover:text-white transition-colors">
+                  <button onClick={() => setSearchQuery('')} className="p-3 mr-2 text-slate-400 hover:text-white transition-colors cursor-pointer">
                     <X size={16} />
                   </button>
                 )}
               </motion.div>
             </div>
 
-            {/* HORIZONTAL FILTER PILLS & SORT CONTROL DECK */}
-            <div className={`w-full flex flex-col md:flex-row items-center justify-between gap-4 p-3 rounded-2xl backdrop-blur-xl border transition-colors ${isLightMode ? 'bg-white/80 border-slate-200 shadow-md' : 'bg-black/30 border-white/5 shadow-2xl'}`}>
-              
-              {/* Category Filter Pills */}
-              <div className="flex flex-wrap items-center gap-2">
-                {FILTERS.map((filter) => {
-                  const isActive = activeFilter === filter.id;
-                  const count = filterCounts[filter.id] ?? 0;
-                  return (
-                    <button
-                      key={filter.id}
-                      onClick={() => setActiveFilter(filter.id)}
-                      className={`relative px-4 py-2 rounded-xl flex items-center text-xs font-mono font-bold uppercase tracking-wider transition-all duration-300 group overflow-hidden ${
-                        isActive 
-                          ? (isLightMode ? 'text-white shadow-md' : 'text-black shadow-[0_0_20px_rgba(0,255,102,0.4)]')
-                          : (isLightMode ? 'text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 border border-slate-200' : 'text-slate-400 hover:text-white bg-slate-900/60 hover:bg-slate-800/80 border border-slate-800')
-                      }`}
-                    >
-                      {isActive && (
-                        <motion.div
-                          layoutId="activeFilterPill"
-                          className="absolute inset-0 bg-gradient-to-r from-[#00ff66] to-[#00f0ff] rounded-xl z-0"
-                          transition={ultraSmoothSpring}
-                        />
-                      )}
-                      <span className="relative z-10 flex items-center space-x-2">
-                        <filter.icon size={15} className={`shrink-0 ${isActive ? (isLightMode ? 'text-white' : 'text-black') : (isLightMode ? 'text-slate-500 group-hover:text-cyan-600' : 'text-cyan-400 group-hover:text-emerald-400')}`} />
-                        <span>{filter.label}</span>
-                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-mono ${
-                          isActive
-                            ? (isLightMode ? 'bg-black/20 text-white' : 'bg-black/20 text-black')
-                            : (isLightMode ? 'bg-slate-200 text-slate-700' : 'bg-slate-800 text-slate-300')
-                        }`}>
-                          {count}
-                        </span>
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Sorting Dropdown & Query Counter */}
-              <div className="flex items-center space-x-3 shrink-0 self-end md:self-auto">
-                <div className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-xl border font-mono text-xs font-bold uppercase tracking-wider ${isLightMode ? 'bg-slate-100 border-slate-300 text-slate-700' : 'bg-slate-900/80 border-slate-700 text-slate-200'}`}>
-                  <ArrowUpDown size={14} className="text-[#00ff66]" />
-                  <span className={textSecondary}>Sort:</span>
-                  <select
-                    value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value as any)}
-                    className={`bg-transparent focus:outline-none cursor-pointer font-bold uppercase ${textPrimary}`}
-                  >
-                    <option value="latest" className={isLightMode ? "bg-white text-black" : "bg-[#050b14] text-white"}>Latest</option>
-                    <option value="oldest" className={isLightMode ? "bg-white text-black" : "bg-[#050b14] text-white"}>Oldest</option>
-                    <option value="az" className={isLightMode ? "bg-white text-black" : "bg-[#050b14] text-white"}>Title (A-Z)</option>
-                  </select>
-                </div>
-
-                {(searchQuery || activeFilter !== 'all') && (
-                  <button
-                    onClick={() => { setSearchQuery(''); setActiveFilter('all'); }}
-                    className={`text-[11px] font-mono underline uppercase tracking-wider transition-colors ${isLightMode ? 'text-slate-500 hover:text-black' : 'text-slate-400 hover:text-white'}`}
-                  >
-                    Reset
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Results Counter Subtext */}
-            <div className="w-full mt-3 px-2 flex justify-between items-center text-[11px] font-mono">
-              <span className={textSecondary}>
-                Showing <strong className={textPrimary}>{filteredResources.length}</strong> indexed research artifact{filteredResources.length === 1 ? '' : 's'}
-              </span>
+            {/* Subtext info */}
+            <div className="mt-3 flex items-center space-x-3 text-[11px] font-mono">
+              <span className={textSecondary}>ARCHIVE STATUS: <strong className="text-[#00ff66]">ONLINE</strong></span>
+              <span className={textSecondary}>|</span>
+              <span className={textSecondary}>TOTAL ARTIFACTS: <strong className={textPrimary}>{allResources.length}</strong></span>
               {searchQuery && (
-                <span className="text-cyan-400 font-mono">Matching: &quot;{searchQuery}&quot;</span>
+                <>
+                  <span className={textSecondary}>|</span>
+                  <span className="text-cyan-400 font-mono">Filter: &quot;{searchQuery}&quot;</span>
+                </>
               )}
             </div>
 
@@ -533,7 +483,7 @@ export default function MasterResearchVault() {
             </div>
             
             <div className="flex flex-col md:flex-row h-[420px] gap-4 lg:gap-6 w-full justify-center [perspective:2000px]" onMouseEnter={() => setIsHoveringRecent(true)} onMouseLeave={() => setIsHoveringRecent(false)}>
-              {filteredRecent.length > 0 ? filteredRecent.map((item) => {
+              {showcaseRecent.length > 0 ? showcaseRecent.map((item: any) => {
                 const isActive = activeRecent === item.id;
                 return (
                   <motion.div
@@ -644,51 +594,145 @@ export default function MasterResearchVault() {
             </div>
           </motion.section>
 
-          {/* ARTWORK 1: ALL RESOURCES (STAGGERED 3D REVEAL) */}
-          <motion.section initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} variants={staggerContainer} className="mb-20">
-            <div className="flex items-center space-x-3 mb-8">
-              <Database className="text-[#00ff66]" size={24} />
-              <h2 className={`text-3xl font-black uppercase tracking-widest ${textPrimary}`}>Research Directory</h2>
-            </div>
+          {/* ARTWORK 1: RESEARCH DIRECTORY (WITH DIRECT FILTER & SORT CONTROLS) */}
+          <section className="mb-24 relative z-20">
+            {/* Header with Title and Active Count */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+              <div className="flex items-center space-x-3">
+                <Database className="text-[#00ff66]" size={26} />
+                <h2 className={`text-3xl font-black uppercase tracking-widest ${textPrimary}`}>Research Directory</h2>
+                <span className="px-3 py-1 rounded-full text-xs font-mono font-bold bg-[#00ff66]/10 text-[#00ff66] border border-[#00ff66]/30">
+                  {filteredResources.length} {filteredResources.length === 1 ? 'Item' : 'Items'}
+                </span>
+              </div>
 
-            <div className="flex flex-col space-y-4">
-              {filteredResources.length > 0 ? filteredResources.map((res) => (
-                <motion.div 
-                  key={res.id} 
-                  onClick={() => router.push(`/research/${res.id}`)} 
-                  variants={spatialReveal} 
-                  className={`group relative w-full h-28 rounded-2xl overflow-hidden border transition-colors duration-500 cursor-pointer ${cardBg} hover:border-[#00ff66]/50`}
-                >
-                  <div className="absolute inset-0 flex items-center justify-between px-6 lg:px-10 transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:-translate-x-full">
-                    <h3 className={`text-xl md:text-2xl font-black tracking-widest uppercase whitespace-nowrap ${textSecondary}`}>{res.title}</h3>
-                    <div className="hidden md:flex">
-                       <span className={`text-[10px] uppercase font-mono tracking-widest px-3 py-1 rounded ${isLightMode ? 'bg-slate-100 text-slate-500' : 'bg-slate-800 text-slate-400'}`}>{res.tech}</span>
-                    </div>
-                  </div>
-
-                  <div className={`absolute inset-0 flex items-center justify-between px-6 lg:px-10 translate-x-full transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:translate-x-0 ${isLightMode ? 'bg-green-50' : 'bg-[#00ff66]/5'}`}>
-                    <div className="flex items-center space-x-8 w-full">
-                      <h3 className={`text-lg md:text-xl font-black tracking-tighter uppercase whitespace-nowrap min-w-[250px] ${isLightMode ? 'text-green-600' : 'text-[#00ff66]'}`}>{res.title}</h3>
-                      <div className={`hidden lg:block w-px h-10 ${isLightMode ? 'bg-slate-300' : 'bg-slate-800'}`}></div>
-                      <p className={`hidden lg:block text-xs font-mono max-w-lg truncate ${textSecondary}`}>{res.desc}</p>
-                      <div className="flex space-x-3 ml-auto shrink-0">
-                        <span className={`text-[10px] uppercase font-bold tracking-widest border px-3 py-1.5 rounded ${isLightMode ? 'border-cyan-300 text-cyan-600 bg-cyan-50' : 'border-[#00f0ff]/30 text-[#00f0ff] bg-[#00f0ff]/10'}`}>
-                          {res.status}
-                        </span>
-                      </div>
-                    </div>
-                    <div className={`hidden md:flex ml-6 shrink-0 w-10 h-10 rounded-full border items-center justify-center transition-all duration-300 ${isLightMode ? 'border-green-500 text-green-500 group-hover:bg-green-500 group-hover:text-white' : 'border-[#00ff66] text-[#00ff66] group-hover:bg-[#00ff66] group-hover:text-black'}`}>
-                      <ArrowUpRight size={16} />
-                    </div>
-                  </div>
-                </motion.div>
-              )) : (
-                <div className={`w-full py-16 flex items-center justify-center rounded-3xl border border-dashed ${isLightMode ? 'border-slate-300' : 'border-slate-800'}`}>
-                  <p className={`font-mono text-sm tracking-widest uppercase ${textSecondary}`}>NO RESOURCES MATCH YOUR QUERY.</p>
+              {/* Sorting & Reset Actions */}
+              <div className="flex items-center space-x-3 shrink-0">
+                <div className={`flex items-center space-x-2 px-3.5 py-2 rounded-xl border font-mono text-xs font-bold uppercase tracking-wider shadow-sm ${isLightMode ? 'bg-white border-slate-300 text-slate-700' : 'bg-slate-900/90 border-slate-700 text-slate-200'}`}>
+                  <ArrowUpDown size={14} className="text-[#00ff66]" />
+                  <span className={textSecondary}>Sort:</span>
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value as any)}
+                    className={`bg-transparent focus:outline-none cursor-pointer font-bold uppercase ${textPrimary}`}
+                  >
+                    <option value="latest" className={isLightMode ? "bg-white text-black" : "bg-[#050b14] text-white"}>Latest</option>
+                    <option value="oldest" className={isLightMode ? "bg-white text-black" : "bg-[#050b14] text-white"}>Oldest</option>
+                    <option value="az" className={isLightMode ? "bg-white text-black" : "bg-[#050b14] text-white"}>Title (A-Z)</option>
+                  </select>
                 </div>
-              )}
+
+                {(searchQuery || activeFilter !== 'all') && (
+                  <button
+                    onClick={() => { setSearchQuery(''); setActiveFilter('all'); }}
+                    className={`px-3 py-2 rounded-xl text-xs font-mono font-bold uppercase tracking-wider border transition-colors cursor-pointer ${isLightMode ? 'border-slate-300 text-slate-600 hover:bg-slate-100' : 'border-slate-800 text-slate-300 hover:bg-white/5'}`}
+                  >
+                    Reset Filters
+                  </button>
+                )}
+              </div>
             </div>
-          </motion.section>
+
+            {/* CATEGORY FILTER PILLS DECK - DIRECTLY ABOVE DIRECTORY */}
+            <div className={`w-full p-2.5 mb-6 rounded-2xl backdrop-blur-xl border flex flex-wrap items-center gap-2 transition-colors ${isLightMode ? 'bg-white/90 border-slate-200 shadow-sm' : 'bg-black/40 border-white/10 shadow-xl'}`}>
+              {FILTERS.map((filter) => {
+                const isActive = activeFilter === filter.id;
+                const count = filterCounts[filter.id] ?? 0;
+                return (
+                  <button
+                    key={filter.id}
+                    type="button"
+                    onClick={() => setActiveFilter(filter.id)}
+                    className={`relative px-4 py-2.5 rounded-xl flex items-center text-xs font-mono font-bold uppercase tracking-wider transition-all duration-200 group overflow-hidden cursor-pointer ${
+                      isActive 
+                        ? (isLightMode ? 'text-black shadow-md font-black' : 'text-black shadow-[0_0_20px_rgba(0,255,102,0.4)] font-black')
+                        : (isLightMode ? 'text-slate-600 hover:text-slate-900 bg-slate-100/80 hover:bg-slate-200/90 border border-slate-200' : 'text-slate-400 hover:text-white bg-slate-900/60 hover:bg-slate-800/80 border border-slate-800')
+                    }`}
+                  >
+                    {isActive && (
+                      <motion.div
+                        layoutId="activeFilterPillDirectory"
+                        className="absolute inset-0 bg-gradient-to-r from-[#00ff66] to-[#00f0ff] rounded-xl z-0"
+                        transition={ultraSmoothSpring}
+                      />
+                    )}
+                    <span className="relative z-10 flex items-center space-x-2">
+                      <filter.icon size={15} className={`shrink-0 ${isActive ? 'text-black' : (isLightMode ? 'text-slate-500 group-hover:text-cyan-600' : 'text-cyan-400 group-hover:text-emerald-400')}`} />
+                      <span>{filter.label}</span>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-mono ${
+                        isActive
+                          ? 'bg-black/20 text-black font-black'
+                          : (isLightMode ? 'bg-slate-200 text-slate-700' : 'bg-slate-800 text-slate-300')
+                      }`}>
+                        {count}
+                      </span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* DIRECTORY ITEMS LIST WITH SMOOTH ANIMATEPRESENCE (NO OPACITY 0 FREEZE) */}
+            <div className="flex flex-col space-y-4 min-h-[200px]">
+              <AnimatePresence mode="popLayout" initial={false}>
+                {filteredResources.length > 0 ? (
+                  filteredResources.map((res) => (
+                    <motion.div 
+                      key={res.id}
+                      layout
+                      initial={{ opacity: 0, y: 15 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.98, transition: { duration: 0.15 } }}
+                      transition={{ duration: 0.25, ease: "easeOut" }}
+                      onClick={() => router.push(`/research/${res.id}`)} 
+                      className={`group relative w-full h-28 rounded-2xl overflow-hidden border transition-colors duration-500 cursor-pointer ${cardBg} hover:border-[#00ff66]/50`}
+                    >
+                      <div className="absolute inset-0 flex items-center justify-between px-6 lg:px-10 transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:-translate-x-full">
+                        <div className="flex flex-col justify-center max-w-[70%]">
+                          <h3 className={`text-lg md:text-xl font-black tracking-wider uppercase truncate ${textPrimary}`}>{res.title}</h3>
+                          <span className="text-[10px] font-mono text-[#00ff66] tracking-widest uppercase mt-1">{res.createdDate ? `Published: ${res.createdDate}` : 'Archive Indexed'}</span>
+                        </div>
+                        <div className="hidden md:flex">
+                           <span className={`text-[10px] uppercase font-mono tracking-widest px-3 py-1 rounded ${isLightMode ? 'bg-slate-100 text-slate-600 border border-slate-200' : 'bg-slate-800 text-slate-300 border border-slate-700'}`}>{res.tech}</span>
+                        </div>
+                      </div>
+
+                      <div className={`absolute inset-0 flex items-center justify-between px-6 lg:px-10 translate-x-full transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:translate-x-0 ${isLightMode ? 'bg-green-50' : 'bg-[#00ff66]/5'}`}>
+                        <div className="flex items-center space-x-6 w-full">
+                          <h3 className={`text-base md:text-lg font-black tracking-tight uppercase whitespace-nowrap min-w-[240px] max-w-[320px] truncate ${isLightMode ? 'text-green-700' : 'text-[#00ff66]'}`}>{res.title}</h3>
+                          <div className={`hidden lg:block w-px h-10 ${isLightMode ? 'bg-slate-300' : 'bg-slate-800'}`}></div>
+                          <p className={`hidden lg:block text-xs font-mono max-w-lg truncate ${textSecondary}`}>{res.desc}</p>
+                          <div className="flex space-x-3 ml-auto shrink-0">
+                            <span className={`text-[10px] uppercase font-bold tracking-widest border px-3 py-1.5 rounded ${isLightMode ? 'border-cyan-300 text-cyan-600 bg-cyan-50' : 'border-[#00f0ff]/30 text-[#00f0ff] bg-[#00f0ff]/10'}`}>
+                              {res.status}
+                            </span>
+                          </div>
+                        </div>
+                        <div className={`hidden md:flex ml-6 shrink-0 w-10 h-10 rounded-full border items-center justify-center transition-all duration-300 ${isLightMode ? 'border-green-600 text-green-600 group-hover:bg-green-600 group-hover:text-white' : 'border-[#00ff66] text-[#00ff66] group-hover:bg-[#00ff66] group-hover:text-black'}`}>
+                          <ArrowUpRight size={16} />
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))
+                ) : (
+                  <motion.div 
+                    initial={{ opacity: 0 }} 
+                    animate={{ opacity: 1 }} 
+                    exit={{ opacity: 0 }}
+                    className={`w-full py-16 flex flex-col items-center justify-center rounded-3xl border border-dashed gap-3 ${isLightMode ? 'border-slate-300 bg-slate-50' : 'border-slate-800 bg-black/20'}`}
+                  >
+                    <p className={`font-mono text-sm tracking-widest uppercase ${textSecondary}`}>NO RESOURCES MATCH YOUR QUERY IN THIS CATEGORY.</p>
+                    <button
+                      onClick={() => { setSearchQuery(''); setActiveFilter('all'); }}
+                      className="px-4 py-2 rounded-xl text-xs font-mono font-bold uppercase tracking-wider bg-gradient-to-r from-[#00ff66] to-[#00f0ff] text-black shadow-md hover:scale-105 transition-transform cursor-pointer"
+                    >
+                      Reset All Filters
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          </section>
 
         </div>
         <Footer isLight={isLightMode} currentRole="user" />
