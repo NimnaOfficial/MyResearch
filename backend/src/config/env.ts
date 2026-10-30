@@ -59,7 +59,7 @@ export const validateEnv = (): void => {
     throw new Error('Invalid server configuration. See errors above.');
   }
 
-  if (!process.env.EMAIL_RELAY_URL && !process.env.EMAIL_USER) {
-    console.warn('[CONFIG] Neither EMAIL_RELAY_URL nor EMAIL_USER is set. Email dispatch may fail.');
+  if (!process.env.RESEND_API_KEY && !process.env.EMAIL_RELAY_URL && !process.env.EMAIL_USER) {
+    console.warn('[CONFIG] Neither RESEND_API_KEY, EMAIL_RELAY_URL, nor EMAIL_USER is set. Email dispatch may fail.');
   }
 };
