@@ -452,7 +452,8 @@ export default function ResearchDetailPage() {
         document.body.removeChild(a);
         setTimeout(() => window.URL.revokeObjectURL(url), 2000); 
       } else {
-        alert("PDF Compilation Failed. Ensure backend Puppeteer engine is running.");
+        const errorData = await res.json().catch(() => null);
+        alert(errorData?.message || "PDF Compilation Failed. Please try again.");
       }
     } catch (error) {
       console.warn("PDF Download gracefully interrupted. Check your network.", error);

@@ -27,6 +27,7 @@
     "@types/multer": "^2.1.0",
     "@types/node": "^25.9.1",
     "@types/nodemailer": "^8.0.0",
+    "@types/pdfkit": "^0.17.7",
     "@types/pg": "^8.20.0",
     "nodemon": "^3.1.14",
     "prisma": "^7.8.0",
@@ -48,6 +49,7 @@
     "multer": "^2.1.1",
     "multer-storage-cloudinary": "^4.0.0",
     "nodemailer": "^8.0.10",
+    "pdfkit": "^0.20.2",
     "pg": "^8.21.0",
     "puppeteer": "^25.1.0"
   },

@@ -33,6 +33,8 @@ services:
         sync: false
       - key: ADMIN_PASSWORD
         sync: false
+      - key: USE_NATIVE_PDF
+        value: "true"
       - key: USE_CLOUDINARY
         value: "false"
       - key: CLOUDINARY_CLOUD_NAME
